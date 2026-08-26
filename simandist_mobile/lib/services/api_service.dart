@@ -5,20 +5,13 @@ import 'package:http/http.dart' as http;
 class ApiService {
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: '',
+    defaultValue: 'https://script.google.com/macros/s/AKfycbxi45JX9sm_sgeLvXzI6KZsvJAlzaWhjtfT6p2W51vqwvp-TY7gAsXC9PA-Q_HZYp0o3Q/exec',
   );
-
-  static void _assertConfigured() {
-    if (baseUrl.isEmpty || !baseUrl.endsWith('/exec')) {
-      throw StateError('API belum dikonfigurasi. Jalankan dengan --dart-define=API_BASE_URL=URL_EXEC_APPS_SCRIPT');
-    }
-  }
 
   static Future<http.Response> _postAppsScriptJson(
     Map<String, dynamic> payload, {
     Duration timeout = const Duration(seconds: 30),
   }) async {
-    _assertConfigured();
     final uri = Uri.parse('$baseUrl?mobile=1');
     final client = http.Client();
     try {
@@ -54,22 +47,19 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> login(String username, String password) async {
-    final response = await _postAppsScriptJson({
+    return _decode(await _postAppsScriptJson({
       'action': 'login',
       'username': username,
       'password': password,
-    });
-    return _decode(response);
+    }));
   }
 
   static Future<Map<String, dynamic>> cekSesi(String token) async {
-    _assertConfigured();
     final uri = Uri.parse('$baseUrl?mobile=1&action=cekSesi&token=${Uri.encodeComponent(token)}');
     return _decode(await http.get(uri).timeout(const Duration(seconds: 15)));
   }
 
   static Future<Map<String, dynamic>> logout(String token) async {
-    _assertConfigured();
     final uri = Uri.parse('$baseUrl?mobile=1&action=logout&token=${Uri.encodeComponent(token)}');
     return _decode(await http.get(uri).timeout(const Duration(seconds: 15)));
   }
