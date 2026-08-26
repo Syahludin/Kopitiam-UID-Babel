@@ -36,22 +36,14 @@ class ApiService {
 
   static Map<String, dynamic> _decode(http.Response response) {
     final body = response.body.trim();
-    if (body.isEmpty) return {'success': false, 'message': 'Respons API kosong (HTTP ${response.statusCode}).'};
-    try {
-      final decoded = jsonDecode(body);
-      if (decoded is Map) return Map<String, dynamic>.from(decoded);
-      return {'success': false, 'message': 'Format respons API tidak valid.'};
-    } catch (_) {
-      return {'success': false, 'message': 'Backend tidak mengirim JSON valid.'};
-    }
+    if (body.isEmpty) throw StateError('Respons API kosong (HTTP ${response.statusCode}).');
+    final decoded = jsonDecode(body);
+    if (decoded is Map) return Map<String, dynamic>.from(decoded);
+    throw StateError('Format respons API tidak valid.');
   }
 
   static Future<Map<String, dynamic>> login(String username, String password) async {
-    return _decode(await _postAppsScriptJson({
-      'action': 'login',
-      'username': username,
-      'password': password,
-    }));
+    return _decode(await _postAppsScriptJson({'action': 'login', 'username': username, 'password': password}));
   }
 
   static Future<Map<String, dynamic>> cekSesi(String token) async {

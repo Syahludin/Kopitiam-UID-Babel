@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api_service.dart';
+import '../services/local_auth_service.dart';
 
 class AppColors {
   static const navy950 = Color(0xFF071B30);
@@ -103,27 +104,41 @@ class _LoginSheetState extends State<_LoginSheet> {
   void dispose() { _userCtrl.dispose(); _passCtrl.dispose(); super.dispose(); }
 
   Future<void> _handleLogin() async {
-    if (_userCtrl.text.trim().isEmpty || _passCtrl.text.isEmpty) {
+    final username = _userCtrl.text.trim();
+    final password = _passCtrl.text;
+    if (username.isEmpty || password.isEmpty) {
       setState(() => _error = 'Username dan kata sandi wajib diisi.');
       return;
     }
     setState(() { _loading = true; _error = null; });
     try {
-      final result = await ApiService.login(_userCtrl.text.trim(), _passCtrl.text);
+      final result = await ApiService.login(username, password);
       if (!mounted) return;
       if (result['success'] == true) {
         final prefs = await SharedPreferences.getInstance();
         for (final key in ['token','username','role','kodeUiw','kodeUp3','kodeUlp','ulp','bidang','tim','subTim','aksesMenu']) {
           await prefs.setString(key, (result[key] ?? '').toString());
         }
+        await LocalAuthService.saveAfterOnlineLogin(username: username, password: password, profile: result);
         if (!mounted) return;
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Selamat datang, ${result['username']}')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Login online berhasil, ${result['username']}')));
       } else {
         setState(() => _error = (result['message'] ?? 'Login gagal.').toString());
       }
-    } catch (e) {
-      if (mounted) setState(() => _error = e.toString().replaceFirst('Bad state: ', ''));
+    } catch (_) {
+      final offline = await LocalAuthService.verifyOffline(username: username, password: password);
+      if (!mounted) return;
+      if (offline != null) {
+        final prefs = await SharedPreferences.getInstance();
+        for (final entry in offline.entries) {
+          if (entry.key != 'success') await prefs.setString(entry.key, entry.value.toString());
+        }
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mode offline aktif. Data lokal digunakan.')));
+      } else {
+        setState(() => _error = 'Tidak dapat terhubung ke API dan akun ini belum tersimpan untuk mode offline.');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -142,7 +157,7 @@ class _LoginSheetState extends State<_LoginSheet> {
             const Text('Masuk ke akun', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.neutral900)),
             IconButton(icon: const Icon(Icons.close, size: 18), onPressed: () => Navigator.pop(context)),
           ]),
-          const Text('Gunakan akun yang terdaftar di PLN UID Babel.', style: TextStyle(fontSize: 13, color: AppColors.neutral500)),
+          const Text('Online saat pertama kali login, offline setelah akun tersimpan.', style: TextStyle(fontSize: 13, color: AppColors.neutral500)),
           const SizedBox(height: 20),
           if (_error != null) ...[
             Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: AppColors.red100, borderRadius: BorderRadius.circular(11)), child: Row(children: [const Icon(Icons.error_outline, color: AppColors.red600, size: 16), const SizedBox(width: 9), Expanded(child: Text(_error!, style: const TextStyle(fontSize: 12, color: AppColors.red600)))])),
