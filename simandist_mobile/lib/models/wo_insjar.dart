@@ -102,9 +102,8 @@ class WoInsjar {
       }
       return '';
     }
-    final kmsText = '${row['Realisasi kmS'] ?? row['realisasiKms'] ?? ''}'
-        .replaceAll(',', '.')
-        .trim();
+    final rawKms = row['Realisasi kmS'] ?? row['realisasiKms'];
+    final kmsText = '${rawKms ?? ''}'.replaceAll(',', '.').trim();
     return WoInsjar(
       no: pick(['No', 'no']),
       kodeWo: pick(['Kode WO', 'kodeWo']),
@@ -120,7 +119,9 @@ class WoInsjar {
       section: pick(['Section', 'section']),
       koordinatAwal: pick(['Koordinat Awal', 'koordinatAwal']),
       koordinatAkhir: pick(['Koordinat Akhir', 'koordinatAkhir']),
-      realisasiKms: kmsText.isEmpty ? null : double.tryParse(kmsText),
+      realisasiKms: rawKms is num
+          ? rawKms.toDouble()
+          : (kmsText.isEmpty ? null : double.tryParse(kmsText)),
       waktuMulai: pick(['Waktu Mulai', 'waktuMulai']),
       waktuSelesai: pick(['Waktu Selesai', 'waktuSelesai']),
       durasiPekerjaan: pick(['Durasi Pekerjaan', 'durasiPekerjaan']),
@@ -166,7 +167,7 @@ class WoInsjar {
         'Section': section,
         'Koordinat Awal': koordinatAwal,
         'Koordinat Akhir': koordinatAkhir,
-        'Realisasi kmS': realisasiKms?.toStringAsFixed(3) ?? '',
+        'Realisasi kmS': realisasiKms,
         'Waktu Mulai': waktuMulai,
         'Waktu Selesai': waktuSelesai,
         'Durasi Pekerjaan': durasiPekerjaan,
