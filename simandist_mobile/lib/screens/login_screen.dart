@@ -28,12 +28,12 @@ class AppColors {
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
-  void _showSafetyWelcome(BuildContext context, Map<String, dynamic> sesi) {
+  void _showSafetyWelcome(BuildContext context, Map<String, dynamic> session) {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       barrierColor: AppColors.navy950.withValues(alpha: .72),
-      builder: (_) => _SafetyWelcomeDialog(sesi: sesi),
+      builder: (_) => _SafetyWelcomeDialog(session: session),
     );
   }
 
@@ -47,16 +47,16 @@ class LoginScreen extends StatelessWidget {
             const Positioned(top: 12, right: 20, child: _PlnBadge()),
             Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
+                padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(
+                    SvgPicture.asset(
+                      'assets/icons/logo_app.svg',
                       width: 132,
                       height: 132,
-                      child: SvgPicture.asset('assets/icons/logo_app.svg'),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
                     const Text.rich(
                       TextSpan(
                         children: [
@@ -83,9 +83,12 @@ class LoginScreen extends StatelessWidget {
                         color: AppColors.neutral500,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
                     Container(
-                      padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 7,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.navy100,
                         borderRadius: BorderRadius.circular(100),
@@ -95,7 +98,7 @@ class LoginScreen extends StatelessWidget {
                         children: [
                           Icon(
                             Icons.location_on,
-                            size: 12,
+                            size: 13,
                             color: AppColors.amber600,
                           ),
                           SizedBox(width: 6),
@@ -111,7 +114,7 @@ class LoginScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 44),
+                    const SizedBox(height: 36),
                     SizedBox(
                       width: 260,
                       height: 54,
@@ -119,10 +122,11 @@ class LoginScreen extends StatelessWidget {
                         onPressed: () => showModalBottomSheet<void>(
                           context: context,
                           isScrollControlled: true,
+                          useSafeArea: true,
                           backgroundColor: Colors.transparent,
                           builder: (_) => _LoginSheet(
-                            onVerified: (sesi) =>
-                                _showSafetyWelcome(context, sesi),
+                            onVerified: (session) =>
+                                _showSafetyWelcome(context, session),
                           ),
                         ),
                         icon: const Icon(Icons.login, size: 18),
@@ -139,7 +143,7 @@ class LoginScreen extends StatelessWidget {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(15),
                           ),
-                          elevation: 4,
+                          elevation: 3,
                         ),
                       ),
                     ),
@@ -148,9 +152,9 @@ class LoginScreen extends StatelessWidget {
               ),
             ),
             const Positioned(
-              bottom: 20,
-              left: 0,
-              right: 0,
+              bottom: 18,
+              left: 16,
+              right: 16,
               child: Text(
                 'Sistem Manajemen Distribusi © 2026 · PLN UID Babel',
                 textAlign: TextAlign.center,
@@ -201,22 +205,22 @@ class _LoginSheet extends StatefulWidget {
 }
 
 class _LoginSheetState extends State<_LoginSheet> {
-  final _userCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
   String? _error;
 
   @override
   void dispose() {
-    _userCtrl.dispose();
-    _passCtrl.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _handleLogin() async {
-    final username = _userCtrl.text.trim();
-    final password = _passCtrl.text;
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
     if (username.isEmpty || password.isEmpty) {
       setState(() => _error = 'Username dan kata sandi wajib diisi.');
       return;
@@ -236,24 +240,7 @@ class _LoginSheetState extends State<_LoginSheet> {
         );
         return;
       }
-
-      final prefs = await SharedPreferences.getInstance();
-      for (final key in [
-        'token',
-        'deviceToken',
-        'username',
-        'role',
-        'kodeUiw',
-        'kodeUp3',
-        'kodeUlp',
-        'ulp',
-        'bidang',
-        'tim',
-        'subTim',
-        'aksesMenu',
-      ]) {
-        await prefs.setString(key, (result[key] ?? '').toString());
-      }
+      await _saveSession(result);
       await LocalAuthService.saveAfterOnlineLogin(
         username: username,
         password: password,
@@ -275,13 +262,7 @@ class _LoginSheetState extends State<_LoginSheet> {
         );
         return;
       }
-
-      final prefs = await SharedPreferences.getInstance();
-      for (final entry in offline.entries) {
-        if (entry.key != 'success') {
-          await prefs.setString(entry.key, entry.value.toString());
-        }
-      }
+      await _saveSession(offline);
       if (!mounted) return;
       Navigator.of(context).pop();
       widget.onVerified(offline);
@@ -290,257 +271,261 @@ class _LoginSheetState extends State<_LoginSheet> {
     }
   }
 
+  Future<void> _saveSession(Map<String, dynamic> session) async {
+    final prefs = await SharedPreferences.getInstance();
+    for (final key in [
+      'token',
+      'deviceToken',
+      'username',
+      'role',
+      'kodeUiw',
+      'kodeUp3',
+      'kodeUlp',
+      'ulp',
+      'bidang',
+      'tim',
+      'subTim',
+      'aksesMenu',
+    ]) {
+      await prefs.setString(key, (session[key] ?? '').toString());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final inset = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: inset),
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      padding: EdgeInsets.only(bottom: bottomInset),
       child: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
-        child: SafeArea(
-          top: false,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(30, 12, 30, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 5,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.neutral300,
-                      borderRadius: BorderRadius.circular(100),
-                    ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 18),
+                  decoration: BoxDecoration(
+                    color: AppColors.neutral300,
+                    borderRadius: BorderRadius.circular(100),
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 22),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFFF7FCFF), Colors.white],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.navy100),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.navy700.withValues(alpha: .08),
-                        blurRadius: 18,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
+              ),
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFF7FCFF), Colors.white],
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 38,
-                                height: 38,
-                                decoration: BoxDecoration(
-                                  color: AppColors.navy700,
-                                  borderRadius: BorderRadius.circular(11),
-                                ),
-                                child: const Icon(
-                                  Icons.lock_open_rounded,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              const Text(
-                                'Masuk ke akun',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.neutral900,
-                                ),
-                              ),
-                            ],
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close, size: 18),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      const Padding(
-                        padding: EdgeInsets.only(left: 48),
-                        child: Text(
-                          'Masukkan Akun yang Terdaftar (Format Akun <Kode ULP>.<Tim>)',
-                          style: TextStyle(
-                            fontSize: 13,
-                            height: 1.35,
-                            color: AppColors.neutral500,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      if (_error != null) ...[
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.navy100),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.navy700.withValues(alpha: .07),
+                      blurRadius: 18,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          width: 42,
+                          height: 42,
                           decoration: BoxDecoration(
-                            color: AppColors.red100,
+                            color: AppColors.navy700,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.error_outline,
-                                color: AppColors.red600,
-                                size: 17,
-                              ),
-                              const SizedBox(width: 9),
-                              Expanded(
-                                child: Text(
-                                  _error!,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.red600,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          child: const Icon(
+                            Icons.lock_open_rounded,
+                            color: Colors.white,
+                            size: 21,
                           ),
                         ),
-                        const SizedBox(height: 16),
-                      ],
-                      const Text(
-                        'Username',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.navy900,
-                        ),
-                      ),
-                      const SizedBox(height: 7),
-                      _field(
-                        _userCtrl,
-                        'Masukkan username',
-                        Icons.person_outline,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Kata sandi',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.navy900,
-                        ),
-                      ),
-                      const SizedBox(height: 7),
-                      _field(
-                        _passCtrl,
-                        'Masukkan kata sandi',
-                        Icons.lock_outline,
-                        obscure: _obscure,
-                        suffix: IconButton(
-                          icon: Icon(
-                            _obscure
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                            size: 18,
-                          ),
-                          onPressed: () =>
-                              setState(() => _obscure = !_obscure),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: _loading ? null : _handleLogin,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _loading
-                                ? AppColors.neutral300
-                                : AppColors.amber600,
-                            foregroundColor: AppColors.navy950,
-                            disabledForegroundColor: AppColors.neutral500,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Masuk ke akun',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.neutral900,
                             ),
-                            elevation: 0,
                           ),
-                          child: _loading
-                              ? const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 19,
-                                      height: 19,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.5,
-                                        color: AppColors.navy700,
-                                      ),
-                                    ),
-                                    SizedBox(width: 10),
-                                    Text(
-                                      'Verifikasi Akun',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : const Text(
-                                  'Masuk',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                        ),
+                        IconButton(
+                          tooltip: 'Tutup',
+                          icon: const Icon(Icons.close, size: 20),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Masukkan akun terdaftar dengan format <Kode ULP>.<Tim>.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.45,
+                        color: AppColors.neutral500,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    if (_error != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.red100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: AppColors.red600,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 9),
+                            Expanded(
+                              child: Text(
+                                _error!,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.red600,
                                 ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 14),
-                      const Center(
-                        child: Text(
-                          'Data kamu terenkripsi dan hanya dapat diakses oleh tim berwenang.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.neutral500,
-                          ),
-                        ),
-                      ),
+                      const SizedBox(height: 18),
                     ],
-                  ),
+                    _fieldLabel('Username'),
+                    const SizedBox(height: 7),
+                    _field(
+                      controller: _usernameController,
+                      hint: 'Contoh: 16130.InsJar',
+                      icon: Icons.person_outline,
+                    ),
+                    const SizedBox(height: 18),
+                    _fieldLabel('Kata sandi'),
+                    const SizedBox(height: 7),
+                    _field(
+                      controller: _passwordController,
+                      hint: 'Masukkan kata sandi',
+                      icon: Icons.lock_outline,
+                      obscure: _obscure,
+                      suffix: IconButton(
+                        icon: Icon(
+                          _obscure
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          size: 19,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscure = !_obscure),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    SizedBox(
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _loading ? null : _handleLogin,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _loading
+                              ? AppColors.neutral300
+                              : AppColors.amber600,
+                          foregroundColor: AppColors.navy950,
+                          disabledForegroundColor: AppColors.neutral500,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: _loading
+                            ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 19,
+                                    height: 19,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: AppColors.navy700,
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    'Verifikasi Akun',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const Text(
+                                'Masuk',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Data kamu terenkripsi dan hanya dapat diakses oleh tim berwenang.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11,
+                        height: 1.4,
+                        color: AppColors.neutral500,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _field(
-    TextEditingController controller,
-    String hint,
-    IconData icon, {
+  Widget _fieldLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w800,
+        color: AppColors.navy900,
+      ),
+    );
+  }
+
+  Widget _field({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
     bool obscure = false,
     Widget? suffix,
   }) {
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F7FC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFD7E6F2), width: 1.4),
-      ),
+    return SizedBox(
+      height: 52,
       child: TextField(
         controller: controller,
         obscureText: obscure,
@@ -549,15 +534,33 @@ class _LoginSheetState extends State<_LoginSheet> {
           hintText: hint,
           hintStyle: const TextStyle(
             color: AppColors.neutral500,
-            fontSize: 15,
+            fontSize: 14,
           ),
-          prefixIcon: Icon(icon, size: 18, color: AppColors.neutral500),
+          prefixIcon: Icon(icon, size: 19, color: AppColors.neutral500),
           suffixIcon: suffix,
-          border: InputBorder.none,
-          isDense: true,
+          filled: true,
+          fillColor: const Color(0xFFF1F7FC),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(13),
+            borderSide: const BorderSide(color: Color(0xFFD7E6F2)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(13),
+            borderSide: const BorderSide(
+              color: Color(0xFFD7E6F2),
+              width: 1.4,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(13),
+            borderSide: const BorderSide(
+              color: AppColors.navy700,
+              width: 1.6,
+            ),
+          ),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,
-            vertical: 14,
+            vertical: 15,
           ),
         ),
       ),
@@ -566,9 +569,9 @@ class _LoginSheetState extends State<_LoginSheet> {
 }
 
 class _SafetyWelcomeDialog extends StatefulWidget {
-  final Map<String, dynamic> sesi;
+  final Map<String, dynamic> session;
 
-  const _SafetyWelcomeDialog({required this.sesi});
+  const _SafetyWelcomeDialog({required this.session});
 
   @override
   State<_SafetyWelcomeDialog> createState() => _SafetyWelcomeDialogState();
@@ -606,7 +609,7 @@ class _SafetyWelcomeDialogState extends State<_SafetyWelcomeDialog> {
     if (!_canClose) return;
     final navigator = Navigator.of(context);
     final route = MaterialPageRoute<void>(
-      builder: (_) => DashboardScreen(sesi: widget.sesi),
+      builder: (_) => DashboardScreen(sesi: widget.session),
     );
     navigator.pop();
     navigator.pushReplacement(route);
@@ -614,8 +617,9 @@ class _SafetyWelcomeDialogState extends State<_SafetyWelcomeDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final subTim =
-        (widget.sesi['subTim'] ?? widget.sesi['tim'] ?? 'Petugas').toString();
+    final subTeam =
+        (widget.session['subTim'] ?? widget.session['tim'] ?? 'Petugas')
+            .toString();
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 28),
@@ -682,7 +686,7 @@ class _SafetyWelcomeDialogState extends State<_SafetyWelcomeDialog> {
                 borderRadius: BorderRadius.circular(13),
               ),
               child: Text(
-                subTim,
+                subTeam,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 15,
