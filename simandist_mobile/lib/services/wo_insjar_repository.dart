@@ -51,47 +51,27 @@ class WoInsjarRepository {
     final db = await _db.database;
     final values = wo.copyWith(isDirty: tandaiDirty).toMap()
       ..['synced_at'] = DateTime.now().toUtc().toIso8601String();
-    await db.insert(table, values,
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      table,
+      values,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<void> mulaiPengerjaan(String kodeWo) async {
     final db = await _db.database;
     await db.update(
       table,
-      {
-        'status_wo': WoInsjar.statusDalam,
-        'is_dirty': 1,
-      },
+      {'status_wo': WoInsjar.statusDalam, 'is_dirty': 1},
       where: 'kode_wo = ? AND status_wo = ?',
       whereArgs: [kodeWo, WoInsjar.statusMulai],
     );
   }
 
-  Future<String> buatKodeWo({
-    required String kodeUlp,
-    required DateTime tanggal,
-  }) async {
-    String two(int value) => value.toString().padLeft(2, '0');
-    final stamp =
-        '${two(tanggal.year % 100)}${two(tanggal.month)}${two(tanggal.day)}';
-    final prefix = 'INSJAR-$kodeUlp$stamp';
-    final db = await _db.database;
-    final rows = await db.rawQuery(
-      'SELECT kode_wo FROM $table WHERE kode_wo LIKE ? ORDER BY kode_wo DESC',
-      ['$prefix%'],
-    );
-    var urutan = 0;
-    for (final row in rows) {
-      final kode = '${row['kode_wo'] ?? ''}';
-      if (kode.length < prefix.length + 3) continue;
-      final angka = int.tryParse(kode.substring(prefix.length)) ?? 0;
-      if (angka > urutan) urutan = angka;
-    }
-    return '$prefix${(urutan + 1).toString().padLeft(3, '0')}';
-  }
-
+  /// Membuka database sebelum request API memastikan tabel wo_insjar selalu
+  /// dibangun ketika pengguna menekan Download WO, termasuk pada unduhan pertama.
   Future<WoSyncResult> download(String token) async {
+    final db = await _db.database;
     final response = await ApiService.getWoInsjar(token);
     if (response['success'] != true || response['rows'] is! List) {
       return WoSyncResult(
@@ -102,13 +82,15 @@ class WoInsjarRepository {
     }
 
     final rows = response['rows'] as List;
-    final db = await _db.database;
     var ditambahkan = 0;
+    final syncTime = DateTime.now().toUtc().toIso8601String();
+
     await db.transaction((txn) async {
       for (final row in rows) {
         if (row is! Map) continue;
         final remote = WoInsjar.fromRemote(Map<String, dynamic>.from(row));
         if (remote.kodeWo.isEmpty) continue;
+
         final ada = await txn.query(
           table,
           columns: ['kode_wo'],
@@ -117,15 +99,29 @@ class WoInsjarRepository {
           limit: 1,
         );
         if (ada.isNotEmpty) continue;
-        await txn.insert(
-          table,
-          remote.copyWith(statusWo: WoInsjar.normalisasiStatus(remote.statusWo))
-              .toMap()
-            ..['synced_at'] = DateTime.now().toUtc().toIso8601String(),
-        );
+
+        final values = remote
+            .copyWith(statusWo: WoInsjar.normalisasiStatus(remote.statusWo))
+            .toMap()
+          ..['synced_at'] = syncTime
+          ..['is_dirty'] = 0;
+        await txn.insert(table, values);
         ditambahkan++;
       }
+
+      await txn.insert(
+        'sync_metadata',
+        {
+          'key': 'WO_Ins_Jar',
+          'synced_at': syncTime,
+          'row_count': rows.length,
+          'status': 'success',
+          'error_message': '',
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
     });
+
     return WoSyncResult(total: rows.length, diproses: ditambahkan);
   }
 
@@ -134,8 +130,11 @@ class WoInsjarRepository {
     if (pending.isEmpty) {
       return const WoSyncResult(total: 0, diproses: 0);
     }
-    final response =
-        await ApiService.syncWoInsjar(token, pending.map((wo) => wo.toRemote()).toList());
+
+    final response = await ApiService.syncWoInsjar(
+      token,
+      pending.map((wo) => wo.toRemote()).toList(),
+    );
     if (response['success'] != true) {
       return WoSyncResult(
         total: pending.length,
@@ -143,6 +142,7 @@ class WoInsjarRepository {
         pesan: (response['message'] ?? 'Sinkronisasi WO gagal.').toString(),
       );
     }
+
     final db = await _db.database;
     final now = DateTime.now().toUtc().toIso8601String();
     await db.transaction((txn) async {
@@ -155,6 +155,7 @@ class WoInsjarRepository {
         );
       }
     });
+
     final terkirim = (response['diproses'] as num?)?.toInt() ?? pending.length;
     return WoSyncResult(total: pending.length, diproses: terkirim);
   }
