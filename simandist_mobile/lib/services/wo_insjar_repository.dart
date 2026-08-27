@@ -10,7 +10,12 @@ class WoSyncResult {
   final int total;
   final int diproses;
   final String? pesan;
-  const WoSyncResult({required this.total, required this.diproses, this.pesan});
+
+  const WoSyncResult({
+    required this.total,
+    required this.diproses,
+    this.pesan,
+  });
 }
 
 class WoInsjarRepository {
@@ -68,8 +73,31 @@ class WoInsjarRepository {
     );
   }
 
-  /// Membuka database sebelum request API memastikan tabel wo_insjar selalu
-  /// dibangun ketika pengguna menekan Download WO, termasuk pada unduhan pertama.
+  /// Membentuk INSJAR-<Kode ULP><YYMMDD><NNN>.
+  Future<String> buatKodeWo({
+    required String kodeUlp,
+    required DateTime tanggal,
+  }) async {
+    String two(int value) => value.toString().padLeft(2, '0');
+    final datePart =
+        '${two(tanggal.year % 100)}${two(tanggal.month)}${two(tanggal.day)}';
+    final prefix = 'INSJAR-$kodeUlp$datePart';
+    final db = await _db.database;
+    final rows = await db.rawQuery(
+      'SELECT kode_wo FROM $table WHERE kode_wo LIKE ? ORDER BY kode_wo DESC',
+      ['$prefix%'],
+    );
+
+    var highest = 0;
+    for (final row in rows) {
+      final code = '${row['kode_wo'] ?? ''}';
+      if (!code.startsWith(prefix)) continue;
+      final sequence = int.tryParse(code.substring(prefix.length)) ?? 0;
+      if (sequence > highest) highest = sequence;
+    }
+    return '$prefix${(highest + 1).toString().padLeft(3, '0')}';
+  }
+
   Future<WoSyncResult> download(String token) async {
     final db = await _db.database;
     final response = await ApiService.getWoInsjar(token);
@@ -91,14 +119,14 @@ class WoInsjarRepository {
         final remote = WoInsjar.fromRemote(Map<String, dynamic>.from(row));
         if (remote.kodeWo.isEmpty) continue;
 
-        final ada = await txn.query(
+        final existing = await txn.query(
           table,
           columns: ['kode_wo'],
           where: 'kode_wo = ?',
           whereArgs: [remote.kodeWo],
           limit: 1,
         );
-        if (ada.isNotEmpty) continue;
+        if (existing.isNotEmpty) continue;
 
         final values = remote
             .copyWith(statusWo: WoInsjar.normalisasiStatus(remote.statusWo))
@@ -156,8 +184,9 @@ class WoInsjarRepository {
       }
     });
 
-    final terkirim = (response['diproses'] as num?)?.toInt() ?? pending.length;
-    return WoSyncResult(total: pending.length, diproses: terkirim);
+    final processed =
+        (response['diproses'] as num?)?.toInt() ?? pending.length;
+    return WoSyncResult(total: pending.length, diproses: processed);
   }
 
   Future<List<String>> daftarPenyulang() async {
@@ -168,7 +197,7 @@ class WoInsjarRepository {
       where: 'dataset = ?',
       whereArgs: ['Master_Penyulang'],
     );
-    final hasil = <String>{};
+    final result = <String>{};
     for (final row in rows) {
       try {
         final payload = jsonDecode('${row['payload_json']}');
@@ -176,12 +205,14 @@ class WoInsjarRepository {
         for (final key in ['Nama Penyulang', 'Penyulang', 'nama_penyulang']) {
           final value = '${payload[key] ?? ''}'.trim();
           if (value.isNotEmpty) {
-            hasil.add(value);
+            result.add(value);
             break;
           }
         }
-      } catch (_) {}
+      } catch (_) {
+        continue;
+      }
     }
-    return hasil.toList()..sort();
+    return result.toList()..sort();
   }
 }

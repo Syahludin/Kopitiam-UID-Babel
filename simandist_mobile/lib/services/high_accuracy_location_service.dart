@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:geolocator/geolocator.dart';
 
-/// Hasil pengambilan titik dengan metadata akurasi.
 class LocationFix {
   final double latitude;
   final double longitude;
@@ -26,11 +25,6 @@ class LocationFix {
   String get accuracyLabel => '${accuracy.toStringAsFixed(1)} m';
 }
 
-/// Mengambil koordinat perangkat dengan strategi multi-sampling.
-///
-/// Alur: satu pembacaan awal, lalu hingga 30 sampel dari position stream.
-/// Sampel dengan akurasi terkecil dipakai, dan proses langsung dihentikan
-/// (lock) begitu ada sampel dengan akurasi di bawah 5 meter.
 class HighAccuracyLocationService {
   static const double lockAccuracy = 5;
   static const int maxSamples = 30;
@@ -40,12 +34,17 @@ class HighAccuracyLocationService {
     if (!await Geolocator.isLocationServiceEnabled()) {
       throw StateError('Layanan lokasi perangkat belum aktif.');
     }
+
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
+    if (permission == LocationPermission.deniedForever) {
+      throw StateError(
+        'Izin lokasi ditolak permanen. Aktifkan melalui pengaturan aplikasi.',
+      );
+    }
+    if (permission == LocationPermission.denied) {
       throw StateError('Izin lokasi belum diberikan untuk aplikasi ini.');
     }
   }
@@ -63,7 +62,10 @@ class HighAccuracyLocationService {
       if (best == null || position.accuracy < best!.accuracy) {
         best = position;
       }
-      onSample?.call(samples, best!.accuracy);
+      final currentBest = best;
+      if (currentBest != null) {
+        onSample?.call(samples, currentBest.accuracy);
+      }
     }
 
     try {
@@ -74,17 +76,20 @@ class HighAccuracyLocationService {
         ),
       );
       consider(initial);
+    } on TimeoutException {
+      // Stream berikutnya tetap mencoba pembacaan GPS.
     } catch (_) {
-      // Pembacaan pertama boleh gagal; stream di bawah tetap dicoba.
+      // Provider awal bisa belum siap; stream berikutnya tetap dicoba.
     }
 
-    if (best != null && best!.accuracy <= lockAccuracy) {
-      return _toFix(best!, samples, true);
+    final initialBest = best;
+    if (initialBest != null && initialBest.accuracy <= lockAccuracy) {
+      return _toFix(initialBest, samples, true);
     }
 
     final completer = Completer<void>();
-    StreamSubscription<Position>? subscription;
-    Timer? deadline;
+    late final StreamSubscription<Position> subscription;
+    late final Timer deadline;
 
     void finish() {
       if (!completer.isCompleted) completer.complete();
@@ -105,16 +110,18 @@ class HighAccuracyLocationService {
       onError: (_) => finish(),
       cancelOnError: false,
     );
-
     deadline = Timer(maxDuration, finish);
 
-    await completer.future;
-    await subscription.cancel();
-    deadline.cancel();
+    try {
+      await completer.future;
+    } finally {
+      deadline.cancel();
+      await subscription.cancel();
+    }
 
     final result = best;
     if (result == null) {
-      throw StateError('Koordinat tidak terbaca. Coba di area terbuka.');
+      throw StateError('Koordinat tidak terbaca. Coba lagi di area terbuka.');
     }
     return _toFix(result, samples, result.accuracy <= lockAccuracy);
   }
@@ -130,14 +137,13 @@ class HighAccuracyLocationService {
     );
   }
 
-  /// Jarak antar dua koordinat dalam kilometer.
   static double distanceKm(LocationFix start, LocationFix end) {
-    final meters = Geolocator.distanceBetween(
-      start.latitude,
-      start.longitude,
-      end.latitude,
-      end.longitude,
-    );
-    return meters / 1000;
+    return Geolocator.distanceBetween(
+          start.latitude,
+          start.longitude,
+          end.latitude,
+          end.longitude,
+        ) /
+        1000;
   }
 }
