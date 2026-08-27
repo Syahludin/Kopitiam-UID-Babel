@@ -13,8 +13,6 @@ class ApiService {
 
   static const _redirectCodes = {301, 302, 303, 307, 308};
 
-  /// ContentService Apps Script memindahkan respons JSON ke googleusercontent.
-  /// Redirect ditangani manual agar package http tidak menganggap rantainya loop.
   static Future<http.Response> _getAppsScript(
     Uri initialUri, {
     Duration timeout = const Duration(seconds: 30),
@@ -28,16 +26,13 @@ class ApiService {
         if (!visited.add(current.toString())) {
           throw StateError('Redirect API berulang pada alamat yang sama.');
         }
-
         final request = http.Request('GET', current)
           ..followRedirects = false
           ..headers['Accept'] = 'application/json'
           ..headers['Cache-Control'] = 'no-cache';
         final streamed = await client.send(request).timeout(timeout);
         final response = await http.Response.fromStream(streamed);
-
         if (!_redirectCodes.contains(response.statusCode)) return response;
-
         final location = response.headers['location'];
         if (location == null || location.trim().isEmpty) {
           throw StateError(
@@ -47,6 +42,35 @@ class ApiService {
         current = current.resolve(location.trim());
       }
       throw StateError('Redirect API terlalu banyak. Periksa deployment Apps Script.');
+    } finally {
+      client.close();
+    }
+  }
+
+  static Future<http.Response> _postAppsScript(
+    Map<String, dynamic> payload, {
+    Duration timeout = const Duration(seconds: 90),
+  }) async {
+    final client = http.Client();
+    try {
+      final uri = Uri.parse(baseUrl);
+      final request = http.Request('POST', uri)
+        ..followRedirects = false
+        ..headers['Content-Type'] = 'application/json'
+        ..body = jsonEncode(payload);
+      final streamed = await client.send(request).timeout(timeout);
+      var response = await http.Response.fromStream(streamed);
+
+      var hop = 0;
+      while (_redirectCodes.contains(response.statusCode) && hop < 5) {
+        final location = response.headers['location'];
+        if (location == null || location.trim().isEmpty) break;
+        response = await client
+            .get(uri.resolve(location.trim()))
+            .timeout(timeout);
+        hop++;
+      }
+      return response;
     } finally {
       client.close();
     }
@@ -70,14 +94,12 @@ class ApiService {
     String password,
   ) async {
     final device = await DeviceSessionService.deviceName();
-    final uri = Uri.parse(baseUrl).replace(
-      queryParameters: {
-        'action': 'loginPerangkat',
-        'username': username,
-        'password': password,
-        'perangkat': device,
-      },
-    );
+    final uri = Uri.parse(baseUrl).replace(queryParameters: {
+      'action': 'loginPerangkat',
+      'username': username,
+      'password': password,
+      'perangkat': device,
+    });
     final result = _decode(await _getAppsScript(uri));
     if (result['success'] == true && result['deviceToken'] != null) {
       await DeviceSessionService.save(
@@ -97,32 +119,46 @@ class ApiService {
         'message': 'Belum ada sesi perangkat.',
       };
     }
-    final uri = Uri.parse(baseUrl).replace(
-      queryParameters: {
-        'action': 'cekPerangkat',
-        'deviceToken': deviceToken,
-      },
-    );
+    final uri = Uri.parse(baseUrl).replace(queryParameters: {
+      'action': 'cekPerangkat',
+      'deviceToken': deviceToken,
+    });
     final result = _decode(await _getAppsScript(uri));
     if (result['success'] == true) {
-      await DeviceSessionService.save(
-        deviceToken: deviceToken,
-        profile: result,
-      );
+      await DeviceSessionService.save(deviceToken: deviceToken, profile: result);
     }
     return result;
   }
 
   static Future<Map<String, dynamic>> getMasterData(String token) async {
-    final uri = Uri.parse(baseUrl).replace(
-      queryParameters: {
-        'action': 'getMasterData',
-        'token': token,
-      },
-    );
+    final uri = Uri.parse(baseUrl).replace(queryParameters: {
+      'action': 'getMasterData',
+      'token': token,
+    });
     return _decode(
       await _getAppsScript(uri, timeout: const Duration(seconds: 90)),
     );
+  }
+
+  static Future<Map<String, dynamic>> getWoInsjar(String token) async {
+    final uri = Uri.parse(baseUrl).replace(queryParameters: {
+      'action': 'getWoInsjar',
+      'token': token,
+    });
+    return _decode(
+      await _getAppsScript(uri, timeout: const Duration(seconds: 90)),
+    );
+  }
+
+  static Future<Map<String, dynamic>> syncWoInsjar(
+    String token,
+    List<Map<String, dynamic>> rows,
+  ) async {
+    return _decode(await _postAppsScript({
+      'action': 'syncWoInsjar',
+      'token': token,
+      'rows': rows,
+    }));
   }
 
   static Future<Map<String, dynamic>> logoutPerangkat({
@@ -130,23 +166,18 @@ class ApiService {
   }) async {
     final deviceToken = await DeviceSessionService.token();
     try {
-      final uri = Uri.parse(baseUrl).replace(
-        queryParameters: {
-          'action': 'logoutPerangkat',
-          'deviceToken': deviceToken,
-          'token': token,
-        },
-      );
+      final uri = Uri.parse(baseUrl).replace(queryParameters: {
+        'action': 'logoutPerangkat',
+        'deviceToken': deviceToken,
+        'token': token,
+      });
       return _decode(await _getAppsScript(uri));
     } finally {
       await DeviceSessionService.clear();
     }
   }
 
-  static Future<Map<String, dynamic>> login(
-    String username,
-    String password,
-  ) =>
+  static Future<Map<String, dynamic>> login(String username, String password) =>
       loginPerangkat(username, password);
 
   static Future<Map<String, dynamic>> cekSesi(String token) => cekPerangkat();
