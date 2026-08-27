@@ -110,8 +110,8 @@ class _DashboardScreenState extends State<DashboardScreen>
         await _resultDialog(
           title: 'Download WO Selesai',
           count: hasil.diproses,
-          label: 'WO baru ditambahkan ke server lokal',
-          note: '${hasil.total} WO dibaca dari WO_Ins_Jar.',
+          label: 'WO baru ditambahkan',
+          note: '${hasil.total} WO Sudah dimasukkan.',
           icon: Icons.cloud_download_rounded,
         );
       }
@@ -137,10 +137,10 @@ class _DashboardScreenState extends State<DashboardScreen>
         await _resultDialog(
           title: 'Sinkronisasi WO Selesai',
           count: hasil.diproses,
-          label: 'WO dikirim ke spreadsheet',
+          label: 'WO Sudah Sinkron',
           note: hasil.total == 0
-              ? 'Tidak ada perubahan lokal yang menunggu.'
-              : '${hasil.total} WO lokal diproses.',
+              ? 'Tidak ada WO yang Belum Sinkron.'
+              : '${hasil.total} WO Telah diSinkronkan.',
           icon: Icons.cloud_upload_rounded,
         );
       }
@@ -167,14 +167,21 @@ class _DashboardScreenState extends State<DashboardScreen>
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('$count',
-                style: const TextStyle(
-                    fontSize: 40, fontWeight: FontWeight.w800, color: navy700)),
+            Text(
+              '$count',
+              style: const TextStyle(
+                fontSize: 40,
+                fontWeight: FontWeight.w800,
+                color: navy700,
+              ),
+            ),
             Text(label, textAlign: TextAlign.center),
             const SizedBox(height: 8),
-            Text(note,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 11, color: neutral500)),
+            Text(
+              note,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11, color: neutral500),
+            ),
           ],
         ),
         actions: [
@@ -198,10 +205,13 @@ class _DashboardScreenState extends State<DashboardScreen>
       if (!mounted) return;
       setState(() => _progress = .6);
       if (result['success'] != true || result['datasets'] is! Map) {
-        throw StateError((result['message'] ?? 'Data master tidak valid.').toString());
+        throw StateError(
+          (result['message'] ?? 'Data master tidak valid.').toString(),
+        );
       }
-      await SqliteService.instance
-          .replaceMasterData(Map<String, dynamic>.from(result['datasets']));
+      await SqliteService.instance.replaceMasterData(
+        Map<String, dynamic>.from(result['datasets']),
+      );
       if (!mounted) return;
       setState(() {
         _progress = 1;
@@ -252,10 +262,16 @@ class _DashboardScreenState extends State<DashboardScreen>
         foregroundColor: Colors.white,
         title: Row(
           children: [
-            SvgPicture.asset('assets/icons/logo_app.svg', width: 38, height: 38),
+            SvgPicture.asset(
+              'assets/icons/logo_app.svg',
+              width: 38,
+              height: 38,
+            ),
             const SizedBox(width: 10),
-            Text(_labels[_selectedIndex],
-                style: const TextStyle(fontWeight: FontWeight.w800)),
+            Text(
+              _labels[_selectedIndex],
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
           ],
         ),
       ),
@@ -274,13 +290,23 @@ class _DashboardScreenState extends State<DashboardScreen>
       padding: const EdgeInsets.all(18),
       children: [
         const Text('Selamat datang,', style: TextStyle(color: neutral500)),
-        Text(username,
-            style: const TextStyle(
-                fontSize: 24, fontWeight: FontWeight.w800, color: navy950)),
+        Text(
+          username,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: navy950,
+          ),
+        ),
         const SizedBox(height: 20),
-        const Text('Data Work Order',
-            style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w800, color: navy700)),
+        const Text(
+          'Data Work Order',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: navy700,
+          ),
+        ),
         const SizedBox(height: 10),
         Card(
           elevation: 0,
@@ -306,7 +332,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                       child: ElevatedButton.icon(
                         onPressed: _woBusy ? null : _syncWo,
                         icon: const Icon(Icons.cloud_upload_outlined),
-                        label: Text(dirty > 0 ? 'Sinkron ($dirty)' : 'Sinkron WO'),
+                        label: Text(
+                          dirty > 0 ? 'Sinkron ($dirty)' : 'Sinkron WO',
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: navy700,
                           foregroundColor: Colors.white,
@@ -345,8 +373,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                 children: [
                   Icon(Icons.assignment_outlined, size: 42, color: navy700),
                   SizedBox(height: 12),
-                  Text('Belum ada WO lokal',
-                      style: TextStyle(fontWeight: FontWeight.w800)),
+                  Text(
+                    'Belum ada WO lokal',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
                   SizedBox(height: 5),
                   Text(
                     'Gunakan Download WO pada menu Beranda.',
@@ -369,8 +399,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     final color = status == WoInsjar.statusSelesai
         ? green100
         : status == WoInsjar.statusDalam
-            ? blueCard
-            : Colors.white;
+        ? blueCard
+        : Colors.white;
 
     final card = Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -382,8 +412,8 @@ class _DashboardScreenState extends State<DashboardScreen>
           color: status == WoInsjar.statusSelesai
               ? const Color(0xFF86CFA5)
               : status == WoInsjar.statusDalam
-                  ? const Color(0xFF8BC5E8)
-                  : neutral200,
+              ? const Color(0xFF8BC5E8)
+              : neutral200,
         ),
       ),
       child: Column(
@@ -392,25 +422,37 @@ class _DashboardScreenState extends State<DashboardScreen>
           Row(
             children: [
               Expanded(
-                child: Text(wo.kodeWo,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800, color: navy950)),
+                child: Text(
+                  wo.kodeWo,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: navy950,
+                  ),
+                ),
               ),
-              Text(status,
-                  style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: status == WoInsjar.statusSelesai
-                          ? green600
-                          : status == WoInsjar.statusDalam
-                              ? navy700
-                              : neutral500)),
+              Text(
+                status,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: status == WoInsjar.statusSelesai
+                      ? green600
+                      : status == WoInsjar.statusDalam
+                      ? navy700
+                      : neutral500,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 9),
-          Text(wo.penyulang,
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w800, color: navy950)),
+          Text(
+            wo.penyulang,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: navy950,
+            ),
+          ),
           const SizedBox(height: 4),
           Text(
             '${wo.tanggal} • ${wo.sectionAwal} → ${wo.sectionAkhir}',
@@ -454,12 +496,19 @@ class _DashboardScreenState extends State<DashboardScreen>
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
-        const Text('Data & Server Lokal',
-            style: TextStyle(
-                fontSize: 24, fontWeight: FontWeight.w800, color: navy950)),
+        const Text(
+          'Data & Server Lokal',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: navy950,
+          ),
+        ),
         const SizedBox(height: 5),
-        const Text('Kelola master data agar aplikasi siap digunakan saat offline.',
-            style: TextStyle(color: neutral500)),
+        const Text(
+          'Kelola master data agar aplikasi siap digunakan saat offline.',
+          style: TextStyle(color: neutral500),
+        ),
         const SizedBox(height: 22),
         Card(
           elevation: 0,
@@ -473,17 +522,25 @@ class _DashboardScreenState extends State<DashboardScreen>
               children: [
                 Row(
                   children: [
-                    SvgPicture.asset('assets/icons/pengaturan.svg',
-                        width: 44, height: 44),
+                    SvgPicture.asset(
+                      'assets/icons/pengaturan.svg',
+                      width: 44,
+                      height: 44,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Text(title,
-                          style: const TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.w800)),
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
-                    Text(time,
-                        style:
-                            const TextStyle(fontSize: 10, color: neutral500)),
+                    Text(
+                      time,
+                      style: const TextStyle(fontSize: 10, color: neutral500),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 18),
@@ -500,10 +557,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ),
                 if (_syncing) ...[
                   const SizedBox(height: 14),
-                  LinearProgressIndicator(
-                    value: _progress,
-                    color: cyan500,
-                  ),
+                  LinearProgressIndicator(value: _progress, color: cyan500),
                 ],
               ],
             ),
@@ -529,8 +583,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                 AnimatedBuilder(
                   animation: _bubbleController,
                   builder: (_, __) {
-                    final x = centerFor(_previousIndex) +
-                        (centerFor(_selectedIndex) - centerFor(_previousIndex)) *
+                    final x =
+                        centerFor(_previousIndex) +
+                        (centerFor(_selectedIndex) -
+                                centerFor(_previousIndex)) *
                             _bubbleController.value;
                     return CustomPaint(
                       size: Size(width, 82),
@@ -541,8 +597,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                 AnimatedBuilder(
                   animation: _bubbleController,
                   builder: (_, __) {
-                    final x = centerFor(_previousIndex) +
-                        (centerFor(_selectedIndex) - centerFor(_previousIndex)) *
+                    final x =
+                        centerFor(_previousIndex) +
+                        (centerFor(_selectedIndex) -
+                                centerFor(_previousIndex)) *
                             _bubbleController.value;
                     return Positioned(
                       left: x - 29,
@@ -575,12 +633,15 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 child: _navIcon(index, false),
                               ),
                               const SizedBox(height: 6),
-                              Text(_labels[index],
-                                  style: TextStyle(
-                                      fontWeight: active
-                                          ? FontWeight.w800
-                                          : FontWeight.w500,
-                                      color: active ? navy700 : neutral500)),
+                              Text(
+                                _labels[index],
+                                style: TextStyle(
+                                  fontWeight: active
+                                      ? FontWeight.w800
+                                      : FontWeight.w500,
+                                  color: active ? navy700 : neutral500,
+                                ),
+                              ),
                               const SizedBox(height: 9),
                             ],
                           ),
@@ -606,8 +667,11 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (index == 1) {
       return Icon(Icons.home_rounded, size: size, color: color);
     }
-    return SvgPicture.asset('assets/icons/pengaturan.svg',
-        width: size, height: size);
+    return SvgPicture.asset(
+      'assets/icons/pengaturan.svg',
+      width: size,
+      height: size,
+    );
   }
 }
 
@@ -628,8 +692,11 @@ class _BubbleNavbarPainter extends CustomPainter {
     final fill = Path()
       ..moveTo(0, 0)
       ..lineTo(notchCenterX - reach, 0)
-      ..arcToPoint(Offset(notchCenterX + reach, 0),
-          radius: const Radius.circular(radius), clockwise: true)
+      ..arcToPoint(
+        Offset(notchCenterX + reach, 0),
+        radius: const Radius.circular(radius),
+        clockwise: true,
+      )
       ..lineTo(size.width, 0)
       ..lineTo(size.width, size.height)
       ..lineTo(0, size.height)
@@ -638,8 +705,11 @@ class _BubbleNavbarPainter extends CustomPainter {
     final outline = Path()
       ..moveTo(0, 0)
       ..lineTo(notchCenterX - reach, 0)
-      ..arcToPoint(Offset(notchCenterX + reach, 0),
-          radius: const Radius.circular(radius), clockwise: true)
+      ..arcToPoint(
+        Offset(notchCenterX + reach, 0),
+        radius: const Radius.circular(radius),
+        clockwise: true,
+      )
       ..lineTo(size.width, 0);
     canvas.drawPath(outline, line);
   }
