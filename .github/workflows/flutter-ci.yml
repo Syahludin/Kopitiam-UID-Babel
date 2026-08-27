@@ -3,12 +3,16 @@ name: Flutter CI
 on:
   push:
     branches: [main]
-    paths: ['simandist_mobile/**', '.github/workflows/flutter-ci.yml']
+    paths:
+      - 'simandist_mobile/**'
+      - '.github/workflows/flutter-ci.yml'
   pull_request:
-    paths: ['simandist_mobile/**', '.github/workflows/flutter-ci.yml']
+    paths:
+      - 'simandist_mobile/**'
+      - '.github/workflows/flutter-ci.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   analyze-test-build:
@@ -16,31 +20,23 @@ jobs:
     defaults:
       run:
         working-directory: simandist_mobile
+
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - run: flutter pub get
-      - name: Static analysis diagnostics
-        continue-on-error: true
-        run: flutter analyze 2>&1 | tee ../flutter-diagnostics.log
-      - name: Test diagnostics
-        continue-on-error: true
-        run: flutter test 2>&1 | tee -a ../flutter-diagnostics.log
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Static analysis
+        run: flutter analyze
+
+      - name: Tests
+        run: flutter test
+
       - name: Build debug APK
-        run: flutter build apk --debug 2>&1 | tee -a ../flutter-diagnostics.log
-      - name: Save diagnostics
-        if: github.event_name == 'pull_request'
-        working-directory: .
-        run: |
-          mkdir -p ci
-          cp flutter-diagnostics.log ci/flutter-diagnostics.log
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ci/flutter-diagnostics.log
-          git commit -m "chore: update Flutter diagnostics" || exit 0
-          git push origin HEAD:${{ github.head_ref }}
+        run: flutter build apk --debug
