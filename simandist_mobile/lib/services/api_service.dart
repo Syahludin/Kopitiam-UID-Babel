@@ -15,12 +15,11 @@ class ApiService {
 
   static Future<http.Response> _getAppsScript(
     Uri initialUri, {
-    Duration timeout = const Duration(seconds: 30),
+    Duration timeout = const Duration(seconds: 90),
   }) async {
     final client = http.Client();
     var current = initialUri;
     final visited = <String>{};
-
     try {
       for (var hop = 0; hop < 8; hop++) {
         if (!visited.add(current.toString())) {
@@ -35,23 +34,21 @@ class ApiService {
         if (!_redirectCodes.contains(response.statusCode)) return response;
         final location = response.headers['location'];
         if (location == null || location.trim().isEmpty) {
-          throw StateError(
-            'API mengirim redirect tanpa alamat tujuan (HTTP ${response.statusCode}).',
-          );
+          throw StateError('API mengirim redirect tanpa alamat tujuan.');
         }
         current = current.resolve(location.trim());
       }
-      throw StateError('Redirect API terlalu banyak. Periksa deployment Apps Script.');
+      throw StateError('Redirect API terlalu banyak.');
     } finally {
       client.close();
     }
   }
 
   static Future<http.Response> _postAppsScript(
-    Map<String, dynamic> payload, {
-    Duration timeout = const Duration(seconds: 90),
-  }) async {
+    Map<String, dynamic> payload,
+  ) async {
     final client = http.Client();
+    const timeout = Duration(seconds: 120);
     try {
       final uri = Uri.parse(baseUrl);
       final request = http.Request('POST', uri)
@@ -60,14 +57,11 @@ class ApiService {
         ..body = jsonEncode(payload);
       final streamed = await client.send(request).timeout(timeout);
       var response = await http.Response.fromStream(streamed);
-
       var hop = 0;
       while (_redirectCodes.contains(response.statusCode) && hop < 5) {
         final location = response.headers['location'];
         if (location == null || location.trim().isEmpty) break;
-        response = await client
-            .get(uri.resolve(location.trim()))
-            .timeout(timeout);
+        response = await client.get(uri.resolve(location.trim())).timeout(timeout);
         hop++;
       }
       return response;
@@ -89,18 +83,24 @@ class ApiService {
     throw StateError('Format respons API tidak valid.');
   }
 
+  static Future<Map<String, dynamic>> _getMap(
+    Map<String, String> parameters,
+  ) async {
+    final uri = Uri.parse(baseUrl).replace(queryParameters: parameters);
+    return _decode(await _getAppsScript(uri));
+  }
+
   static Future<Map<String, dynamic>> loginPerangkat(
     String username,
     String password,
   ) async {
     final device = await DeviceSessionService.deviceName();
-    final uri = Uri.parse(baseUrl).replace(queryParameters: {
+    final result = await _getMap({
       'action': 'loginPerangkat',
       'username': username,
       'password': password,
       'perangkat': device,
     });
-    final result = _decode(await _getAppsScript(uri));
     if (result['success'] == true && result['deviceToken'] != null) {
       await DeviceSessionService.save(
         deviceToken: result['deviceToken'].toString(),
@@ -113,65 +113,60 @@ class ApiService {
   static Future<Map<String, dynamic>> cekPerangkat() async {
     final deviceToken = await DeviceSessionService.token();
     if (deviceToken.isEmpty) {
-      return {
-        'success': false,
-        'kode': 'TANPA_TOKEN',
-        'message': 'Belum ada sesi perangkat.',
-      };
+      return {'success': false, 'kode': 'TANPA_TOKEN'};
     }
-    final uri = Uri.parse(baseUrl).replace(queryParameters: {
+    return _getMap({
       'action': 'cekPerangkat',
       'deviceToken': deviceToken,
     });
-    final result = _decode(await _getAppsScript(uri));
-    if (result['success'] == true) {
-      await DeviceSessionService.save(deviceToken: deviceToken, profile: result);
-    }
-    return result;
   }
 
-  static Future<Map<String, dynamic>> getMasterData(String token) async {
-    final uri = Uri.parse(baseUrl).replace(queryParameters: {
-      'action': 'getMasterData',
-      'token': token,
-    });
-    return _decode(
-      await _getAppsScript(uri, timeout: const Duration(seconds: 90)),
-    );
-  }
+  static Future<Map<String, dynamic>> getMasterData(String token) =>
+      _getMap({'action': 'getMasterData', 'token': token});
 
-  static Future<Map<String, dynamic>> getWoInsjar(String token) async {
-    final uri = Uri.parse(baseUrl).replace(queryParameters: {
-      'action': 'getWoInsjar',
-      'token': token,
-    });
-    return _decode(
-      await _getAppsScript(uri, timeout: const Duration(seconds: 90)),
-    );
-  }
+  static Future<Map<String, dynamic>> getWoInsjar(String token) =>
+      _getMap({'action': 'getWoInsjar', 'token': token});
+
+  static Future<Map<String, dynamic>> getTemuan(
+    String token,
+    String kodeWo,
+  ) =>
+      _getMap({
+        'action': 'getTemuanInspeksi',
+        'token': token,
+        'kodeWo': kodeWo,
+      });
 
   static Future<Map<String, dynamic>> syncWoInsjar(
     String token,
     List<Map<String, dynamic>> rows,
-  ) async {
-    return _decode(await _postAppsScript({
-      'action': 'syncWoInsjar',
-      'token': token,
-      'rows': rows,
-    }));
-  }
+  ) async =>
+      _decode(await _postAppsScript({
+        'action': 'syncWoInsjar',
+        'token': token,
+        'rows': rows,
+      }));
+
+  static Future<Map<String, dynamic>> syncTemuan(
+    String token,
+    Map<String, dynamic> row,
+  ) async =>
+      _decode(await _postAppsScript({
+        'action': 'syncTemuanInspeksi',
+        'token': token,
+        'row': row,
+      }));
 
   static Future<Map<String, dynamic>> logoutPerangkat({
     String token = '',
   }) async {
     final deviceToken = await DeviceSessionService.token();
     try {
-      final uri = Uri.parse(baseUrl).replace(queryParameters: {
+      return await _getMap({
         'action': 'logoutPerangkat',
         'deviceToken': deviceToken,
         'token': token,
       });
-      return _decode(await _getAppsScript(uri));
     } finally {
       await DeviceSessionService.clear();
     }
