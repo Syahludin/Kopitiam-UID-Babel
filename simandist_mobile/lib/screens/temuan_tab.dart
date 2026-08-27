@@ -218,10 +218,10 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
   List<Map<String, dynamic>> listMaster = [];
   List<Map<String, dynamic>> pohonMaster = [];
   String kode = '';
-  String object = '';
-  String tier = 'Tier 1';
-  String temuan = '';
-  String pohon = '';
+  String object = 'Jaringan';
+  String? tier;
+  String? temuan;
+  String? pohon;
   LocationFix? gps;
   String foto = '';
   String lingkungan = '';
@@ -229,19 +229,43 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
   bool mengambilGps = false;
 
   bool get isVegetasi {
-    final t = temuan.toLowerCase();
+    final t = (temuan ?? '').toLowerCase();
     return t.contains('rabas') || t.contains('pangkas') || t.contains('tebang');
   }
 
+  String _cleanKey(String key) {
+    return key.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+
+  String _findValue(Map<String, dynamic> map, List<String> candidateKeys) {
+    for (final cand in candidateKeys) {
+      if (map.containsKey(cand) && '${map[cand] ?? ''}'.trim().isNotEmpty) {
+        return '${map[cand]}'.trim();
+      }
+    }
+    final normalizedCandidates = candidateKeys.map(_cleanKey).toSet();
+    for (final entry in map.entries) {
+      if (normalizedCandidates.contains(_cleanKey(entry.key)) && '${entry.value ?? ''}'.trim().isNotEmpty) {
+        return '${entry.value}'.trim();
+      }
+    }
+    return '';
+  }
+
   List<String> get temuanOptions {
+    if (tier == null || tier!.isEmpty) return [];
+
     return listMaster
         .where((row) {
-          final rowObject = '${row['Objek Inspeksi'] ?? row['Jenis Object'] ?? row['Object'] ?? ''}'.trim();
-          final rowTier = '${row['Tier'] ?? ''}'.trim();
-          return (rowObject.isEmpty || rowObject.toLowerCase() == object.toLowerCase()) &&
-              (rowTier.isEmpty || rowTier.toLowerCase() == tier.toLowerCase());
+          final rowObject = _findValue(row, ['Objek Inspeksi', 'Objek_Inspeksi', 'Jenis Object', 'Jenis_Object', 'Object']);
+          final rowTier = _findValue(row, ['Tier', 'tier']);
+
+          final matchObject = rowObject.toLowerCase() == object.toLowerCase();
+          final matchTier = rowTier.toLowerCase() == tier!.toLowerCase();
+
+          return matchObject && matchTier;
         })
-        .map((row) => '${row['Temuan'] ?? ''}'.trim())
+        .map((row) => _findValue(row, ['Temuan', 'Nama Temuan', 'temuan']))
         .where((value) => value.isNotEmpty)
         .toSet()
         .toList();
@@ -263,7 +287,8 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
 
   Future<void> _initialize() async {
     kode = await repo.kodeBaru(widget.wo.kodeWo);
-    object = repo.jenisObject(widget.sesi);
+    final determinedObject = repo.jenisObject(widget.sesi);
+    object = determinedObject.isNotEmpty ? determinedObject : 'Jaringan';
     listMaster = await repo.master('List_Temuan');
     pohonMaster = await repo.master('Jenis Pohon');
     if (mounted) setState(() {});
@@ -313,17 +338,22 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
   }
 
   String get calculatedPriority {
+    if (temuan == null || temuan!.isEmpty) return '';
     final distance = double.tryParse(jarakCtrl.text.replaceAll(',', '.'));
     final treeHeight = double.tryParse(tinggiCtrl.text.replaceAll(',', '.'));
-    return repo.prioritas(temuan, distance, treeHeight, listMaster);
+    return repo.prioritas(temuan!, distance, treeHeight, listMaster);
   }
 
   Future<void> _save() async {
+    if (tier == null || tier!.isEmpty) {
+      _message('Pilih Tier terlebih dahulu.');
+      return;
+    }
     final missingBase = segmenCtrl.text.trim().isEmpty ||
         gps == null ||
         object.isEmpty ||
-        tier.isEmpty ||
-        temuan.isEmpty ||
+        temuan == null ||
+        temuan!.isEmpty ||
         foto.isEmpty;
     if (missingBase) {
       _message('Lengkapi Segmen, Temuan, GPS, dan Foto Temuan.');
@@ -334,7 +364,7 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
         _message('Jarak terhadap jaringan wajib diisi.');
         return;
       }
-      if (pohon.isEmpty || tinggiCtrl.text.trim().isEmpty) {
+      if (pohon == null || pohon!.isEmpty || tinggiCtrl.text.trim().isEmpty) {
         _message('Jenis dan tinggi pohon wajib diisi untuk temuan vegetasi.');
         return;
       }
@@ -347,7 +377,7 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
       final treeHeight = double.tryParse(tinggiCtrl.text.replaceAll(',', '.'));
       final coordinate = gps!.coordinate.split(',');
       final priority = repo.prioritas(
-        temuan,
+        temuan!,
         distance,
         treeHeight,
         listMaster,
@@ -370,10 +400,10 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
         lat: coordinate.first.trim(),
         long: coordinate.length > 1 ? coordinate[1].trim() : '',
         jenisObject: object,
-        tier: tier,
-        temuan: temuan,
+        tier: tier!,
+        temuan: temuan!,
         jarak: isVegetasi ? distance : null,
-        jenisPohon: isVegetasi ? pohon : '',
+        jenisPohon: isVegetasi ? (pohon ?? '') : '',
         tinggiPohon: isVegetasi ? treeHeight : null,
         prioritas: priority,
         fotoTemuan: foto,
@@ -523,7 +553,7 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '⚡ ${widget.wo.penyulang} • ${widget.wo.ulp}',
+            widget.wo.ulp.isNotEmpty ? widget.wo.ulp : 'Toboali',
             style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 12, fontWeight: FontWeight.w500),
           ),
         ],
@@ -573,9 +603,31 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          const Text('Section (Terkunci)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
-          const SizedBox(height: 4),
-          _buildReadOnlyPill(widget.wo.section),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Penyulang (Terkunci)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+                    const SizedBox(height: 4),
+                    _buildReadOnlyPill(widget.wo.penyulang),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Section (Terkunci)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+                    const SizedBox(height: 4),
+                    _buildReadOnlyPill(widget.wo.section),
+                  ],
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           const Text('Segmen *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1E293B))),
           const SizedBox(height: 6),
@@ -596,6 +648,8 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
 
   Widget _buildKlasifikasiCard(List<String> treeOptions) {
     final priority = calculatedPriority;
+    final currentTemuanOptions = temuanOptions;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -620,16 +674,17 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
                     const Text('Tier *', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<String>(
-                      initialValue: tier,
+                      isExpanded: true,
+                      value: tier,
+                      hint: const Text('--Pilih Tier--', style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8))),
                       items: const [
-                        DropdownMenuItem(value: 'Tier 1', child: Text('Tier 1')),
-                        DropdownMenuItem(value: 'Tier 2', child: Text('Tier 2')),
+                        DropdownMenuItem(value: 'Tier 1', child: Text('Tier 1', style: TextStyle(fontSize: 13))),
+                        DropdownMenuItem(value: 'Tier 2', child: Text('Tier 2', style: TextStyle(fontSize: 13))),
                       ],
                       onChanged: (v) {
-                        if (v == null) return;
                         setState(() {
                           tier = v;
-                          temuan = '';
+                          temuan = null;
                         });
                       },
                       decoration: InputDecoration(
@@ -678,11 +733,14 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
           const SizedBox(height: 4),
           DropdownButtonFormField<String>(
             isExpanded: true,
-            initialValue: temuanOptions.contains(temuan) ? temuan : null,
-            items: temuanOptions.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontSize: 13)))).toList(),
-            onChanged: (v) => setState(() => temuan = v ?? ''),
+            value: (temuan != null && currentTemuanOptions.contains(temuan)) ? temuan : null,
+            hint: Text(
+              tier == null ? 'Pilih Tier terlebih dahulu' : 'Pilih Temuan',
+              style: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+            ),
+            items: currentTemuanOptions.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontSize: 13)))).toList(),
+            onChanged: tier == null ? null : (v) => setState(() => temuan = v),
             decoration: InputDecoration(
-              hintText: 'Pilih Temuan',
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             ),
@@ -749,11 +807,11 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
                       const SizedBox(height: 4),
                       DropdownButtonFormField<String>(
                         isExpanded: true,
-                        initialValue: treeOptions.contains(pohon) ? pohon : null,
+                        value: (pohon != null && treeOptions.contains(pohon)) ? pohon : null,
+                        hint: const Text('Pilih Jenis Pohon', style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8))),
                         items: treeOptions.map((p) => DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(fontSize: 13)))).toList(),
-                        onChanged: (v) => setState(() => pohon = v ?? ''),
+                        onChanged: (v) => setState(() => pohon = v),
                         decoration: InputDecoration(
-                          hintText: 'Pilih Jenis Pohon',
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                         ),
