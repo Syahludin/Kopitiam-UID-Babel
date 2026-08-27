@@ -108,7 +108,7 @@ class SqliteService {
           final payload = Map<String, dynamic>.from(row);
           batch.insert('master_data_rows', {
             'dataset': name,
-            'row_key': _rowKey(payload, index),
+            'row_key': index.toString(),
             'payload_json': jsonEncode(payload),
             'synced_at': now,
           }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -123,22 +123,6 @@ class SqliteService {
         }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
     });
-  }
-
-  String _rowKey(Map<String, dynamic> row, int index) {
-    for (final key in [
-      'No',
-      'ID',
-      'Kode',
-      'Username',
-      'username',
-      'Kode Penyulang',
-      'Kode Keypoint',
-    ]) {
-      final value = row[key]?.toString().trim() ?? '';
-      if (value.isNotEmpty) return value;
-    }
-    return index.toString();
   }
 
   Future<bool> hasMasterData() async {
