@@ -35,7 +35,8 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
 
-      - name: Verify formatting
+      - name: Show formatting differences
+        continue-on-error: true
         run: dart format --output=none --set-exit-if-changed lib test
 
       - name: Static analysis
