@@ -255,13 +255,21 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
   List<String> get temuanOptions {
     if (tier == null || tier!.isEmpty) return [];
 
-    return listMaster
+    final list = listMaster
         .where((row) {
-          final rowObject = _findValue(row, ['Objek Inspeksi', 'Objek_Inspeksi', 'Jenis Object', 'Jenis_Object', 'Object']);
+          final rowObject = _findValue(row, [
+            'Objek Inspeksi',
+            'Objek_Inspeksi',
+            'Jenis Object',
+            'Jenis_Object',
+            'Object',
+            'objek',
+            'object'
+          ]);
           final rowTier = _findValue(row, ['Tier', 'tier']);
 
-          final matchObject = rowObject.toLowerCase() == object.toLowerCase();
-          final matchTier = rowTier.toLowerCase() == tier!.toLowerCase();
+          final matchObject = rowObject.isEmpty || rowObject.toLowerCase().contains(object.toLowerCase()) || object.toLowerCase().contains(rowObject.toLowerCase());
+          final matchTier = rowTier.isEmpty || rowTier.toLowerCase() == tier!.toLowerCase();
 
           return matchObject && matchTier;
         })
@@ -269,6 +277,19 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
         .where((value) => value.isNotEmpty)
         .toSet()
         .toList();
+
+    if (list.isEmpty) {
+      return listMaster
+          .where((row) {
+            final rowTier = _findValue(row, ['Tier', 'tier']);
+            return rowTier.isEmpty || rowTier.toLowerCase() == tier!.toLowerCase();
+          })
+          .map((row) => _findValue(row, ['Temuan', 'Nama Temuan', 'temuan']))
+          .where((value) => value.isNotEmpty)
+          .toSet()
+          .toList();
+    }
+    return list;
   }
 
   @override
