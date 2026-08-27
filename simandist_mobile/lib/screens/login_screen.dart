@@ -609,7 +609,7 @@ class _SafetyWelcomeDialogState extends State<_SafetyWelcomeDialog> {
     if (!_canClose) return;
     final navigator = Navigator.of(context);
     final route = MaterialPageRoute<void>(
-      builder: (_) => DashboardScreen(session: widget.session),
+      builder: (_) => DashboardScreen(sesi: widget.session),
     );
     navigator.pop();
     navigator.pushReplacement(route);
