@@ -1,4 +1,9 @@
 class WoInsjar {
+  static const statusMulai = 'Mulai Pengerjaan';
+  static const statusDalam = 'Dalam Pengerjaan';
+  static const statusSelesai = 'Selesai';
+  static const statusValues = [statusMulai, statusDalam, statusSelesai];
+
   final int? id;
   final String no;
   final String kodeWo;
@@ -41,19 +46,29 @@ class WoInsjar {
     this.waktuMulai = '',
     this.waktuSelesai = '',
     this.durasiPekerjaan = '',
-    this.statusWo = 'Belum Dikerjakan',
+    this.statusWo = statusMulai,
     this.isDirty = false,
   });
 
   static const hariIndonesia = [
-    'Senin',
-    'Selasa',
-    'Rabu',
-    'Kamis',
-    'Jumat',
-    'Sabtu',
-    'Minggu',
+    'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu',
   ];
+  static const bulanIndonesia = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  ];
+
+  static String normalisasiStatus(Object? value) {
+    final status = '${value ?? ''}'.trim().toLowerCase();
+    if (status == statusSelesai.toLowerCase()) return statusSelesai;
+    if (status == statusDalam.toLowerCase() ||
+        status == 'dalam pengerjaan' ||
+        status == 'berjalan' ||
+        status == 'progress') {
+      return statusDalam;
+    }
+    return statusMulai;
+  }
 
   factory WoInsjar.fromMap(Map<String, Object?> map) => WoInsjar(
         id: map['id'] as int?,
@@ -75,16 +90,11 @@ class WoInsjar {
         waktuMulai: '${map['waktu_mulai'] ?? ''}',
         waktuSelesai: '${map['waktu_selesai'] ?? ''}',
         durasiPekerjaan: '${map['durasi_pekerjaan'] ?? ''}',
-        statusWo: '${map['status_wo'] ?? ''}',
+        statusWo: normalisasiStatus(map['status_wo']),
         isDirty: map['is_dirty'] == 1,
       );
 
   factory WoInsjar.fromRemote(Map<String, dynamic> row) {
-    double? parseKms(Object? value) {
-      final text = '${value ?? ''}'.replaceAll(',', '.').trim();
-      return text.isEmpty ? null : double.tryParse(text);
-    }
-
     String pick(List<String> keys) {
       for (final key in keys) {
         final value = '${row[key] ?? ''}'.trim();
@@ -92,7 +102,9 @@ class WoInsjar {
       }
       return '';
     }
-
+    final kmsText = '${row['Realisasi kmS'] ?? row['realisasiKms'] ?? ''}'
+        .replaceAll(',', '.')
+        .trim();
     return WoInsjar(
       no: pick(['No', 'no']),
       kodeWo: pick(['Kode WO', 'kodeWo']),
@@ -108,11 +120,11 @@ class WoInsjar {
       section: pick(['Section', 'section']),
       koordinatAwal: pick(['Koordinat Awal', 'koordinatAwal']),
       koordinatAkhir: pick(['Koordinat Akhir', 'koordinatAkhir']),
-      realisasiKms: parseKms(row['Realisasi kmS'] ?? row['realisasiKms']),
+      realisasiKms: kmsText.isEmpty ? null : double.tryParse(kmsText),
       waktuMulai: pick(['Waktu Mulai', 'waktuMulai']),
       waktuSelesai: pick(['Waktu Selesai', 'waktuSelesai']),
       durasiPekerjaan: pick(['Durasi Pekerjaan', 'durasiPekerjaan']),
-      statusWo: pick(['Status WO', 'statusWo']),
+      statusWo: normalisasiStatus(row['Status WO'] ?? row['statusWo']),
     );
   }
 
@@ -136,7 +148,7 @@ class WoInsjar {
         'waktu_mulai': waktuMulai,
         'waktu_selesai': waktuSelesai,
         'durasi_pekerjaan': durasiPekerjaan,
-        'status_wo': statusWo,
+        'status_wo': normalisasiStatus(statusWo),
         'is_dirty': isDirty ? 1 : 0,
       };
 
@@ -158,14 +170,10 @@ class WoInsjar {
         'Waktu Mulai': waktuMulai,
         'Waktu Selesai': waktuSelesai,
         'Durasi Pekerjaan': durasiPekerjaan,
-        'Status WO': statusWo,
+        'Status WO': normalisasiStatus(statusWo),
       };
 
   WoInsjar copyWith({
-    String? penyulang,
-    String? sectionAwal,
-    String? sectionAkhir,
-    String? section,
     String? koordinatAwal,
     String? koordinatAkhir,
     double? realisasiKms,
@@ -174,40 +182,39 @@ class WoInsjar {
     String? durasiPekerjaan,
     String? statusWo,
     bool? isDirty,
-  }) {
-    return WoInsjar(
-      id: id,
-      no: no,
-      kodeWo: kodeWo,
-      kodeUiw: kodeUiw,
-      kodeUp3: kodeUp3,
-      kodeUlp: kodeUlp,
-      ulp: ulp,
-      hari: hari,
-      tanggal: tanggal,
-      penyulang: penyulang ?? this.penyulang,
-      sectionAwal: sectionAwal ?? this.sectionAwal,
-      sectionAkhir: sectionAkhir ?? this.sectionAkhir,
-      section: section ?? this.section,
-      koordinatAwal: koordinatAwal ?? this.koordinatAwal,
-      koordinatAkhir: koordinatAkhir ?? this.koordinatAkhir,
-      realisasiKms: realisasiKms ?? this.realisasiKms,
-      waktuMulai: waktuMulai ?? this.waktuMulai,
-      waktuSelesai: waktuSelesai ?? this.waktuSelesai,
-      durasiPekerjaan: durasiPekerjaan ?? this.durasiPekerjaan,
-      statusWo: statusWo ?? this.statusWo,
-      isDirty: isDirty ?? this.isDirty,
-    );
-  }
+  }) =>
+      WoInsjar(
+        id: id,
+        no: no,
+        kodeWo: kodeWo,
+        kodeUiw: kodeUiw,
+        kodeUp3: kodeUp3,
+        kodeUlp: kodeUlp,
+        ulp: ulp,
+        hari: hari,
+        tanggal: tanggal,
+        penyulang: penyulang,
+        sectionAwal: sectionAwal,
+        sectionAkhir: sectionAkhir,
+        section: section,
+        koordinatAwal: koordinatAwal ?? this.koordinatAwal,
+        koordinatAkhir: koordinatAkhir ?? this.koordinatAkhir,
+        realisasiKms: realisasiKms ?? this.realisasiKms,
+        waktuMulai: waktuMulai ?? this.waktuMulai,
+        waktuSelesai: waktuSelesai ?? this.waktuSelesai,
+        durasiPekerjaan: durasiPekerjaan ?? this.durasiPekerjaan,
+        statusWo: statusWo ?? this.statusWo,
+        isDirty: isDirty ?? this.isDirty,
+      );
 
-  /// Format lengkap tanggal dan waktu: 27/08/2026 14:35:07
+  static String formatTanggal(DateTime value) =>
+      '${value.day.toString().padLeft(2, '0')} ${bulanIndonesia[value.month - 1]} ${value.year}';
+
   static String stampLengkap(DateTime value) {
     String two(int input) => input.toString().padLeft(2, '0');
-    return '${two(value.day)}/${two(value.month)}/${value.year} '
-        '${two(value.hour)}:${two(value.minute)}:${two(value.second)}';
+    return '${formatTanggal(value)}, ${two(value.hour)}:${two(value.minute)}:${two(value.second)}';
   }
 
-  /// Format durasi HH:mm:ss dari selisih dua stempel waktu.
   static String hitungDurasi(DateTime mulai, DateTime selesai) {
     final diff = selesai.difference(mulai);
     if (diff.isNegative) return '00:00:00';
@@ -216,12 +223,18 @@ class WoInsjar {
   }
 
   static DateTime? parseStamp(String value) {
-    final match = RegExp(r'^(\d{2})/(\d{2})/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$')
-        .firstMatch(value.trim());
+    final match = RegExp(
+      r'^(\d{2})\s+([A-Za-z]+)\s+(\d{4}),\s+(\d{2}):(\d{2}):(\d{2})$',
+    ).firstMatch(value.trim());
     if (match == null) return null;
+    final month = bulanIndonesia
+        .map((item) => item.toLowerCase())
+        .toList()
+        .indexOf(match.group(2)!.toLowerCase());
+    if (month < 0) return null;
     return DateTime(
       int.parse(match.group(3)!),
-      int.parse(match.group(2)!),
+      month + 1,
       int.parse(match.group(1)!),
       int.parse(match.group(4)!),
       int.parse(match.group(5)!),

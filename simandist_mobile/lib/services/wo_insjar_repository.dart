@@ -10,7 +10,6 @@ class WoSyncResult {
   final int total;
   final int diproses;
   final String? pesan;
-
   const WoSyncResult({required this.total, required this.diproses, this.pesan});
 }
 
@@ -23,7 +22,11 @@ class WoInsjarRepository {
 
   Future<List<WoInsjar>> semua() async {
     final db = await _db.database;
-    final rows = await db.query(table, orderBy: 'tanggal DESC, kode_wo DESC');
+    final rows = await db.query(
+      table,
+      orderBy:
+          "CASE status_wo WHEN '${WoInsjar.statusMulai}' THEN 0 WHEN '${WoInsjar.statusDalam}' THEN 1 ELSE 2 END, tanggal DESC, kode_wo DESC",
+    );
     return rows.map(WoInsjar.fromMap).toList();
   }
 
@@ -52,7 +55,19 @@ class WoInsjarRepository {
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  /// Nomor urut 3 digit per Kode ULP per tanggal.
+  Future<void> mulaiPengerjaan(String kodeWo) async {
+    final db = await _db.database;
+    await db.update(
+      table,
+      {
+        'status_wo': WoInsjar.statusDalam,
+        'is_dirty': 1,
+      },
+      where: 'kode_wo = ? AND status_wo = ?',
+      whereArgs: [kodeWo, WoInsjar.statusMulai],
+    );
+  }
+
   Future<String> buatKodeWo({
     required String kodeUlp,
     required DateTime tanggal,
@@ -76,7 +91,6 @@ class WoInsjarRepository {
     return '$prefix${(urutan + 1).toString().padLeft(3, '0')}';
   }
 
-  /// Download WO dari spreadsheet. Kode WO yang sudah ada di lokal dilewati.
   Future<WoSyncResult> download(String token) async {
     final response = await ApiService.getWoInsjar(token);
     if (response['success'] != true || response['rows'] is! List) {
@@ -90,39 +104,38 @@ class WoInsjarRepository {
     final rows = response['rows'] as List;
     final db = await _db.database;
     var ditambahkan = 0;
-
     await db.transaction((txn) async {
       for (final row in rows) {
         if (row is! Map) continue;
-        final wo = WoInsjar.fromRemote(Map<String, dynamic>.from(row));
-        if (wo.kodeWo.isEmpty) continue;
-
+        final remote = WoInsjar.fromRemote(Map<String, dynamic>.from(row));
+        if (remote.kodeWo.isEmpty) continue;
         final ada = await txn.query(
           table,
           columns: ['kode_wo'],
           where: 'kode_wo = ?',
-          whereArgs: [wo.kodeWo],
+          whereArgs: [remote.kodeWo],
           limit: 1,
         );
         if (ada.isNotEmpty) continue;
-
-        await txn.insert(table, wo.toMap()..['synced_at'] = DateTime.now().toUtc().toIso8601String());
+        await txn.insert(
+          table,
+          remote.copyWith(statusWo: WoInsjar.normalisasiStatus(remote.statusWo))
+              .toMap()
+            ..['synced_at'] = DateTime.now().toUtc().toIso8601String(),
+        );
         ditambahkan++;
       }
     });
-
     return WoSyncResult(total: rows.length, diproses: ditambahkan);
   }
 
-  /// Kirim WO lokal yang berubah ke spreadsheet, dicocokkan lewat Kode WO.
   Future<WoSyncResult> sinkron(String token) async {
     final pending = await belumTersinkron();
     if (pending.isEmpty) {
       return const WoSyncResult(total: 0, diproses: 0);
     }
-
-    final payload = pending.map((wo) => wo.toRemote()).toList();
-    final response = await ApiService.syncWoInsjar(token, payload);
+    final response =
+        await ApiService.syncWoInsjar(token, pending.map((wo) => wo.toRemote()).toList());
     if (response['success'] != true) {
       return WoSyncResult(
         total: pending.length,
@@ -130,7 +143,6 @@ class WoInsjarRepository {
         pesan: (response['message'] ?? 'Sinkronisasi WO gagal.').toString(),
       );
     }
-
     final db = await _db.database;
     final now = DateTime.now().toUtc().toIso8601String();
     await db.transaction((txn) async {
@@ -143,12 +155,10 @@ class WoInsjarRepository {
         );
       }
     });
-
     final terkirim = (response['diproses'] as num?)?.toInt() ?? pending.length;
     return WoSyncResult(total: pending.length, diproses: terkirim);
   }
 
-  /// Daftar penyulang dari master data lokal.
   Future<List<String>> daftarPenyulang() async {
     final db = await _db.database;
     final rows = await db.query(
@@ -169,11 +179,8 @@ class WoInsjarRepository {
             break;
           }
         }
-      } catch (_) {
-        continue;
-      }
+      } catch (_) {}
     }
-    final list = hasil.toList()..sort();
-    return list;
+    return hasil.toList()..sort();
   }
 }
