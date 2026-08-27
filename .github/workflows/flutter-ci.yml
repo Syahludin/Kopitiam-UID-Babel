@@ -12,7 +12,7 @@ on:
       - '.github/workflows/flutter-ci.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   analyze-test-build:
@@ -23,8 +23,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - uses: subosito/flutter-action@v2
         with:
@@ -35,36 +33,17 @@ jobs:
         run: flutter --version
 
       - name: Resolve dependencies
-        run: flutter pub get 2>&1 | tee ../flutter-ci.log
+        run: flutter pub get
 
       - name: Formatting diagnostics
-        if: always()
         continue-on-error: true
-        run: dart format --output=none --set-exit-if-changed lib test 2>&1 | tee -a ../flutter-ci.log
+        run: dart format --output=none --set-exit-if-changed lib test
 
-      - name: Analyzer diagnostics
-        if: always()
-        continue-on-error: true
-        run: flutter analyze 2>&1 | tee -a ../flutter-ci.log
+      - name: Static analysis
+        run: flutter analyze
 
-      - name: Test diagnostics
-        if: always()
-        continue-on-error: true
-        run: flutter test 2>&1 | tee -a ../flutter-ci.log
+      - name: Tests
+        run: flutter test
 
       - name: Build debug APK
-        if: always()
-        id: apk
-        run: flutter build apk --debug 2>&1 | tee -a ../flutter-ci.log
-
-      - name: Save failure diagnostics
-        if: failure() && github.event_name == 'pull_request'
-        working-directory: .
-        run: |
-          mkdir -p ci
-          tail -n 500 flutter-ci.log > ci/flutter-build.log
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ci/flutter-build.log
-          git commit -m "chore: capture Flutter build diagnostics" || exit 0
-          git push origin HEAD:${{ github.head_ref }}
+        run: flutter build apk --debug
