@@ -1,22 +1,361 @@
 import 'package:flutter/material.dart';
+
 import '../models/wo_insjar.dart';
 import '../services/high_accuracy_location_service.dart';
 import '../services/wo_insjar_repository.dart';
 import 'temuan_tab.dart';
-class WoInsjarFormScreen extends StatefulWidget{final Map<String,dynamic>sesi;final WoInsjar?existing;const WoInsjarFormScreen({super.key,required this.sesi,this.existing});@override State<WoInsjarFormScreen>createState()=>_State();}
-class _State extends State<WoInsjarFormScreen>{
- static const navy=Color(0xFF071B30),blue=Color(0xFF004D8C),cyan=Color(0xFF00E5FF),amber=Color(0xFFFFB800),muted=Color(0xFF64748B),line=Color(0xFFE2E8F0);
- final repo=WoInsjarRepository();LocationFix?awal,akhir;DateTime?mulai,selesai;double?kms,best;bool gettingA=false,gettingB=false,saving=false;late String status;
- WoInsjar get wo=>widget.existing!;
- @override void initState(){super.initState();kms=widget.existing?.realisasiKms;mulai=WoInsjar.parseStamp(widget.existing?.waktuMulai??'');selesai=WoInsjar.parseStamp(widget.existing?.waktuSelesai??'');status=WoInsjar.normalisasiStatus(widget.existing?.statusWo);}
- Future<void>gps(bool a)async{setState((){if(a)gettingA=true;else gettingB=true;best=null;});try{final f=await HighAccuracyLocationService.acquire(onSample:(_,b){if(mounted)setState(()=>best=b);});if(!mounted)return;setState((){if(a){awal=f;mulai=f.capturedAt;}else{akhir=f;selesai=f.capturedAt;}if(awal!=null&&akhir!=null){kms=HighAccuracyLocationService.distanceKm(awal!,akhir!);status=WoInsjar.statusSelesai;}});}finally{if(mounted)setState((){gettingA=false;gettingB=false;});}}
- String get durasi=>mulai==null||selesai==null?'-':WoInsjar.hitungDurasi(mulai!,selesai!);
- Future<void>save()async{setState(()=>saving=true);await repo.simpan(wo.copyWith(koordinatAwal:awal?.coordinate,koordinatAkhir:akhir?.coordinate,realisasiKms:kms,waktuMulai:mulai==null?null:WoInsjar.stampLengkap(mulai!),waktuSelesai:selesai==null?null:WoInsjar.stampLengkap(selesai!),durasiPekerjaan:durasi=='-'?null:durasi,statusWo:status,isDirty:true));if(mounted){setState(()=>saving=false);ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('WO disimpan ke server lokal.')));}}
- @override Widget build(BuildContext c){if(widget.existing==null)return const Scaffold(body:Center(child:Text('WO tidak ditemukan.')));return DefaultTabController(length:2,child:Scaffold(backgroundColor:const Color(0xFFF1F5F9),appBar:AppBar(backgroundColor:blue,foregroundColor:Colors.white,title:const Text('WO Inspeksi Jaringan',style:TextStyle(fontWeight:FontWeight.w800))),body:Column(children:[_header(),const Material(color:Colors.white,child:TabBar(labelColor:blue,unselectedLabelColor:muted,indicatorColor:cyan,tabs:[Tab(text:'Work Order'),Tab(text:'Temuan')])),Expanded(child:TabBarView(children:[_detail(),TemuanTab(wo:wo,sesi:widget.sesi)]))])));}
- Widget _header()=>Container(width:double.infinity,margin:const EdgeInsets.fromLTRB(18,18,18,12),padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:blue,borderRadius:BorderRadius.circular(16)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Kode WO',style:TextStyle(color:Color(0xFFB8DCEF),fontSize:11)),const SizedBox(height:4),Text(wo.kodeWo,style:const TextStyle(color:Colors.white,fontSize:18,fontWeight:FontWeight.w800)),const SizedBox(height:8),Text('${wo.ulp} • ${wo.kodeUlp}',style:const TextStyle(color:Color(0xFFD5E8F3)))]));
- Widget _detail()=>ListView(padding:const EdgeInsets.fromLTRB(18,18,18,32),children:[_label('Penyulang'),_read(wo.penyulang),const SizedBox(height:14),Row(children:[Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[_label('Section Awal'),_read(wo.sectionAwal)])),const SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[_label('Section Akhir'),_read(wo.sectionAkhir)]))]),const SizedBox(height:14),_label('Section'),_read(wo.section),const SizedBox(height:22),_coord('Koordinat Awal',awal,wo.koordinatAwal,gettingA,()=>gps(true)),const SizedBox(height:14),_coord('Koordinat Akhir',akhir,wo.koordinatAkhir,gettingB,()=>gps(false)),const SizedBox(height:18),Container(padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(16),border:Border.all(color:line)),child:Column(children:[_row('Realisasi kmS',kms==null?'-':'${kms!.toStringAsFixed(3)} km'),const Divider(),_row('Waktu Mulai',mulai==null?'-':WoInsjar.stampLengkap(mulai!)),const Divider(),_row('Waktu Selesai',selesai==null?'-':WoInsjar.stampLengkap(selesai!)),const Divider(),_row('Durasi Pekerjaan',durasi),const Divider(),_row('Status WO',status)])),const SizedBox(height:20),ElevatedButton(onPressed:saving?null:save,style:ElevatedButton.styleFrom(backgroundColor:amber,foregroundColor:navy,minimumSize:const Size.fromHeight(52)),child:Text(saving?'Menyimpan...':'Simpan WO ke Server Lokal',style:const TextStyle(fontWeight:FontWeight.w800)))]);
- Widget _label(String t)=>Padding(padding:const EdgeInsets.only(bottom:7),child:Text(t,style:const TextStyle(fontWeight:FontWeight.w800,color:navy)));
- Widget _read(String t)=>Container(width:double.infinity,padding:const EdgeInsets.all(15),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(12),border:Border.all(color:line)),child:Text(t.isEmpty?'-':t));
- Widget _coord(String title,LocationFix?f,String old,bool busy,VoidCallback tap)=>Container(padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(16),border:Border.all(color:line)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Row(children:[Expanded(child:Text(title,style:const TextStyle(fontWeight:FontWeight.w800,color:navy))),if(f!=null)Text('Akurasi ${f.accuracyLabel}',style:const TextStyle(fontWeight:FontWeight.w800,color:blue))]),const SizedBox(height:10),Text(f?.coordinate??(old.isEmpty?'-':old),style:const TextStyle(fontWeight:FontWeight.w700,color:blue)),if(busy)...[const SizedBox(height:8),Text(best==null?'Mencari akurasi...':'Akurasi ${best!.toStringAsFixed(1)} m',style:const TextStyle(color:muted))],const SizedBox(height:12),OutlinedButton.icon(onPressed:busy?null:tap,icon:const Icon(Icons.my_location),label:Text(busy?'Mencari titik presisi...':'Ambil Koordinat Perangkat'))]));
- Widget _row(String a,String b)=>Padding(padding:const EdgeInsets.symmetric(vertical:6),child:Row(children:[Text(a,style:const TextStyle(color:muted)),const Spacer(),Flexible(child:Text(b,textAlign:TextAlign.right,style:const TextStyle(fontWeight:FontWeight.w800,color:navy)))]));
+
+class WoInsjarFormScreen extends StatefulWidget {
+  final Map<String, dynamic> sesi;
+  final WoInsjar? existing;
+  const WoInsjarFormScreen({super.key, required this.sesi, this.existing});
+  @override
+  State<WoInsjarFormScreen> createState() => _State();
+}
+
+class _State extends State<WoInsjarFormScreen> {
+  static const navy = Color(0xFF071B30),
+      blue = Color(0xFF004D8C),
+      cyan = Color(0xFF00E5FF),
+      amber = Color(0xFFFFB800),
+      muted = Color(0xFF64748B),
+      line = Color(0xFFE2E8F0);
+  final repo = WoInsjarRepository();
+  LocationFix? awal, akhir;
+  DateTime? mulai, selesai;
+  double? kms, best;
+  bool gettingA = false, gettingB = false, saving = false;
+  late String status;
+  WoInsjar get wo => widget.existing!;
+  @override
+  void initState() {
+    super.initState();
+    kms = widget.existing?.realisasiKms;
+    mulai = WoInsjar.parseStamp(widget.existing?.waktuMulai ?? '');
+    selesai = WoInsjar.parseStamp(widget.existing?.waktuSelesai ?? '');
+    status = WoInsjar.normalisasiStatus(widget.existing?.statusWo);
+  }
+
+  Future<void> gps(bool a) async {
+    setState(() {
+      if (a)
+        gettingA = true;
+      else
+        gettingB = true;
+      best = null;
+    });
+    try {
+      final f = await HighAccuracyLocationService.acquire(
+        onSample: (_, b) {
+          if (mounted) setState(() => best = b);
+        },
+      );
+      if (!mounted) return;
+      setState(() {
+        if (a) {
+          awal = f;
+          mulai = f.capturedAt;
+        } else {
+          akhir = f;
+          selesai = f.capturedAt;
+        }
+        if (awal != null && akhir != null) {
+          kms = HighAccuracyLocationService.distanceKm(awal!, akhir!);
+          status = WoInsjar.statusSelesai;
+        }
+      });
+    } finally {
+      if (mounted)
+        setState(() {
+          gettingA = false;
+          gettingB = false;
+        });
+    }
+  }
+
+  String get durasi => mulai == null || selesai == null
+      ? '-'
+      : WoInsjar.hitungDurasi(mulai!, selesai!);
+  Future<void> save() async {
+    setState(() => saving = true);
+    await repo.simpan(
+      wo.copyWith(
+        koordinatAwal: awal?.coordinate,
+        koordinatAkhir: akhir?.coordinate,
+        realisasiKms: kms,
+        waktuMulai: mulai == null ? null : WoInsjar.stampLengkap(mulai!),
+        waktuSelesai: selesai == null ? null : WoInsjar.stampLengkap(selesai!),
+        durasiPekerjaan: durasi == '-' ? null : durasi,
+        statusWo: status,
+        isDirty: true,
+      ),
+    );
+    if (mounted) {
+      setState(() => saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('WO disimpan ke server lokal.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext c) {
+    if (widget.existing == null)
+      return const Scaffold(body: Center(child: Text('WO tidak ditemukan.')));
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF1F5F9),
+        appBar: AppBar(
+          backgroundColor: blue,
+          foregroundColor: Colors.white,
+          title: const Text(
+            'WO Inspeksi Jaringan',
+            style: TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
+        body: Column(
+          children: [
+            _header(),
+            const Material(
+              color: Colors.white,
+              child: TabBar(
+                labelColor: blue,
+                unselectedLabelColor: muted,
+                indicatorColor: cyan,
+                tabs: [
+                  Tab(text: 'Work Order'),
+                  Tab(text: 'Temuan'),
+                ],
+              ),
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _detail(),
+                  TemuanTab(wo: wo, sesi: widget.sesi),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _header() => Container(
+    width: double.infinity,
+    margin: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: blue,
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Kode WO',
+          style: TextStyle(color: Color(0xFFB8DCEF), fontSize: 11),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          wo.kodeWo,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '${wo.ulp} • ${wo.kodeUlp}',
+          style: const TextStyle(color: Color(0xFFD5E8F3)),
+        ),
+      ],
+    ),
+  );
+  Widget _detail() => ListView(
+    padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
+    children: [
+      _label('Penyulang'),
+      _read(wo.penyulang),
+      const SizedBox(height: 14),
+      Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [_label('Section Awal'), _read(wo.sectionAwal)],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [_label('Section Akhir'), _read(wo.sectionAkhir)],
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 14),
+      _label('Section'),
+      _read(wo.section),
+      const SizedBox(height: 22),
+      _coord(
+        'Koordinat Awal',
+        awal,
+        wo.koordinatAwal,
+        gettingA,
+        () => gps(true),
+      ),
+      const SizedBox(height: 14),
+      _coord(
+        'Koordinat Akhir',
+        akhir,
+        wo.koordinatAkhir,
+        gettingB,
+        () => gps(false),
+      ),
+      const SizedBox(height: 18),
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: line),
+        ),
+        child: Column(
+          children: [
+            _row(
+              'Realisasi kmS',
+              kms == null ? '-' : '${kms!.toStringAsFixed(3)} km',
+            ),
+            const Divider(),
+            _row(
+              'Waktu Mulai',
+              mulai == null ? '-' : WoInsjar.stampLengkap(mulai!),
+            ),
+            const Divider(),
+            _row(
+              'Waktu Selesai',
+              selesai == null ? '-' : WoInsjar.stampLengkap(selesai!),
+            ),
+            const Divider(),
+            _row('Durasi Pekerjaan', durasi),
+            const Divider(),
+            _row('Status WO', status),
+          ],
+        ),
+      ),
+      const SizedBox(height: 20),
+      ElevatedButton(
+        onPressed: saving ? null : save,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: amber,
+          foregroundColor: navy,
+          minimumSize: const Size.fromHeight(52),
+        ),
+        child: Text(
+          saving ? 'Menyimpan...' : 'Simpan WO ke Server Lokal',
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
+    ],
+  );
+  Widget _label(String t) => Padding(
+    padding: const EdgeInsets.only(bottom: 7),
+    child: Text(
+      t,
+      style: const TextStyle(fontWeight: FontWeight.w800, color: navy),
+    ),
+  );
+  Widget _read(String t) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(15),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: line),
+    ),
+    child: Text(t.isEmpty ? '-' : t),
+  );
+  Widget _coord(
+    String title,
+    LocationFix? f,
+    String old,
+    bool busy,
+    VoidCallback tap,
+  ) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: line),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: navy,
+                ),
+              ),
+            ),
+            if (f != null)
+              Text(
+                'Akurasi ${f.accuracyLabel}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: blue,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text(
+          f?.coordinate ?? (old.isEmpty ? '-' : old),
+          style: const TextStyle(fontWeight: FontWeight.w700, color: blue),
+        ),
+        if (busy) ...[
+          const SizedBox(height: 8),
+          Text(
+            best == null
+                ? 'Mencari akurasi...'
+                : 'Akurasi ${best!.toStringAsFixed(1)} m',
+            style: const TextStyle(color: muted),
+          ),
+        ],
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: busy ? null : tap,
+          icon: const Icon(Icons.my_location),
+          label: Text(
+            busy ? 'Mencari titik presisi...' : 'Ambil Koordinat Perangkat',
+          ),
+        ),
+      ],
+    ),
+  );
+  Widget _row(String a, String b) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
+      children: [
+        Text(a, style: const TextStyle(color: muted)),
+        const Spacer(),
+        Flexible(
+          child: Text(
+            b,
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontWeight: FontWeight.w800, color: navy),
+          ),
+        ),
+      ],
+    ),
+  );
 }

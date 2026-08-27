@@ -105,7 +105,11 @@ class _DashboardScreenState extends State<DashboardScreen>
   Future<void> _loadLocalStatus() async {
     final has = await SqliteService.instance.hasMasterData();
     final last = await SqliteService.instance.lastMasterSync();
-    if (mounted) setState(() { _hasLocal = has; _lastSync = last; });
+    if (mounted)
+      setState(() {
+        _hasLocal = has;
+        _lastSync = last;
+      });
   }
 
   Future<void> _loadWo() async {
@@ -115,11 +119,19 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   void _selectMenu(int index) {
     if (index == _selectedIndex) return;
-    setState(() { _previousIndex = _selectedIndex; _selectedIndex = index; });
+    setState(() {
+      _previousIndex = _selectedIndex;
+      _selectedIndex = index;
+    });
     _bubbleController.reset();
-    _bubbleController.animateWith(SpringSimulation(
-      const SpringDescription(mass: 1, stiffness: 210, damping: 27), 0, 1, 0,
-    ));
+    _bubbleController.animateWith(
+      SpringSimulation(
+        const SpringDescription(mass: 1, stiffness: 210, damping: 27),
+        0,
+        1,
+        0,
+      ),
+    );
   }
 
   Future<void> _downloadWo() async {
@@ -139,17 +151,24 @@ class _DashboardScreenState extends State<DashboardScreen>
         _message(hasil.pesan!, error: true);
       } else {
         await _resultDialog(
-          title: 'Download WO Selesai', count: hasil.diproses,
-          label: 'WO baru ditambahkan ke server lokal',
-          note: '${hasil.total} WO dibaca dari WO_Ins_Jar.',
+          title: 'Download WO Selesai',
+          count: hasil.diproses,
+          label: 'WO baru Sudah ditambahkan',
+          note: '${hasil.total} Total WO.',
           icon: Icons.cloud_download_rounded,
         );
       }
     } catch (error) {
-      if (mounted) _message(error.toString().replaceFirst('Bad state: ', ''), error: true);
+      if (mounted)
+        _message(error.toString().replaceFirst('Bad state: ', ''), error: true);
     } finally {
       _progressTimer?.cancel();
-      if (mounted) setState(() { _woBusy = false; _woProgress = 0; _woProgressLabel = ''; });
+      if (mounted)
+        setState(() {
+          _woBusy = false;
+          _woProgress = 0;
+          _woProgressLabel = '';
+        });
     }
   }
 
@@ -166,9 +185,12 @@ class _DashboardScreenState extends State<DashboardScreen>
         _message(hasil.pesan!, error: true);
       } else {
         await _resultDialog(
-          title: 'Sinkronisasi WO Selesai', count: hasil.diproses,
-          label: 'WO dikirim ke spreadsheet',
-          note: hasil.total == 0 ? 'Tidak ada perubahan lokal yang menunggu.' : '${hasil.total} WO lokal diproses.',
+          title: 'Sinkronisasi WO Selesai',
+          count: hasil.diproses,
+          label: 'WO Sudah diSinkronkan',
+          note: hasil.total == 0
+              ? 'Tidak ada Yang Perlu diSinkronkan.'
+              : '${hasil.total} WO Sedang di Kerjakan.',
           icon: Icons.cloud_upload_rounded,
         );
       }
@@ -176,7 +198,12 @@ class _DashboardScreenState extends State<DashboardScreen>
       if (mounted) _message(error.toString(), error: true);
     } finally {
       _progressTimer?.cancel();
-      if (mounted) setState(() { _woBusy = false; _woProgress = 0; _woProgressLabel = ''; });
+      if (mounted)
+        setState(() {
+          _woBusy = false;
+          _woProgress = 0;
+          _woProgressLabel = '';
+        });
     }
   }
 
@@ -187,38 +214,71 @@ class _DashboardScreenState extends State<DashboardScreen>
     try {
       final result = await ApiService.getMasterData(_token);
       if (result['success'] != true || result['datasets'] is! Map) {
-        throw StateError((result['message'] ?? 'Data master tidak valid.').toString());
+        throw StateError(
+          (result['message'] ?? 'Data master tidak valid.').toString(),
+        );
       }
       if (mounted) setState(() => _progress = math.max(_progress, .75));
-      await SqliteService.instance.replaceMasterData(Map<String, dynamic>.from(result['datasets']));
+      await SqliteService.instance.replaceMasterData(
+        Map<String, dynamic>.from(result['datasets']),
+      );
       if (!mounted) return;
-      setState(() { _hasLocal = true; _lastSync = DateTime.now(); });
+      setState(() {
+        _hasLocal = true;
+        _lastSync = DateTime.now();
+      });
       await _completeProgress(master: true);
       if (mounted) _message('Master data berhasil disimpan.');
     } catch (error) {
       if (mounted) _message(error.toString(), error: true);
     } finally {
       _progressTimer?.cancel();
-      if (mounted) setState(() { _syncing = false; _progress = 0; });
+      if (mounted)
+        setState(() {
+          _syncing = false;
+          _progress = 0;
+        });
     }
   }
 
   Future<void> _resultDialog({
-    required String title, required int count, required String label,
-    required String note, required IconData icon,
+    required String title,
+    required int count,
+    required String label,
+    required String note,
+    required IconData icon,
   }) => showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       icon: Icon(icon, color: green600, size: 40),
       title: Text(title, textAlign: TextAlign.center),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text('$count', style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w800, color: navy700)),
-        Text(label, textAlign: TextAlign.center),
-        const SizedBox(height: 8),
-        Text(note, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: neutral500)),
-      ]),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Tutup'))],
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$count',
+            style: const TextStyle(
+              fontSize: 40,
+              fontWeight: FontWeight.w800,
+              color: navy700,
+            ),
+          ),
+          Text(label, textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          Text(
+            note,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 11, color: neutral500),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Tutup'),
+        ),
+      ],
     ),
   );
 
@@ -228,9 +288,12 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Future<void> _openWo(WoInsjar wo) async {
-    final changed = await Navigator.push<bool>(context, MaterialPageRoute(
-      builder: (_) => WoInsjarFormScreen(sesi: widget.sesi, existing: wo),
-    ));
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => WoInsjarFormScreen(sesi: widget.sesi, existing: wo),
+      ),
+    );
     if (changed == true) await _loadWo();
   }
 
@@ -246,176 +309,427 @@ class _DashboardScreenState extends State<DashboardScreen>
     appBar: AppBar(
       backgroundColor: navy700,
       foregroundColor: Colors.white,
-      title: Row(children: [
-        SvgPicture.asset('assets/icons/logo_app.svg', width: 38, height: 38),
-        const SizedBox(width: 10),
-        Text(_labels[_selectedIndex], style: const TextStyle(fontWeight: FontWeight.w800)),
-      ]),
+      title: Row(
+        children: [
+          SvgPicture.asset('assets/icons/logo_app.svg', width: 38, height: 38),
+          const SizedBox(width: 10),
+          Text(
+            _labels[_selectedIndex],
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
     ),
-    body: IndexedStack(index: _selectedIndex, children: [_workOrders(), _home(), _settings()]),
+    body: IndexedStack(
+      index: _selectedIndex,
+      children: [_workOrders(), _home(), _settings()],
+    ),
     bottomNavigationBar: _animatedNavigation(),
   );
 
-  Widget _progressView(double value, String label) => Column(children: [
-    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text(label, style: const TextStyle(fontSize: 11, color: neutral500)),
-      Text('${_percent(value)}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: navy700)),
-    ]),
-    const SizedBox(height: 6),
-    LinearProgressIndicator(value: value, color: cyan500, backgroundColor: neutral200),
-  ]);
+  Widget _progressView(double value, String label) => Column(
+    children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 11, color: neutral500)),
+          Text(
+            '${_percent(value)}%',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: navy700,
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 6),
+      LinearProgressIndicator(
+        value: value,
+        color: cyan500,
+        backgroundColor: neutral200,
+      ),
+    ],
+  );
 
   Widget _home() {
     final dirty = _woList.where((wo) => wo.isDirty).length;
     final username = (widget.sesi['username'] ?? 'Pengguna').toString();
-    return ListView(padding: const EdgeInsets.all(18), children: [
-      const Text('Selamat datang,', style: TextStyle(color: neutral500)),
-      Text(username, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: navy950)),
-      const SizedBox(height: 20),
-      const Text('Data Work Order', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: navy700)),
-      const SizedBox(height: 10),
-      Card(
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: neutral200)),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(children: [
-            Row(children: [
-              Expanded(child: OutlinedButton.icon(
-                onPressed: _woBusy ? null : _downloadWo,
-                icon: const Icon(Icons.cloud_download_outlined), label: const Text('Download WO'),
-              )),
-              const SizedBox(width: 10),
-              Expanded(child: ElevatedButton.icon(
-                onPressed: _woBusy ? null : _syncWo,
-                icon: const Icon(Icons.cloud_upload_outlined),
-                label: Text(dirty > 0 ? 'Sinkron ($dirty)' : 'Sinkron WO'),
-                style: ElevatedButton.styleFrom(backgroundColor: navy700, foregroundColor: Colors.white),
-              )),
-            ]),
-            if (_woBusy) ...[const SizedBox(height: 14), _progressView(_woProgress, _woProgressLabel)],
-          ]),
+    return ListView(
+      padding: const EdgeInsets.all(18),
+      children: [
+        const Text('Selamat datang,', style: TextStyle(color: neutral500)),
+        Text(
+          username,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: navy950,
+          ),
         ),
-      ),
-    ]);
+        const SizedBox(height: 20),
+        const Text(
+          'Data Work Order',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: navy700,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: const BorderSide(color: neutral200),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _woBusy ? null : _downloadWo,
+                        icon: const Icon(Icons.cloud_download_outlined),
+                        label: const Text('Download WO'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _woBusy ? null : _syncWo,
+                        icon: const Icon(Icons.cloud_upload_outlined),
+                        label: Text(
+                          dirty > 0 ? 'Sinkron ($dirty)' : 'Sinkron WO',
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: navy700,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_woBusy) ...[
+                  const SizedBox(height: 14),
+                  _progressView(_woProgress, _woProgressLabel),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _workOrders() => RefreshIndicator(
     onRefresh: _loadWo,
-    child: ListView(padding: const EdgeInsets.all(18), children: [
-      if (_woList.isEmpty)
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 34, horizontal: 22),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: neutral200)),
-          child: const Column(children: [
-            Icon(Icons.assignment_outlined, size: 42, color: navy700),
-            SizedBox(height: 12), Text('Belum ada WO lokal', style: TextStyle(fontWeight: FontWeight.w800)),
-            SizedBox(height: 5), Text('Gunakan Download WO pada menu Beranda.', textAlign: TextAlign.center, style: TextStyle(color: neutral500)),
-          ]),
-        )
-      else ..._woList.map(_woCard),
-    ]),
+    child: ListView(
+      padding: const EdgeInsets.all(18),
+      children: [
+        if (_woList.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 34, horizontal: 22),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: neutral200),
+            ),
+            child: const Column(
+              children: [
+                Icon(Icons.assignment_outlined, size: 42, color: navy700),
+                SizedBox(height: 12),
+                Text(
+                  'Belum ada WO lokal',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                SizedBox(height: 5),
+                Text(
+                  'Gunakan Download WO pada menu Beranda.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: neutral500),
+                ),
+              ],
+            ),
+          )
+        else
+          ..._woList.map(_woCard),
+      ],
+    ),
   );
 
   Widget _woCard(WoInsjar wo) {
     final status = WoInsjar.normalisasiStatus(wo.statusWo);
     final canOpen = status != WoInsjar.statusMulai;
-    final color = status == WoInsjar.statusSelesai ? green100 : status == WoInsjar.statusDalam ? blueCard : Colors.white;
+    final color = status == WoInsjar.statusSelesai
+        ? green100
+        : status == WoInsjar.statusDalam
+        ? blueCard
+        : Colors.white;
     final card = Container(
-      margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(15),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: color, borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: status == WoInsjar.statusSelesai ? const Color(0xFF86CFA5) : status == WoInsjar.statusDalam ? const Color(0xFF8BC5E8) : neutral200),
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: status == WoInsjar.statusSelesai
+              ? const Color(0xFF86CFA5)
+              : status == WoInsjar.statusDalam
+              ? const Color(0xFF8BC5E8)
+              : neutral200,
+        ),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: Text(wo.kodeWo, style: const TextStyle(fontWeight: FontWeight.w800, color: navy950))),
-          Text(status, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: status == WoInsjar.statusSelesai ? green600 : status == WoInsjar.statusDalam ? navy700 : neutral500)),
-        ]),
-        const SizedBox(height: 9),
-        Text(wo.penyulang, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: navy950)),
-        const SizedBox(height: 4),
-        Text('${wo.tanggal} • ${wo.sectionAwal} → ${wo.sectionAkhir}', style: const TextStyle(fontSize: 12, color: neutral500)),
-        const SizedBox(height: 13),
-        Align(alignment: Alignment.centerRight, child: status == WoInsjar.statusMulai
-          ? ElevatedButton(onPressed: () => _startWo(wo), style: ElevatedButton.styleFrom(backgroundColor: amber600, foregroundColor: navy950), child: const Text('Mulai Pengerjaan'))
-          : OutlinedButton(onPressed: () => _openWo(wo), child: const Text('Buka'))),
-      ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  wo.kodeWo,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: navy950,
+                  ),
+                ),
+              ),
+              Text(
+                status,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: status == WoInsjar.statusSelesai
+                      ? green600
+                      : status == WoInsjar.statusDalam
+                      ? navy700
+                      : neutral500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 9),
+          Text(
+            wo.penyulang,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: navy950,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${wo.tanggal} • ${wo.sectionAwal} → ${wo.sectionAkhir}',
+            style: const TextStyle(fontSize: 12, color: neutral500),
+          ),
+          const SizedBox(height: 13),
+          Align(
+            alignment: Alignment.centerRight,
+            child: status == WoInsjar.statusMulai
+                ? ElevatedButton(
+                    onPressed: () => _startWo(wo),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: amber600,
+                      foregroundColor: navy950,
+                    ),
+                    child: const Text('Mulai Pengerjaan'),
+                  )
+                : OutlinedButton(
+                    onPressed: () => _openWo(wo),
+                    child: const Text('Buka'),
+                  ),
+          ),
+        ],
+      ),
     );
-    return canOpen ? InkWell(onTap: () => _openWo(wo), borderRadius: BorderRadius.circular(16), child: card) : card;
+    return canOpen
+        ? InkWell(
+            onTap: () => _openWo(wo),
+            borderRadius: BorderRadius.circular(16),
+            child: card,
+          )
+        : card;
   }
 
   Widget _settings() {
     final title = _hasLocal ? 'Sinkron Master Data' : 'Download Master Data';
-    final time = _lastSync == null ? 'Belum sinkron' : 'Terakhir ${_lastSync!.hour.toString().padLeft(2, '0')}:${_lastSync!.minute.toString().padLeft(2, '0')} WIB';
-    return ListView(padding: const EdgeInsets.all(18), children: [
-      const Text('Data & Server Lokal', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: navy950)),
-      const SizedBox(height: 5),
-      const Text('Kelola master data agar aplikasi siap digunakan saat offline.', style: TextStyle(color: neutral500)),
-      const SizedBox(height: 22),
-      Card(
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: neutral200)),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(children: [
-            Row(children: [
-              SvgPicture.asset('assets/icons/pengaturan.svg', width: 44, height: 44),
-              const SizedBox(width: 12),
-              Expanded(child: Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
-              Text(time, style: const TextStyle(fontSize: 10, color: neutral500)),
-            ]),
-            const SizedBox(height: 18),
-            SizedBox(width: double.infinity, child: ElevatedButton(
-              onPressed: _syncing ? null : _syncMaster,
-              style: ElevatedButton.styleFrom(backgroundColor: amber600, foregroundColor: navy950),
-              child: Text(_syncing ? 'Memproses...' : title),
-            )),
-            if (_syncing) ...[const SizedBox(height: 14), _progressView(_progress, 'Proses master data')],
-          ]),
+    final time = _lastSync == null
+        ? 'Belum sinkron'
+        : 'Terakhir ${_lastSync!.hour.toString().padLeft(2, '0')}:${_lastSync!.minute.toString().padLeft(2, '0')} WIB';
+    return ListView(
+      padding: const EdgeInsets.all(18),
+      children: [
+        const Text(
+          'Data & Server Lokal',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: navy950,
+          ),
         ),
-      ),
-    ]);
+        const SizedBox(height: 5),
+        const Text(
+          'Download Master Data Agar siap digunakan saat offline.',
+          style: TextStyle(color: neutral500),
+        ),
+        const SizedBox(height: 22),
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: neutral200),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    SvgPicture.asset(
+                      'assets/icons/pengaturan.svg',
+                      width: 44,
+                      height: 44,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      time,
+                      style: const TextStyle(fontSize: 10, color: neutral500),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _syncing ? null : _syncMaster,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: amber600,
+                      foregroundColor: navy950,
+                    ),
+                    child: Text(_syncing ? 'Memproses...' : title),
+                  ),
+                ),
+                if (_syncing) ...[
+                  const SizedBox(height: 14),
+                  _progressView(_progress, 'Proses master data'),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _animatedNavigation() => SafeArea(
     top: false,
-    child: LayoutBuilder(builder: (context, constraints) {
-      final width = constraints.maxWidth;
-      final tabWidth = width / _labels.length;
-      double centerFor(int index) => tabWidth * index + tabWidth / 2;
-      return SizedBox(height: 82, child: Stack(clipBehavior: Clip.none, children: [
-        AnimatedBuilder(animation: _bubbleController, builder: (_, __) {
-          final x = centerFor(_previousIndex) + (centerFor(_selectedIndex) - centerFor(_previousIndex)) * _bubbleController.value;
-          return CustomPaint(size: Size(width, 82), painter: _BubbleNavbarPainter(notchCenterX: x));
-        }),
-        AnimatedBuilder(animation: _bubbleController, builder: (_, __) {
-          final x = centerFor(_previousIndex) + (centerFor(_selectedIndex) - centerFor(_previousIndex)) * _bubbleController.value;
-          return Positioned(left: x - 29, top: -18, child: Container(
-            width: 58, height: 58,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: navy700, border: Border.all(color: cyan500, width: 2)),
-            child: Center(child: _navIcon(_selectedIndex, true)),
-          ));
-        }),
-        Positioned.fill(child: Row(children: List.generate(_labels.length, (index) {
-          final active = index == _selectedIndex;
-          return Expanded(child: InkWell(onTap: () => _selectMenu(index), child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-            Opacity(opacity: active ? 0 : 1, child: _navIcon(index, false)),
-            const SizedBox(height: 6),
-            Text(_labels[index], style: TextStyle(fontWeight: active ? FontWeight.w800 : FontWeight.w500, color: active ? navy700 : neutral500)),
-            const SizedBox(height: 9),
-          ])));
-        }))),
-      ]));
-    }),
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final tabWidth = width / _labels.length;
+        double centerFor(int index) => tabWidth * index + tabWidth / 2;
+        return SizedBox(
+          height: 82,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              AnimatedBuilder(
+                animation: _bubbleController,
+                builder: (_, __) {
+                  final x =
+                      centerFor(_previousIndex) +
+                      (centerFor(_selectedIndex) - centerFor(_previousIndex)) *
+                          _bubbleController.value;
+                  return CustomPaint(
+                    size: Size(width, 82),
+                    painter: _BubbleNavbarPainter(notchCenterX: x),
+                  );
+                },
+              ),
+              AnimatedBuilder(
+                animation: _bubbleController,
+                builder: (_, __) {
+                  final x =
+                      centerFor(_previousIndex) +
+                      (centerFor(_selectedIndex) - centerFor(_previousIndex)) *
+                          _bubbleController.value;
+                  return Positioned(
+                    left: x - 29,
+                    top: -18,
+                    child: Container(
+                      width: 58,
+                      height: 58,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: navy700,
+                        border: Border.all(color: cyan500, width: 2),
+                      ),
+                      child: Center(child: _navIcon(_selectedIndex, true)),
+                    ),
+                  );
+                },
+              ),
+              Positioned.fill(
+                child: Row(
+                  children: List.generate(_labels.length, (index) {
+                    final active = index == _selectedIndex;
+                    return Expanded(
+                      child: InkWell(
+                        onTap: () => _selectMenu(index),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Opacity(
+                              opacity: active ? 0 : 1,
+                              child: _navIcon(index, false),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              _labels[index],
+                              style: TextStyle(
+                                fontWeight: active
+                                    ? FontWeight.w800
+                                    : FontWeight.w500,
+                                color: active ? navy700 : neutral500,
+                              ),
+                            ),
+                            const SizedBox(height: 9),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    ),
   );
 
   Widget _navIcon(int index, bool active) {
     final size = active ? 34.0 : 23.0;
     final color = active ? Colors.white : navy700;
-    if (index == 0) return Icon(Icons.assignment_outlined, size: size, color: color);
+    if (index == 0)
+      return Icon(Icons.assignment_outlined, size: size, color: color);
     if (index == 1) return Icon(Icons.home_rounded, size: size, color: color);
-    return SvgPicture.asset('assets/icons/pengaturan.svg', width: size, height: size);
+    return SvgPicture.asset(
+      'assets/icons/pengaturan.svg',
+      width: size,
+      height: size,
+    );
   }
 }
 
@@ -426,16 +740,39 @@ class _BubbleNavbarPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final background = Paint()..color = Colors.white;
-    final line = Paint()..color = _DashboardScreenState.navy700..strokeWidth = 3..style = PaintingStyle.stroke;
+    final line = Paint()
+      ..color = _DashboardScreenState.navy700
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke;
     const centerY = 11.0;
     const radius = 40.0;
     final reach = math.sqrt(radius * radius - centerY * centerY);
-    final fill = Path()..moveTo(0, 0)..lineTo(notchCenterX - reach, 0)..arcToPoint(Offset(notchCenterX + reach, 0), radius: const Radius.circular(radius), clockwise: true)..lineTo(size.width, 0)..lineTo(size.width, size.height)..lineTo(0, size.height)..close();
+    final fill = Path()
+      ..moveTo(0, 0)
+      ..lineTo(notchCenterX - reach, 0)
+      ..arcToPoint(
+        Offset(notchCenterX + reach, 0),
+        radius: const Radius.circular(radius),
+        clockwise: true,
+      )
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
     canvas.drawPath(fill, background);
-    final outline = Path()..moveTo(0, 0)..lineTo(notchCenterX - reach, 0)..arcToPoint(Offset(notchCenterX + reach, 0), radius: const Radius.circular(radius), clockwise: true)..lineTo(size.width, 0);
+    final outline = Path()
+      ..moveTo(0, 0)
+      ..lineTo(notchCenterX - reach, 0)
+      ..arcToPoint(
+        Offset(notchCenterX + reach, 0),
+        radius: const Radius.circular(radius),
+        clockwise: true,
+      )
+      ..lineTo(size.width, 0);
     canvas.drawPath(outline, line);
   }
 
   @override
-  bool shouldRepaint(covariant _BubbleNavbarPainter oldDelegate) => oldDelegate.notchCenterX != notchCenterX;
+  bool shouldRepaint(covariant _BubbleNavbarPainter oldDelegate) =>
+      oldDelegate.notchCenterX != notchCenterX;
 }
