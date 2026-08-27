@@ -1,0 +1,49 @@
+Analyzing simandist_mobile...                                   
+
+   info • Unnecessary use of multiple underscores. Try using '_' • lib/screens/dashboard_screen.dart:531:32 • unnecessary_underscores
+   info • Unnecessary use of multiple underscores. Try using '_' • lib/screens/dashboard_screen.dart:543:32 • unnecessary_underscores
+  error • The method 'buatKodeWo' isn't defined for the type 'WoInsjarRepository'. Try correcting the name to the name of an existing method, or defining a method named 'buatKodeWo' • lib/screens/wo_insjar_form_screen.dart:87:30 • undefined_method
+
+3 issues found. (ran in 7.6s)
+
+lib/screens/wo_insjar_form_screen.dart:87:30: Error: The method 'buatKodeWo' isn't defined for the type 'WoInsjarRepository'.
+ - 'WoInsjarRepository' is from 'package:simandist_mobile/services/wo_insjar_repository.dart' ('lib/services/wo_insjar_repository.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'buatKodeWo'.
+    final kode = await _repo.buatKodeWo(kodeUlp: kodeUlp, tanggal: DateTime.now());
+                             ^^^^^^^^^^
+::group::❌ loading /home/runner/work/SiManDist-UIW-Babel/SiManDist-UIW-Babel/simandist_mobile/test/widget_test.dart (failed)
+Failed to load "/home/runner/work/SiManDist-UIW-Babel/SiManDist-UIW-Babel/simandist_mobile/test/widget_test.dart":
+Compilation failed for testPath=/home/runner/work/SiManDist-UIW-Babel/SiManDist-UIW-Babel/simandist_mobile/test/widget_test.dart: lib/screens/wo_insjar_form_screen.dart:87:30: Error: The method 'buatKodeWo' isn't defined for the type 'WoInsjarRepository'.
+ - 'WoInsjarRepository' is from 'package:simandist_mobile/services/wo_insjar_repository.dart' ('lib/services/wo_insjar_repository.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'buatKodeWo'.
+    final kode = await _repo.buatKodeWo(kodeUlp: kodeUlp, tanggal: DateTime.now());
+                             ^^^^^^^^^^
+.
+
+::endgroup::
+
+::error::0 tests passed, 1 failed.
+Running Gradle task 'assembleDebug'...                          
+lib/screens/wo_insjar_form_screen.dart:87:30: Error: The method 'buatKodeWo' isn't defined for the type 'WoInsjarRepository'.
+ - 'WoInsjarRepository' is from 'package:simandist_mobile/services/wo_insjar_repository.dart' ('lib/services/wo_insjar_repository.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'buatKodeWo'.
+    final kode = await _repo.buatKodeWo(kodeUlp: kodeUlp, tanggal: DateTime.now());
+                             ^^^^^^^^^^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildDebug'.
+> Process 'command '/opt/hostedtoolcache/flutter/stable-3.47.1-x64/flutter/bin/flutter'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 3m 34s
+Running Gradle task 'assembleDebug'...                            217.0s
+Gradle task assembleDebug failed with exit code 1
