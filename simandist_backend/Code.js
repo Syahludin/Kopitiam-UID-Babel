@@ -2,7 +2,8 @@ var CONFIG = {
   SPREADSHEET_ID: '18mVJgfMaPjs8ppmlhf5JVYvHhysHYy9L77bwfRPI5O0',
   USERS_SHEET: 'User_App_Mobile',
   SESSION_TTL_SEC: 900,
-  DEVICE_MAX_PER_USER: 5
+  DEVICE_MAX_PER_USER: 5,
+  MASTER_SHEETS: ['User_App_Mobile', 'Master_Penyulang', 'Master_Keypoint', 'Listr_Temuan', 'Jenis Pohon']
 };
 
 var USER_COL = { no: 0, kodeUiw: 1, kodeUp3: 2, kodeUlp: 3, ulp: 4, username: 5, password: 6, role: 7, bidang: 8, tim: 9, subTim: 10, aksesMenu: 11 };
@@ -11,12 +12,13 @@ function doGet(e) {
   var p = (e && e.parameter) || {};
   var action = String(p.action || 'health').trim();
   try {
-    if (action === 'health') return json_({ success: true, service: 'SiManDist API', version: '2.0.0' });
+    if (action === 'health') return json_({ success: true, service: 'SiManDist API', version: '2.1.0' });
     if (action === 'loginPerangkat') return json_(loginPerangkat_(p.username, p.password, p.perangkat));
     if (action === 'cekPerangkat') return json_(cekPerangkat_(p.deviceToken));
     if (action === 'logoutPerangkat') return json_(logoutPerangkat_(p.deviceToken, p.token));
     if (action === 'cekSesi') return json_(cekSesi_(p.token));
     if (action === 'logout') return json_(logout_(p.token));
+    if (action === 'getMasterData') return json_(getMasterData_(p.token));
     return json_({ success: false, message: 'Action API tidak dikenal: ' + action });
   } catch (err) { return json_({ success: false, message: 'Error server: ' + err.message }); }
 }
@@ -29,6 +31,7 @@ function doPost(e) {
     if (action === 'logoutPerangkat') return json_(logoutPerangkat_(body.deviceToken, body.token));
     if (action === 'cekSesi') return json_(cekSesi_(body.token));
     if (action === 'logout') return json_(logout_(body.token));
+    if (action === 'getMasterData') return json_(getMasterData_(body.token));
     return json_({ success: false, message: 'Action API tidak dikenal: ' + action });
   } catch (err) { return json_({ success: false, message: 'Error server: ' + err.message }); }
 }
@@ -41,8 +44,7 @@ function loginPerangkat_(username, password, perangkat) {
   var deviceToken = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
   var now = Date.now();
   PropertiesService.getScriptProperties().setProperty('device_' + deviceToken, JSON.stringify({ username: String(row[USER_COL.username]).trim(), passwordSignature: sha256_(password), createdAt: now, lastUsedAt: now, device: String(perangkat || '').substring(0, 100) }));
-  var session = issueSession_(row, deviceToken);
-  session.success = true; session.deviceToken = deviceToken;
+  var session = issueSession_(row, deviceToken); session.success = true; session.deviceToken = deviceToken;
   return session;
 }
 
@@ -80,6 +82,32 @@ function cekSesi_(token) {
 }
 
 function logout_(token) { if (token) CacheService.getScriptCache().remove('session_' + String(token)); return { success: true }; }
+
+function getMasterData_(token) {
+  var session = cekSesi_(token);
+  if (session.success !== true) return session;
+  var ss = getSpreadsheet_(), datasets = {}, total = 0;
+  for (var i = 0; i < CONFIG.MASTER_SHEETS.length; i++) {
+    var name = CONFIG.MASTER_SHEETS[i], sheet = ss.getSheetByName(name);
+    if (!sheet) return { success: false, message: 'Sheet tidak ditemukan: ' + name };
+    var values = sheet.getDataRange().getDisplayValues();
+    if (!values.length) { datasets[name] = []; continue; }
+    var headers = values[0].map(function (v) { return String(v).trim(); });
+    var rows = [];
+    for (var r = 1; r < values.length; r++) {
+      var item = {}, hasValue = false;
+      for (var c = 0; c < headers.length; c++) {
+        var key = headers[c] || ('kolom_' + (c + 1));
+        if (name === CONFIG.USERS_SHEET && key.toLowerCase() === 'password') continue;
+        item[key] = values[r][c];
+        if (values[r][c] !== '') hasValue = true;
+      }
+      if (hasValue) rows.push(item);
+    }
+    datasets[name] = rows; total += rows.length;
+  }
+  return { success: true, generatedAt: new Date().toISOString(), total: total, datasets: datasets };
+}
 
 function findUser_(username) {
   var rows = getUsersRows_(), target = String(username || '').trim().toLowerCase();
