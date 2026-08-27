@@ -112,18 +112,50 @@ class _LoginSheetState extends State<_LoginSheet> {
   @override
   Widget build(BuildContext context) {
     final inset = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(padding: EdgeInsets.only(bottom: inset), child: Container(decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(26))), child: SafeArea(top: false, child: SingleChildScrollView(padding: const EdgeInsets.fromLTRB(30, 12, 30, 24), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Center(child: Container(width: 44, height: 5, margin: const EdgeInsets.only(bottom: 16), decoration: BoxDecoration(color: AppColors.neutral300, borderRadius: BorderRadius.circular(100)))),
-      Container(padding: const EdgeInsets.fromLTRB(18, 16, 18, 22), decoration: BoxDecoration(gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFF7FCFF), Colors.white]), borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.navy100), boxShadow: [BoxShadow(color: AppColors.navy700.withValues(alpha: .08), blurRadius: 18, offset: const Offset(0, 6))]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Row(children: [Container(width: 38, height: 38, decoration: BoxDecoration(color: AppColors.navy700, borderRadius: BorderRadius.circular(11)), child: const Icon(Icons.lock_open_rounded, color: Colors.white, size: 20)), const SizedBox(width: 10), const Text('Masuk ke akun', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.neutral900))]), IconButton(icon: const Icon(Icons.close, size: 18), onPressed: () => Navigator.pop(context))]),
-        const SizedBox(height: 8), const Padding(padding: EdgeInsets.only(left: 48), child: Text('Online saat pertama kali login, offline setelah akun tersimpan.', style: TextStyle(fontSize: 13, height: 1.35, color: AppColors.neutral500))), const SizedBox(height: 20),
-        if (_error != null) ...[Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: AppColors.red100, borderRadius: BorderRadius.circular(12)), child: Row(children: [const Icon(Icons.error_outline, color: AppColors.red600, size: 17), const SizedBox(width: 9), Expanded(child: Text(_error!, style: const TextStyle(fontSize: 12, color: AppColors.red600)))])), const SizedBox(height: 16)],
-        const Text('Username', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.navy900)), const SizedBox(height: 7), _field(_userCtrl, 'Masukkan username', Icons.person_outline), const SizedBox(height: 16),
-        const Text('Kata sandi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.navy900)), const SizedBox(height: 7), _field(_passCtrl, 'Masukkan kata sandi', Icons.lock_outline, obscure: _obscure, suffix: IconButton(icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 18), onPressed: () => setState(() => _obscure = !_obscure))), const SizedBox(height: 20),
-        SizedBox(width: double.infinity, height: 50, child: ElevatedButton(onPressed: _loading ? null : _handleLogin, style: ElevatedButton.styleFrom(backgroundColor: _loading ? AppColors.neutral300 : AppColors.amber600, foregroundColor: AppColors.navy950, disabledForegroundColor: AppColors.navy700, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0), child: _loading ? const Row(mainAxisAlignment: MainAxisAlignment.center, children: [SizedBox(width: 19, height: 19, child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.navy700)), SizedBox(width: 10), Text('Verifikasi Akun', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800))]) : const Text('Masuk', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)))),
-        const SizedBox(height: 14), const Center(child: Text('Data kamu terenkripsi dan hanya dapat diakses oleh tim berwenang.', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: AppColors.neutral500))),
-      ])),
-    ]))));
+    return Padding(
+      padding: EdgeInsets.only(bottom: inset),
+      child: Container(
+        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(26))),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(30, 12, 30, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Container(width: 44, height: 5, margin: const EdgeInsets.only(bottom: 16), decoration: BoxDecoration(color: AppColors.neutral300, borderRadius: BorderRadius.circular(100)))),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 22),
+                  decoration: BoxDecoration(gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFF7FCFF), Colors.white]), borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.navy100), boxShadow: [BoxShadow(color: AppColors.navy700.withValues(alpha: .08), blurRadius: 18, offset: const Offset(0, 6))]),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Row(children: [Container(width: 38, height: 38, decoration: BoxDecoration(color: AppColors.navy700, borderRadius: BorderRadius.circular(11)), child: const Icon(Icons.lock_open_rounded, color: Colors.white, size: 20)), const SizedBox(width: 10), const Text('Masuk ke akun', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.neutral900))]), IconButton(icon: const Icon(Icons.close, size: 18), onPressed: () => Navigator.pop(context))]),
+                      const SizedBox(height: 8),
+                      const Padding(padding: EdgeInsets.only(left: 48), child: Text('Online saat pertama kali login, offline setelah akun tersimpan.', style: TextStyle(fontSize: 13, height: 1.35, color: AppColors.neutral500))),
+                      const SizedBox(height: 20),
+                      if (_error != null) ...[Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: AppColors.red100, borderRadius: BorderRadius.circular(12)), child: Row(children: [const Icon(Icons.error_outline, color: AppColors.red600, size: 17), const SizedBox(width: 9), Expanded(child: Text(_error!, style: const TextStyle(fontSize: 12, color: AppColors.red600)))])), const SizedBox(height: 16)],
+                      const Text('Username', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.navy900)),
+                      const SizedBox(height: 7),
+                      _field(_userCtrl, 'Masukkan username', Icons.person_outline),
+                      const SizedBox(height: 16),
+                      const Text('Kata sandi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.navy900)),
+                      const SizedBox(height: 7),
+                      _field(_passCtrl, 'Masukkan kata sandi', Icons.lock_outline, obscure: _obscure, suffix: IconButton(icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 18), onPressed: () => setState(() => _obscure = !_obscure))),
+                      const SizedBox(height: 20),
+                      SizedBox(width: double.infinity, height: 50, child: ElevatedButton(onPressed: _loading ? null : _handleLogin, style: ElevatedButton.styleFrom(backgroundColor: _loading ? AppColors.neutral300 : AppColors.amber600, foregroundColor: AppColors.navy950, disabledForegroundColor: AppColors.navy700, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0), child: _loading ? const Row(mainAxisAlignment: MainAxisAlignment.center, children: [SizedBox(width: 19, height: 19, child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.navy700)), SizedBox(width: 10), Text('Verifikasi Akun', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800))]) : const Text('Masuk', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)))),
+                      const SizedBox(height: 14),
+                      const Center(child: Text('Data kamu terenkripsi dan hanya dapat diakses oleh tim berwenang.', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: AppColors.neutral500))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _field(TextEditingController controller, String hint, IconData icon, {bool obscure = false, Widget? suffix}) => Container(height: 48, decoration: BoxDecoration(color: const Color(0xFFF1F7FC), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFD7E6F2), width: 1.4)), child: TextField(controller: controller, obscureText: obscure, textAlignVertical: TextAlignVertical.center, decoration: InputDecoration(hintText: hint, hintStyle: const TextStyle(color: AppColors.neutral500, fontSize: 15), prefixIcon: Icon(icon, size: 18, color: AppColors.neutral500), suffixIcon: suffix, border: InputBorder.none, isDense: true, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14))));
