@@ -16,9 +16,7 @@ class SiManDistApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF004D8C),
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF004D8C)),
       ),
       home: const LoginScreen(),
     );
