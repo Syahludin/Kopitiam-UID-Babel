@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../models/wo_insjar.dart';
+import '../services/high_accuracy_location_service.dart';
 import '../services/wo_insjar_repository.dart';
 import 'temuan_tab.dart';
 
@@ -29,12 +29,12 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
   late TextEditingController _sectionCtrl;
 
   String _kodeWo = '';
-  GpsLockResult? _awal;
-  GpsLockResult? _akhir;
+  LocationFix? _awal;
+  LocationFix? _akhir;
   DateTime? _waktuMulai;
   DateTime? _waktuSelesai;
   double _realisasiKms = 0.0;
-  String _statusWo = 'Mulai Pengerjaan';
+  String _statusWo = WoInsjar.statusMulai;
   bool _mengambilAwal = false;
   bool _mengambilAkhir = false;
   bool _menyimpan = false;
@@ -50,20 +50,24 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
     _sectionAkhirCtrl = TextEditingController(text: ex?.sectionAkhir ?? '');
     _sectionCtrl = TextEditingController(text: ex?.section ?? '');
     _realisasiKms = ex?.realisasiKms ?? 0.0;
-    _statusWo = ex != null && ex.statusWo.isNotEmpty ? ex.statusWo : 'Mulai Pengerjaan';
+    _statusWo = ex != null && ex.statusWo.isNotEmpty
+        ? WoInsjar.normalisasiStatus(ex.statusWo)
+        : WoInsjar.statusMulai;
 
     if (ex?.koordinatAwal.isNotEmpty == true) {
-      _awal = GpsLockResult(
+      _awal = LocationFix(
         coordinate: ex!.koordinatAwal,
         accuracy: 5.0,
-        samplesCollected: 30,
+        samples: 30,
+        isLocked: true,
       );
     }
     if (ex?.koordinatAkhir.isNotEmpty == true) {
-      _akhir = GpsLockResult(
+      _akhir = LocationFix(
         coordinate: ex!.koordinatAkhir,
         accuracy: 5.0,
-        samplesCollected: 30,
+        samples: 30,
+        isLocked: true,
       );
     }
     if (ex?.waktuMulai.isNotEmpty == true) {
@@ -98,10 +102,10 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
 
   void _hitungOtomatis() {
     if (_awal != null && _akhir == null) {
-      _statusWo = 'Dalam Pengerjaan';
+      _statusWo = WoInsjar.statusDalam;
     } else if (_awal != null && _akhir != null) {
-      _statusWo = 'Selesai';
-      _realisasiKms = WoInsjarRepository.hitungJarakKms(
+      _statusWo = WoInsjar.statusSelesai;
+      _realisasiKms = HighAccuracyLocationService.distanceBetween(
         _awal!.coordinate,
         _akhir!.coordinate,
       );
@@ -119,8 +123,8 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
     });
 
     try {
-      final res = await _repo.kunciGpsMultisample(
-        onProgress: (_) {
+      final res = await HighAccuracyLocationService.acquire(
+        onSample: (_, __) {
           if (mounted) setState(() {});
         },
       );
@@ -155,7 +159,8 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(teks),
-        backgroundColor: error ? const Color(0xFFD32F2F) : const Color(0xFF107C41),
+        backgroundColor:
+            error ? const Color(0xFFD32F2F) : const Color(0xFF107C41),
       ),
     );
   }
@@ -169,18 +174,7 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
 
     setState(() => _menyimpan = true);
     try {
-      final wo = WoInsjar(
-        kodeWo: _kodeWo,
-        kodeUiw: existing.kodeUiw,
-        kodeUp3: existing.kodeUp3,
-        kodeUlp: existing.kodeUlp,
-        ulp: existing.ulp,
-        hari: existing.hari,
-        tanggal: existing.tanggal,
-        penyulang: _penyulangCtrl.text.trim(),
-        sectionAwal: _sectionAwalCtrl.text.trim(),
-        sectionAkhir: _sectionAkhirCtrl.text.trim(),
-        section: _sectionCtrl.text.trim(),
+      final wo = existing.copyWith(
         koordinatAwal: _awal?.coordinate ?? existing.koordinatAwal,
         koordinatAkhir: _akhir?.coordinate ?? existing.koordinatAkhir,
         realisasiKms: _realisasiKms,
@@ -194,10 +188,10 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
             ? _formatDurasi(_durasi!)
             : existing.durasiPekerjaan,
         statusWo: _statusWo,
-        isSynced: 0,
+        isDirty: true,
       );
 
-      await _repo.simpanLokal(wo);
+      await _repo.simpan(wo);
       if (!mounted) return;
       _pesan('Perubahan WO berhasil disimpan di server lokal.');
       Navigator.pop(context, true);
@@ -237,7 +231,8 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
               unselectedLabelColor: const Color(0xFF64748B),
               indicatorColor: const Color(0xFF00A3E0),
               indicatorWeight: 3,
-              labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              labelStyle:
+                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
               tabs: const [
                 Tab(text: 'Work Order'),
                 Tab(text: 'Temuan'),
@@ -251,7 +246,12 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
         children: [
           _buildWoTab(),
           TemuanTab(
-            wo: widget.existing,
+            wo: widget.existing ??
+                WoInsjar(
+                  kodeWo: _kodeWo,
+                  ulp: widget.sesi['ulp']?.toString() ?? '',
+                  kodeUlp: widget.sesi['kodeUlp']?.toString() ?? '',
+                ),
             sesi: widget.sesi,
           ),
         ],
@@ -321,7 +321,8 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
                     )
                   : const Text(
                       'Simpan WO ke Server Lokal',
-                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                      style:
+                          TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                     ),
             ),
           ),
@@ -331,8 +332,12 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
   }
 
   Widget _buildHeaderCard() {
-    final ulp = widget.existing?.ulp.isNotEmpty == true ? widget.existing!.ulp : 'Toboali';
-    final kodeUlp = widget.existing?.kodeUlp.isNotEmpty == true ? widget.existing!.kodeUlp : '16130';
+    final ulp = widget.existing?.ulp.isNotEmpty == true
+        ? widget.existing!.ulp
+        : 'Toboali';
+    final kodeUlp = widget.existing?.kodeUlp.isNotEmpty == true
+        ? widget.existing!.kodeUlp
+        : '16130';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -352,7 +357,10 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
         children: [
           const Text(
             'Kode WO',
-            style: TextStyle(color: Color(0xFFB0CBE8), fontSize: 11, fontWeight: FontWeight.w500),
+            style: TextStyle(
+                color: Color(0xFFB0CBE8),
+                fontSize: 11,
+                fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 4),
           Text(
@@ -367,7 +375,10 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
           const SizedBox(height: 4),
           Text(
             '$ulp • $kodeUlp',
-            style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 12, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+                color: Color(0xFFE2E8F0),
+                fontSize: 12,
+                fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -387,7 +398,10 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
         children: [
           const Text(
             'Penyulang',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF475569)),
           ),
           const SizedBox(height: 6),
           _buildReadOnlyBox(_penyulangCtrl.text),
@@ -400,7 +414,10 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
                   children: [
                     const Text(
                       'Section Awal',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF475569)),
                     ),
                     const SizedBox(height: 6),
                     _buildReadOnlyBox(_sectionAwalCtrl.text),
@@ -414,7 +431,10 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
                   children: [
                     const Text(
                       'Section Akhir',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF475569)),
                     ),
                     const SizedBox(height: 6),
                     _buildReadOnlyBox(_sectionAkhirCtrl.text),
@@ -426,7 +446,10 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
           const SizedBox(height: 12),
           const Text(
             'Section',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF475569)),
           ),
           const SizedBox(height: 6),
           _buildReadOnlyBox(_sectionCtrl.text),
@@ -457,7 +480,7 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
 
   Widget _buildGpsCard({
     required String judul,
-    required GpsLockResult? hasil,
+    required LocationFix? hasil,
     required bool loading,
     required VoidCallback onAmbil,
   }) {
@@ -484,13 +507,14 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
               ),
               if (hasil != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(99),
                   ),
                   child: Text(
-                    'Akurasi ${hasil.accuracy.toStringAsFixed(1)} m',
+                    'Akurasi ${hasil.accuracyLabel}',
                     style: const TextStyle(
                       color: Color(0xFF2E7D32),
                       fontSize: 11,
@@ -525,7 +549,8 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
                   : const Icon(Icons.my_location, size: 18),
               label: Text(
                 loading ? 'Mencari akurasi...' : 'Ambil Koordinat Perangkat',
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF0A3E74),
@@ -551,7 +576,8 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
       ),
       child: Column(
         children: [
-          _buildInfoRow('Realisasi kmS', '${_realisasiKms.toStringAsFixed(3)} km'),
+          _buildInfoRow(
+              'Realisasi kmS', '${_realisasiKms.toStringAsFixed(3)} km'),
           const Divider(height: 20, color: Color(0xFFF1F5F9)),
           _buildInfoRow(
             'Waktu Mulai',
@@ -598,7 +624,7 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
               fontSize: 13,
               fontWeight: FontWeight.w700,
               color: isStatus
-                  ? (_statusWo == 'Selesai'
+                  ? (_statusWo == WoInsjar.statusSelesai
                       ? const Color(0xFF107C41)
                       : const Color(0xFFFFAE00))
                   : const Color(0xFF1E293B),

@@ -51,7 +51,7 @@ class _TemuanTabState extends State<TemuanTab> {
     final changed = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => TemuanForm(wo: widget.wo, sesi: widget.sesi),
+        builder: (_) => TemuanFormScreen(wo: widget.wo, sesi: widget.sesi),
       ),
     );
     if (changed == true) await _load();
@@ -195,39 +195,38 @@ class _TemuanTabState extends State<TemuanTab> {
   }
 }
 
-class TemuanForm extends StatefulWidget {
+class TemuanFormScreen extends StatefulWidget {
   final WoInsjar wo;
   final Map<String, dynamic> sesi;
 
-  const TemuanForm({super.key, required this.wo, required this.sesi});
+  const TemuanFormScreen({super.key, required this.wo, required this.sesi});
 
   @override
-  State<TemuanForm> createState() => _TemuanFormState();
+  State<TemuanFormScreen> createState() => _TemuanFormScreenState();
 }
 
-class _TemuanFormState extends State<TemuanForm> {
-  static const blue = Color(0xFF004D8C);
-  static const navy = Color(0xFF071B30);
-  static const amber = Color(0xFFFFB800);
+class _TemuanFormScreenState extends State<TemuanFormScreen> {
+  static const blue = Color(0xFF0A3E74);
   static const line = Color(0xFFE2E8F0);
 
   final repo = TemuanRepository();
-  final segmen = TextEditingController();
-  final jarak = TextEditingController();
-  final tinggi = TextEditingController();
+  final segmenCtrl = TextEditingController();
+  final jarakCtrl = TextEditingController();
+  final tinggiCtrl = TextEditingController();
   final picker = ImagePicker();
 
   List<Map<String, dynamic>> listMaster = [];
   List<Map<String, dynamic>> pohonMaster = [];
   String kode = '';
   String object = '';
-  String tier = '';
+  String tier = 'Tier 1';
   String temuan = '';
   String pohon = '';
   LocationFix? gps;
   String foto = '';
   String lingkungan = '';
   bool saving = false;
+  bool mengambilGps = false;
 
   bool get vegetasi => {
         'Rabas / Pangkas',
@@ -240,8 +239,8 @@ class _TemuanFormState extends State<TemuanForm> {
         .where((row) {
           final rowObject = '${row['Jenis Object'] ?? row['Object'] ?? ''}';
           final rowTier = '${row['Tier'] ?? ''}';
-          return (rowObject.isEmpty || rowObject == object) &&
-              (rowTier.isEmpty || rowTier == tier);
+          return (rowObject.isEmpty || rowObject.toLowerCase() == object.toLowerCase()) &&
+              (rowTier.isEmpty || rowTier.toLowerCase() == tier.toLowerCase());
         })
         .map((row) => '${row['Temuan'] ?? ''}'.trim())
         .where((value) => value.isNotEmpty)
@@ -257,9 +256,9 @@ class _TemuanFormState extends State<TemuanForm> {
 
   @override
   void dispose() {
-    segmen.dispose();
-    jarak.dispose();
-    tinggi.dispose();
+    segmenCtrl.dispose();
+    jarakCtrl.dispose();
+    tinggiCtrl.dispose();
     super.dispose();
   }
 
@@ -272,10 +271,23 @@ class _TemuanFormState extends State<TemuanForm> {
   }
 
   Future<void> _ambilGps() async {
-    final fix = await HighAccuracyLocationService.acquire(
-      onSample: (_, __) {},
-    );
-    if (mounted) setState(() => gps = fix);
+    setState(() => mengambilGps = true);
+    try {
+      final fix = await HighAccuracyLocationService.acquire(
+        onSample: (_, __) {},
+      );
+      if (mounted) {
+        setState(() {
+          gps = fix;
+          mengambilGps = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => mengambilGps = false);
+        _message('Gagal mengambil koordinat: $e');
+      }
+    }
   }
 
   Future<String> _ambilFoto(String label) async {
@@ -301,23 +313,28 @@ class _TemuanFormState extends State<TemuanForm> {
     return '';
   }
 
+  String get calculatedPriority {
+    final distance = double.tryParse(jarakCtrl.text.replaceAll(',', '.'));
+    final treeHeight = double.tryParse(tinggiCtrl.text.replaceAll(',', '.'));
+    return repo.prioritas(temuan, distance, treeHeight, listMaster);
+  }
+
   Future<void> _save() async {
-    final missingBase = segmen.text.trim().isEmpty ||
+    final missingBase = segmenCtrl.text.trim().isEmpty ||
         gps == null ||
         object.isEmpty ||
         tier.isEmpty ||
         temuan.isEmpty ||
-        foto.isEmpty ||
-        lingkungan.isEmpty;
+        foto.isEmpty;
     if (missingBase) {
-      _message('Lengkapi semua data wajib, GPS, dan dua foto.');
+      _message('Lengkapi Segmen, Temuan, GPS, dan Foto Temuan.');
       return;
     }
-    if (object == 'Jaringan' && jarak.text.trim().isEmpty) {
+    if (object == 'Jaringan' && jarakCtrl.text.trim().isEmpty) {
       _message('Jarak terhadap jaringan wajib diisi.');
       return;
     }
-    if (vegetasi && (pohon.isEmpty || tinggi.text.trim().isEmpty)) {
+    if (vegetasi && (pohon.isEmpty || tinggiCtrl.text.trim().isEmpty)) {
       _message('Jenis dan tinggi pohon wajib diisi.');
       return;
     }
@@ -325,8 +342,8 @@ class _TemuanFormState extends State<TemuanForm> {
     setState(() => saving = true);
     try {
       final now = DateTime.now();
-      final distance = double.tryParse(jarak.text.replaceAll(',', '.'));
-      final treeHeight = double.tryParse(tinggi.text.replaceAll(',', '.'));
+      final distance = double.tryParse(jarakCtrl.text.replaceAll(',', '.'));
+      final treeHeight = double.tryParse(tinggiCtrl.text.replaceAll(',', '.'));
       final coordinate = gps!.coordinate.split(',');
       final priority = repo.prioritas(
         temuan,
@@ -347,7 +364,7 @@ class _TemuanFormState extends State<TemuanForm> {
         sectionAwal: widget.wo.sectionAwal,
         sectionAkhir: widget.wo.sectionAkhir,
         section: widget.wo.section,
-        segmen: segmen.text.trim(),
+        segmen: segmenCtrl.text.trim(),
         koordinat: gps!.coordinate,
         lat: coordinate.first.trim(),
         long: coordinate.length > 1 ? coordinate[1].trim() : '',
@@ -391,108 +408,73 @@ class _TemuanFormState extends State<TemuanForm> {
         .toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: const Color(0xFFF4F7FB),
       appBar: AppBar(
-        backgroundColor: blue,
-        foregroundColor: Colors.white,
         title: const Text(
-          'Tambah Temuan',
-          style: TextStyle(fontWeight: FontWeight.w800),
+          'Tambah Temuan Baru',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17),
+        ),
+        backgroundColor: blue,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(18),
+      body: Column(
         children: [
-          _info('Kode WO', widget.wo.kodeWo),
-          _info('Kode Temuan', kode.isEmpty ? 'Menyiapkan...' : kode),
-          _info('Penyulang', widget.wo.penyulang),
-          _info('Section', widget.wo.section),
-          _field(segmen, 'Segmen *'),
-          const SizedBox(height: 12),
-          if (object.isEmpty)
-            _drop(
-              'Jenis Object *',
-              const ['Jaringan', 'Gardu'],
-              object,
-              (value) => setState(() => object = value!),
-            )
-          else
-            _info('Jenis Object', object),
-          _drop(
-            'Tier *',
-            const ['Tier 1', 'Tier 2'],
-            tier,
-            (value) => setState(() {
-              tier = value!;
-              temuan = '';
-            }),
-          ),
-          _drop(
-            'Temuan *',
-            temuanOptions,
-            temuan,
-            (value) => setState(() => temuan = value!),
-          ),
-          if (object == 'Jaringan')
-            _field(
-              jarak,
-              'Jarak Terhadap Jaringan (m) *',
-              number: true,
-            ),
-          if (vegetasi) ...[
-            _drop(
-              'Jenis Pohon *',
-              treeOptions,
-              pohon,
-              (value) => setState(() => pohon = value!),
-            ),
-            _field(tinggi, 'Tinggi Pohon (m) *', number: true),
-          ],
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _ambilGps,
-            icon: const Icon(Icons.my_location),
-            label: Text(
-              gps == null
-                  ? 'Ambil Koordinat Temuan'
-                  : 'Akurasi ${gps!.accuracyLabel}',
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _buildHeaderCard(),
+                const SizedBox(height: 14),
+                _buildIdentitasCard(),
+                const SizedBox(height: 14),
+                _buildKlasifikasiCard(treeOptions),
+                const SizedBox(height: 14),
+                _buildGpsCard(),
+                const SizedBox(height: 14),
+                _buildFotoCard(),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () async {
-              final value = await _ambilFoto('Foto Temuan');
-              if (mounted) setState(() => foto = value);
-            },
-            icon: const Icon(Icons.camera_alt),
-            label: Text(
-              foto.isEmpty ? 'Ambil Foto Temuan' : 'Foto Temuan siap',
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x0F000000),
+                  blurRadius: 10,
+                  offset: Offset(0, -4),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () async {
-              final value = await _ambilFoto('Foto Lingkungan');
-              if (mounted) setState(() => lingkungan = value);
-            },
-            icon: const Icon(Icons.camera_alt),
-            label: Text(
-              lingkungan.isEmpty
-                  ? 'Ambil Foto Lingkungan'
-                  : 'Foto Lingkungan siap',
-            ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: saving ? null : _save,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: amber,
-              foregroundColor: navy,
-              minimumSize: const Size.fromHeight(52),
-            ),
-            child: Text(
-              saving ? 'Menyimpan...' : 'Simpan Temuan',
-              style: const TextStyle(fontWeight: FontWeight.w800),
+            child: SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: saving ? null : _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFAE00),
+                  foregroundColor: const Color(0xFF1E293B),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: saving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text(
+                        'Simpan Temuan ke Server Lokal',
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                      ),
+              ),
             ),
           ),
         ],
@@ -500,79 +482,474 @@ class _TemuanFormState extends State<TemuanForm> {
     );
   }
 
-  Widget _info(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: line),
+  Widget _buildHeaderCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: blue,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A0A3E74),
+            blurRadius: 12,
+            offset: Offset(0, 4),
           ),
-        ),
-        child: Text(
-          value.isEmpty ? '-' : value,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Text(
+              'Konteks Work Order',
+              style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            widget.wo.kodeWo.isNotEmpty ? widget.wo.kodeWo : '-',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '⚡ ${widget.wo.penyulang} • ${widget.wo.ulp}',
+            style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 12, fontWeight: FontWeight.w500),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _field(
-    TextEditingController controller,
-    String label, {
-    bool number = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(
-        controller: controller,
-        keyboardType: number
-            ? const TextInputType.numberWithOptions(decimal: true)
-            : TextInputType.text,
-        decoration: InputDecoration(
-          labelText: label,
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+  Widget _buildIdentitasCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: line),
       ),
-    );
-  }
-
-  Widget _drop(
-    String label,
-    List<String> options,
-    String value,
-    ValueChanged<String?> onChanged,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: DropdownButtonFormField<String>(
-        initialValue: options.contains(value) ? value : null,
-        items: options
-            .map(
-              (item) => DropdownMenuItem(
-                value: item,
-                child: Text(item, overflow: TextOverflow.ellipsis),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '📌 Identitas Temuan',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: blue),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Kode Temuan', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+                    const SizedBox(height: 4),
+                    _buildReadOnlyPill(kode.isNotEmpty ? kode : 'Menyiapkan...'),
+                  ],
+                ),
               ),
-            )
-            .toList(),
-        onChanged: onChanged,
-        isExpanded: true,
-        decoration: InputDecoration(
-          labelText: label,
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Jenis Object', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+                    const SizedBox(height: 4),
+                    _buildReadOnlyPill(object.isNotEmpty ? object : '-'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text('Section (Terkunci)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+          const SizedBox(height: 4),
+          _buildReadOnlyPill(widget.wo.section),
+          const SizedBox(height: 12),
+          const Text('Segmen *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1E293B))),
+          const SizedBox(height: 6),
+          TextField(
+            controller: segmenCtrl,
+            decoration: InputDecoration(
+              hintText: 'Ketik segmen / titik tiang...',
+              hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: blue, width: 1.5)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKlasifikasiCard(List<String> treeOptions) {
+    final priority = calculatedPriority;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '🔍 Klasifikasi Temuan',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: blue),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Tier *', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+                    const SizedBox(height: 4),
+                    DropdownButtonFormField<String>(
+                      initialValue: tier,
+                      items: const [
+                        DropdownMenuItem(value: 'Tier 1', child: Text('Tier 1')),
+                        DropdownMenuItem(value: 'Tier 2', child: Text('Tier 2')),
+                      ],
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() {
+                          tier = v;
+                          temuan = '';
+                        });
+                      },
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Prioritas (Auto)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+                    const SizedBox(height: 4),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      decoration: BoxDecoration(
+                        color: priority == 'Mayor'
+                            ? const Color(0xFFFEE2E2)
+                            : (priority == 'Sedang' ? const Color(0xFFFEF3C7) : const Color(0xFFE0E7FF)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        priority.isNotEmpty ? priority : '-',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: priority == 'Mayor'
+                              ? const Color(0xFFDC2626)
+                              : (priority == 'Sedang' ? const Color(0xFFD97706) : const Color(0xFF4338CA)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text('Nama Temuan *', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+          const SizedBox(height: 4),
+          DropdownButtonFormField<String>(
+            isExpanded: true,
+            initialValue: temuanOptions.contains(temuan) ? temuan : null,
+            items: temuanOptions.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontSize: 13)))).toList(),
+            onChanged: (v) => setState(() => temuan = v ?? ''),
+            decoration: InputDecoration(
+              hintText: 'Pilih Temuan',
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          if (object == 'Jaringan') ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: line),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Jarak Jar. (m) *', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569))),
+                            const SizedBox(height: 4),
+                            TextField(
+                              controller: jarakCtrl,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              onChanged: (_) => setState(() {}),
+                              decoration: InputDecoration(
+                                hintText: '0.0',
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (vegetasi) ...[
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Tinggi (m) *', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569))),
+                              const SizedBox(height: 4),
+                              TextField(
+                                controller: tinggiCtrl,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                onChanged: (_) => setState(() {}),
+                                decoration: InputDecoration(
+                                  hintText: '0.0',
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (vegetasi) ...[
+                    const SizedBox(height: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Jenis Pohon *', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569))),
+                        const SizedBox(height: 4),
+                        DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          initialValue: treeOptions.contains(pohon) ? pohon : null,
+                          items: treeOptions.map((p) => DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(fontSize: 13)))).toList(),
+                          onChanged: (v) => setState(() => pohon = v ?? ''),
+                          decoration: InputDecoration(
+                            hintText: 'Pilih Jenis Pohon',
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGpsCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '📍 Koordinat Temuan',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: blue),
+              ),
+              if (gps != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(
+                    'Akurasi ${gps!.accuracyLabel}',
+                    style: const TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            gps?.coordinate.isNotEmpty == true ? gps!.coordinate : '-',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: blue,
+              fontFamily: 'monospace',
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: OutlinedButton.icon(
+              onPressed: mengambilGps ? null : _ambilGps,
+              icon: mengambilGps
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.my_location, size: 18),
+              label: Text(
+                mengambilGps ? 'Mencari akurasi...' : 'Ambil Koordinat Temuan',
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: blue,
+                side: const BorderSide(color: blue, width: 1.2),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFotoCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '📷 Foto Temuan',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: blue),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildPhotoBox(
+                  label: 'Foto Temuan *',
+                  path: foto,
+                  onTap: () async {
+                    final p = await _ambilFoto('Foto Temuan');
+                    if (mounted) setState(() => foto = p);
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildPhotoBox(
+                  label: 'Foto Sekitar Tiang',
+                  path: lingkungan,
+                  onTap: () async {
+                    final p = await _ambilFoto('Foto Lingkungan');
+                    if (mounted) setState(() => lingkungan = p);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhotoBox({
+    required String label,
+    required String path,
+    required VoidCallback onTap,
+  }) {
+    final exists = path.isNotEmpty && File(path).existsSync();
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 130,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: exists ? blue : const Color(0xFFCBD5E1),
+            width: exists ? 1.5 : 1.0,
           ),
         ),
+        child: exists
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.file(File(path), fit: BoxFit.cover),
+                    Container(
+                      color: Colors.black38,
+                      alignment: Alignment.bottomCenter,
+                      padding: const EdgeInsets.all(6),
+                      child: Text(
+                        label,
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.camera_alt, color: blue, size: 28),
+                  const SizedBox(height: 6),
+                  Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildReadOnlyPill(String text) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text.isNotEmpty ? text : '-',
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
       ),
     );
   }
