@@ -357,7 +357,7 @@ class _LoginSheetState extends State<_LoginSheet> {
                       const Padding(
                         padding: EdgeInsets.only(left: 48),
                         child: Text(
-                          'Online saat pertama kali login, offline setelah akun tersimpan.',
+                          'Masukkan Akun yang Terdaftar (Format Akun <Kode ULP>.<Tim>)',
                           style: TextStyle(
                             fontSize: 13,
                             height: 1.35,
