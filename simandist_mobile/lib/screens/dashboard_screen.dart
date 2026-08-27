@@ -442,7 +442,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 Icon(Icons.assignment_outlined, size: 42, color: navy700),
                 SizedBox(height: 12),
                 Text(
-                  'Belum ada WO lokal',
+                  'Belum ada WO yang di Download',
                   style: TextStyle(fontWeight: FontWeight.w800),
                 ),
                 SizedBox(height: 5),
