@@ -1,5 +1,6 @@
 var CONFIG = {
   SPREADSHEET_ID: '18mVJgfMaPjs8ppmlhf5JVYvHhysHYy9L77bwfRPI5O0',
+  WO_SPREADSHEET_ID: '1qFBQq3hMTA98ZV6UWg-Pj5sz-J41pm0r13TLYP2LF0I',
   USERS_SHEET: 'User_App_Mobile',
   WO_INSJAR_SHEET: 'WO_Ins_Jar',
   SESSION_TTL_SEC: 900,
@@ -13,7 +14,7 @@ function doGet(e) {
   var p = (e && e.parameter) || {};
   var action = String(p.action || 'health').trim();
   try {
-    if (action === 'health') return json_({ success: true, service: 'SiManDist API', version: '2.3.0' });
+    if (action === 'health') return json_({ success: true, service: 'SiManDist API', version: '2.3.1' });
     if (action === 'loginPerangkat') return json_(loginPerangkat_(p.username, p.password, p.perangkat));
     if (action === 'cekPerangkat') return json_(cekPerangkat_(p.deviceToken));
     if (action === 'logoutPerangkat') return json_(logoutPerangkat_(p.deviceToken, p.token));
@@ -158,7 +159,7 @@ function getMasterData_(token) {
 }
 
 function woSheet_() {
-  var sheet = getSpreadsheet_().getSheetByName(CONFIG.WO_INSJAR_SHEET);
+  var sheet = SpreadsheetApp.openById(CONFIG.WO_SPREADSHEET_ID).getSheetByName(CONFIG.WO_INSJAR_SHEET);
   if (!sheet) throw new Error('Sheet tidak ditemukan: ' + CONFIG.WO_INSJAR_SHEET);
   return sheet;
 }
