@@ -3,7 +3,7 @@ var CONFIG = {
   USERS_SHEET: 'User_App_Mobile',
   SESSION_TTL_SEC: 900,
   DEVICE_MAX_PER_USER: 5,
-  MASTER_SHEETS: ['User_App_Mobile', 'Master_Penyulang', 'Master_Keypoint', 'Listr_Temuan', 'Jenis Pohon']
+  MASTER_SHEETS: ['User_App_Mobile', 'Master_Penyulang', 'Master_Keypoint', 'List_Temuan', 'Jenis Pohon']
 };
 var USER_COL = { no: 0, kodeUiw: 1, kodeUp3: 2, kodeUlp: 3, ulp: 4, username: 5, password: 6, role: 7, bidang: 8, tim: 9, subTim: 10, aksesMenu: 11 };
 function doGet(e) { var p=(e&&e.parameter)||{},action=String(p.action||'health').trim(); try { if(action==='health')return json_({success:true,service:'SiManDist API',version:'2.1.0'}); if(action==='loginPerangkat')return json_(loginPerangkat_(p.username,p.password,p.perangkat)); if(action==='cekPerangkat')return json_(cekPerangkat_(p.deviceToken)); if(action==='logoutPerangkat')return json_(logoutPerangkat_(p.deviceToken,p.token)); if(action==='cekSesi')return json_(cekSesi_(p.token)); if(action==='logout')return json_(logout_(p.token)); if(action==='getMasterData')return json_(getMasterData_(p.token)); return json_({success:false,message:'Action API tidak dikenal: '+action}); } catch(err){return json_({success:false,message:'Error server: '+err.message});} }
