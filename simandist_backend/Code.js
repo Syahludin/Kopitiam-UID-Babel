@@ -1,22 +1,23 @@
 var CONFIG = {
   SPREADSHEET_ID: '18mVJgfMaPjs8ppmlhf5JVYvHhysHYy9L77bwfRPI5O0',
   USERS_SHEET: 'User_App_Mobile',
-  WO_INSJAR_SHEET: 'WO_InsJar',
+  WO_INSJAR_SHEET: 'WO_Ins_Jar',
   SESSION_TTL_SEC: 900,
   MASTER_SHEETS: ['User_App_Mobile', 'Master_Penyulang', 'Master_Keypoint', 'List_Temuan', 'Jenis Pohon']
 };
 
 var USER_COL = { no: 0, kodeUiw: 1, kodeUp3: 2, kodeUlp: 3, ulp: 4, username: 5, password: 6, role: 7, bidang: 8, tim: 9, subTim: 10, aksesMenu: 11 };
 
-/* Kolom WO_InsJar A..S */
+/* Kolom WO_Ins_Jar A..S */
 var WO_HEADERS = ['No', 'Kode WO', 'Kode UIW', 'Kode UP3', 'Kode ULP', 'ULP', 'Hari', 'Tanggal', 'Penyulang', 'Section Awal', 'Section Akhir', 'Section', 'Koordinat Awal', 'Koordinat Akhir', 'Realisasi kmS', 'Waktu Mulai', 'Waktu Selesai', 'Durasi Pekerjaan', 'Status WO'];
 var WO_COL_KODE = 1;
+var WO_COL_KODE_ULP = 4;
 
 function doGet(e) {
   var p = (e && e.parameter) || {};
   var action = String(p.action || 'health').trim();
   try {
-    if (action === 'health') return json_({ success: true, service: 'SiManDist API', version: '2.2.0' });
+    if (action === 'health') return json_({ success: true, service: 'SiManDist API', version: '2.2.1' });
     if (action === 'loginPerangkat') return json_(loginPerangkat_(p.username, p.password, p.perangkat));
     if (action === 'cekPerangkat') return json_(cekPerangkat_(p.deviceToken));
     if (action === 'logoutPerangkat') return json_(logoutPerangkat_(p.deviceToken, p.token));
@@ -115,7 +116,7 @@ function getMasterData_(token) {
   return { success: true, generatedAt: new Date().toISOString(), total: total, datasets: datasets };
 }
 
-/* ===== WO InsJar ===== */
+/* ===== WO Inspeksi Jaringan (sheet WO_Ins_Jar) ===== */
 
 function woSheet_() {
   var ss = getSpreadsheet_(), sheet = ss.getSheetByName(CONFIG.WO_INSJAR_SHEET);
@@ -133,12 +134,12 @@ function getWoInsjar_(token) {
   if (auth.success !== true) return auth;
   var kodeUlp = String(auth.sesi.kodeUlp || '').trim();
   var sheet = woSheet_(), values = sheet.getDataRange().getDisplayValues();
-  if (values.length < 2) return { success: true, rows: [] };
+  if (values.length < 2) return { success: true, total: 0, rows: [] };
   var headers = values[0].map(function (v) { return String(v).trim(); }), rows = [];
   for (var r = 1; r < values.length; r++) {
     var kode = String(values[r][WO_COL_KODE] || '').trim();
     if (!kode) continue;
-    if (kodeUlp && String(values[r][4] || '').trim() !== kodeUlp) continue;
+    if (kodeUlp && String(values[r][WO_COL_KODE_ULP] || '').trim() !== kodeUlp) continue;
     var item = {};
     for (var c = 0; c < headers.length; c++) item[headers[c] || ('kolom_' + (c + 1))] = values[r][c];
     rows.push(item);
