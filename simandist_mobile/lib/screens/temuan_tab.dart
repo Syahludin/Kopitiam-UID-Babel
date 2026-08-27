@@ -228,17 +228,16 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
   bool saving = false;
   bool mengambilGps = false;
 
-  bool get vegetasi => {
-        'Rabas / Pangkas',
-        'Tebang Sedang',
-        'Tebang Besar',
-      }.contains(temuan);
+  bool get isVegetasi {
+    final t = temuan.toLowerCase();
+    return t.contains('rabas') || t.contains('pangkas') || t.contains('tebang');
+  }
 
   List<String> get temuanOptions {
     return listMaster
         .where((row) {
-          final rowObject = '${row['Jenis Object'] ?? row['Object'] ?? ''}';
-          final rowTier = '${row['Tier'] ?? ''}';
+          final rowObject = '${row['Objek Inspeksi'] ?? row['Jenis Object'] ?? row['Object'] ?? ''}'.trim();
+          final rowTier = '${row['Tier'] ?? ''}'.trim();
           return (rowObject.isEmpty || rowObject.toLowerCase() == object.toLowerCase()) &&
               (rowTier.isEmpty || rowTier.toLowerCase() == tier.toLowerCase());
         })
@@ -330,13 +329,15 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
       _message('Lengkapi Segmen, Temuan, GPS, dan Foto Temuan.');
       return;
     }
-    if (object == 'Jaringan' && jarakCtrl.text.trim().isEmpty) {
-      _message('Jarak terhadap jaringan wajib diisi.');
-      return;
-    }
-    if (vegetasi && (pohon.isEmpty || tinggiCtrl.text.trim().isEmpty)) {
-      _message('Jenis dan tinggi pohon wajib diisi.');
-      return;
+    if (isVegetasi) {
+      if (jarakCtrl.text.trim().isEmpty) {
+        _message('Jarak terhadap jaringan wajib diisi.');
+        return;
+      }
+      if (pohon.isEmpty || tinggiCtrl.text.trim().isEmpty) {
+        _message('Jenis dan tinggi pohon wajib diisi untuk temuan vegetasi.');
+        return;
+      }
     }
 
     setState(() => saving = true);
@@ -371,9 +372,9 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
         jenisObject: object,
         tier: tier,
         temuan: temuan,
-        jarak: object == 'Jaringan' ? distance : null,
-        jenisPohon: vegetasi ? pohon : '',
-        tinggiPohon: vegetasi ? treeHeight : null,
+        jarak: isVegetasi ? distance : null,
+        jenisPohon: isVegetasi ? pohon : '',
+        tinggiPohon: isVegetasi ? treeHeight : null,
         prioritas: priority,
         fotoTemuan: foto,
         fotoLingkungan: lingkungan,
@@ -686,7 +687,7 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
-          if (object == 'Jaringan') ...[
+          if (isVegetasi) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
@@ -718,51 +719,47 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
                           ],
                         ),
                       ),
-                      if (vegetasi) ...[
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Tinggi (m) *', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569))),
-                              const SizedBox(height: 4),
-                              TextField(
-                                controller: tinggiCtrl,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                onChanged: (_) => setState(() {}),
-                                decoration: InputDecoration(
-                                  hintText: '0.0',
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Tinggi (m) *', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569))),
+                            const SizedBox(height: 4),
+                            TextField(
+                              controller: tinggiCtrl,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              onChanged: (_) => setState(() {}),
+                              decoration: InputDecoration(
+                                hintText: '0.0',
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ],
                   ),
-                  if (vegetasi) ...[
-                    const SizedBox(height: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Jenis Pohon *', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569))),
-                        const SizedBox(height: 4),
-                        DropdownButtonFormField<String>(
-                          isExpanded: true,
-                          initialValue: treeOptions.contains(pohon) ? pohon : null,
-                          items: treeOptions.map((p) => DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(fontSize: 13)))).toList(),
-                          onChanged: (v) => setState(() => pohon = v ?? ''),
-                          decoration: InputDecoration(
-                            hintText: 'Pilih Jenis Pohon',
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
+                  const SizedBox(height: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Jenis Pohon *', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569))),
+                      const SizedBox(height: 4),
+                      DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        initialValue: treeOptions.contains(pohon) ? pohon : null,
+                        items: treeOptions.map((p) => DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(fontSize: 13)))).toList(),
+                        onChanged: (v) => setState(() => pohon = v ?? ''),
+                        decoration: InputDecoration(
+                          hintText: 'Pilih Jenis Pohon',
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
