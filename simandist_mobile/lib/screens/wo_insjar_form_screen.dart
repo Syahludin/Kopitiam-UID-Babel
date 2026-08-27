@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/wo_insjar.dart';
 import '../services/high_accuracy_location_service.dart';
 import '../services/wo_insjar_repository.dart';
@@ -55,19 +56,29 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
         : WoInsjar.statusMulai;
 
     if (ex?.koordinatAwal.isNotEmpty == true) {
+      final parts = ex!.koordinatAwal.split(',');
+      final lat = parts.isNotEmpty ? double.tryParse(parts[0].trim()) ?? 0.0 : 0.0;
+      final lng = parts.length > 1 ? double.tryParse(parts[1].trim()) ?? 0.0 : 0.0;
       _awal = LocationFix(
-        coordinate: ex!.koordinatAwal,
+        latitude: lat,
+        longitude: lng,
         accuracy: 5.0,
+        capturedAt: DateTime.now(),
         samples: 30,
-        isLocked: true,
+        locked: true,
       );
     }
     if (ex?.koordinatAkhir.isNotEmpty == true) {
+      final parts = ex!.koordinatAkhir.split(',');
+      final lat = parts.isNotEmpty ? double.tryParse(parts[0].trim()) ?? 0.0 : 0.0;
+      final lng = parts.length > 1 ? double.tryParse(parts[1].trim()) ?? 0.0 : 0.0;
       _akhir = LocationFix(
-        coordinate: ex!.koordinatAkhir,
+        latitude: lat,
+        longitude: lng,
         accuracy: 5.0,
+        capturedAt: DateTime.now(),
         samples: 30,
-        isLocked: true,
+        locked: true,
       );
     }
     if (ex?.waktuMulai.isNotEmpty == true) {
@@ -105,10 +116,13 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
       _statusWo = WoInsjar.statusDalam;
     } else if (_awal != null && _akhir != null) {
       _statusWo = WoInsjar.statusSelesai;
-      _realisasiKms = HighAccuracyLocationService.distanceBetween(
-        _awal!.coordinate,
-        _akhir!.coordinate,
+      final distMeters = Geolocator.distanceBetween(
+        _awal!.latitude,
+        _awal!.longitude,
+        _akhir!.latitude,
+        _akhir!.longitude,
       );
+      _realisasiKms = distMeters / 1000.0;
       _waktuSelesai ??= DateTime.now();
     }
   }
