@@ -10,6 +10,9 @@ val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.inputStream().use(keystoreProperties::load)
 }
+val isReleaseTask = gradle.startParameter.taskNames.any {
+    it.contains("release", ignoreCase = true)
+}
 
 android {
     namespace = "id.co.uidbabel.kopitiam"
@@ -47,13 +50,9 @@ android {
 
     buildTypes {
         release {
-            if (!keystorePropertiesFile.exists()) {
-                throw GradleException(
-                    "Release signing Kopitiam belum dikonfigurasi. " +
-                        "Buat android/key.properties dan keystore release."
-                )
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
             }
-            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -62,6 +61,13 @@ android {
             )
         }
     }
+}
+
+if (isReleaseTask && !keystorePropertiesFile.exists()) {
+    throw GradleException(
+        "Release signing Kopitiam belum dikonfigurasi. " +
+            "Buat android/key.properties dan keystore release."
+    )
 }
 
 kotlin {

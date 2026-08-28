@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:simandist_mobile/services/high_accuracy_location_service.dart';
+import 'package:kopitiam_mobile/services/high_accuracy_location_service.dart';
 
 Position position({
   bool mocked = false,
@@ -26,7 +26,10 @@ void main() {
   test('trusted GPS sample can become a LocationFix', () {
     final sample = position();
     expect(sample.isMocked, isFalse);
-    expect(sample.accuracy, lessThanOrEqualTo(HighAccuracyLocationService.lockAccuracy));
+    expect(
+      sample.accuracy,
+      lessThanOrEqualTo(HighAccuracyLocationService.lockAccuracy),
+    );
   });
 
   test('geolocator exposes mock-location signal used by service', () {
