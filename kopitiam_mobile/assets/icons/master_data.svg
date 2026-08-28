@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-labelledby="title">
+  <title id="title">Master Data</title>
+  <g fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="16" cy="7" rx="9" ry="4"/>
+    <path d="M7 7v7c0 2.2 4 4 9 4s9-1.8 9-4V7M7 14v7c0 2.2 4 4 9 4s9-1.8 9-4v-7"/>
+    <path d="M12 11h8" opacity=".55"/>
+  </g>
+</svg>
