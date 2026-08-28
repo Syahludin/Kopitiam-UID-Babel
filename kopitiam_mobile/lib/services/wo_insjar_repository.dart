@@ -35,9 +35,14 @@ class WoInsjarRepository {
     return rows.map(WoInsjar.fromMap).toList();
   }
 
+  /// Hanya WO selesai yang boleh dikirim ke server.
   Future<List<WoInsjar>> belumTersinkron() async {
     final db = await _db.database;
-    final rows = await db.query(table, where: 'is_dirty = 1');
+    final rows = await db.query(
+      table,
+      where: 'is_dirty = 1 AND status_wo = ?',
+      whereArgs: [WoInsjar.statusSelesai],
+    );
     return rows.map(WoInsjar.fromMap).toList();
   }
 
@@ -54,7 +59,9 @@ class WoInsjarRepository {
 
   Future<void> simpan(WoInsjar wo, {bool tandaiDirty = true}) async {
     final db = await _db.database;
-    final values = wo.copyWith(isDirty: tandaiDirty).toMap()
+    final selesai =
+        WoInsjar.normalisasiStatus(wo.statusWo) == WoInsjar.statusSelesai;
+    final values = wo.copyWith(isDirty: tandaiDirty && selesai).toMap()
       ..['synced_at'] = DateTime.now().toUtc().toIso8601String();
     await db.insert(
       table,
@@ -67,7 +74,7 @@ class WoInsjarRepository {
     final db = await _db.database;
     await db.update(
       table,
-      {'status_wo': WoInsjar.statusDalam, 'is_dirty': 1},
+      {'status_wo': WoInsjar.statusDalam, 'is_dirty': 0},
       where: 'kode_wo = ? AND status_wo = ?',
       whereArgs: [kodeWo, WoInsjar.statusMulai],
     );
@@ -111,6 +118,7 @@ class WoInsjarRepository {
 
     final rows = response['rows'] as List;
     var ditambahkan = 0;
+    var tersedia = 0;
     final syncTime = DateTime.now().toUtc().toIso8601String();
 
     await db.transaction((txn) async {
@@ -118,6 +126,14 @@ class WoInsjarRepository {
         if (row is! Map) continue;
         final remote = WoInsjar.fromRemote(Map<String, dynamic>.from(row));
         if (remote.kodeWo.isEmpty) continue;
+
+        // WO yang sudah selesai di server tidak diunduh kembali setelah salinan
+        // lokalnya dihapus oleh sinkronisasi sukses.
+        if (WoInsjar.normalisasiStatus(remote.statusWo) ==
+            WoInsjar.statusSelesai) {
+          continue;
+        }
+        tersedia++;
 
         final existing = await txn.query(
           table,
@@ -142,7 +158,7 @@ class WoInsjarRepository {
         {
           'key': 'WO_Ins_Jar',
           'synced_at': syncTime,
-          'row_count': rows.length,
+          'row_count': tersedia,
           'status': 'success',
           'error_message': '',
         },
@@ -150,13 +166,17 @@ class WoInsjarRepository {
       );
     });
 
-    return WoSyncResult(total: rows.length, diproses: ditambahkan);
+    return WoSyncResult(total: tersedia, diproses: ditambahkan);
   }
 
   Future<WoSyncResult> sinkron(String token) async {
     final pending = await belumTersinkron();
     if (pending.isEmpty) {
-      return const WoSyncResult(total: 0, diproses: 0);
+      return const WoSyncResult(
+        total: 0,
+        diproses: 0,
+        pesan: 'Belum ada WO selesai yang siap disinkronkan.',
+      );
     }
 
     final response = await ApiService.syncWoInsjar(
@@ -171,21 +191,29 @@ class WoInsjarRepository {
       );
     }
 
+    final processed =
+        (response['diproses'] as num?)?.toInt() ?? pending.length;
+    if (processed != pending.length) {
+      return WoSyncResult(
+        total: pending.length,
+        diproses: processed,
+        pesan:
+            'Konfirmasi server tidak lengkap. Data lokal dipertahankan agar aman.',
+      );
+    }
+
+    // Penghapusan hanya dilakukan setelah seluruh WO dikonfirmasi server.
     final db = await _db.database;
-    final now = DateTime.now().toUtc().toIso8601String();
     await db.transaction((txn) async {
       for (final wo in pending) {
-        await txn.update(
+        await txn.delete(
           table,
-          {'is_dirty': 0, 'synced_at': now},
-          where: 'kode_wo = ?',
-          whereArgs: [wo.kodeWo],
+          where: 'kode_wo = ? AND status_wo = ?',
+          whereArgs: [wo.kodeWo, WoInsjar.statusSelesai],
         );
       }
     });
 
-    final processed =
-        (response['diproses'] as num?)?.toInt() ?? pending.length;
     return WoSyncResult(total: pending.length, diproses: processed);
   }
 
