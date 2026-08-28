@@ -11,12 +11,20 @@ const integration = fs.readFileSync(
   'utf8',
 );
 
-function expectBefore(first, second) {
-  const left = integration.indexOf(first);
-  const right = integration.indexOf(second);
+function expectBefore(first, second, source = integration) {
+  const left = source.indexOf(first);
+  const right = source.indexOf(second);
   assert.ok(left >= 0, `${first} tidak ditemukan`);
   assert.ok(right >= 0, `${second} tidak ditemukan`);
   assert.ok(left < right, `${first} harus dijalankan sebelum ${second}`);
+}
+
+function functionBlock(name, nextName) {
+  const start = integration.indexOf(name);
+  const end = integration.indexOf(nextName, start + name.length);
+  assert.ok(start >= 0, `${name} tidak ditemukan`);
+  assert.ok(end > start, `${nextName} tidak ditemukan setelah ${name}`);
+  return integration.slice(start, end);
 }
 
 test('production POST router consumes action quota before dispatch', () => {
@@ -50,10 +58,18 @@ test('password changes revoke both the session and bound device', () => {
   assert.match(integration, /DEVICE_REVOKED/);
 });
 
-test('account status is checked on every cached session request', () => {
+test('account status is checked on every successful cached session request', () => {
   assert.match(integration, /accountStatus_\(session\.username\)/);
   assert.match(integration, /ACCOUNT_INACTIVE/);
-  expectBefore('verifySessionDeviceBinding_(token, result.sesi)', 'return result;');
+  const cekSesi = functionBlock(
+    'cekSesi_ = function(token)',
+    'syncTemuanInspeksiIdempotent_ = function',
+  );
+  expectBefore(
+    'verifySessionDeviceBinding_(token, result.sesi)',
+    'return result;',
+    cekSesi,
+  );
 });
 
 test('master validation runs before idempotent Temuan transaction', () => {
