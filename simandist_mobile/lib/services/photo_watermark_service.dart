@@ -25,8 +25,12 @@ class PhotoWatermarkService {
     final scale = image.width / 2048.0;
     int px(num value) => (value * scale).round();
 
-    final panelWidth = px(_panelWidth).clamp(px(560), image.width - px(88));
-    final panelHeight = px(_panelHeight).clamp(px(300), image.height - px(88));
+    final panelWidth = px(
+      _panelWidth,
+    ).clamp(px(560), image.width - px(88)).toInt();
+    final panelHeight = px(
+      _panelHeight,
+    ).clamp(px(300), image.height - px(88)).toInt();
     final left = px(_margin);
     final top = image.height - panelHeight - px(_margin);
     final right = left + panelWidth;
@@ -93,7 +97,8 @@ class PhotoWatermarkService {
     );
 
     final badge = photoLabel.toUpperCase();
-    final badgeWidth = px(photoLabel.toLowerCase().contains('lingkungan') ? 180 : 144);
+    final isEnvironment = photoLabel.toLowerCase().contains('lingkungan');
+    final badgeWidth = px(isEnvironment ? 180 : 144);
     img.fillRect(
       image,
       x1: right - badgeWidth - px(16),
@@ -144,7 +149,7 @@ class PhotoWatermarkService {
     _row(
       image,
       'LOKASI',
-      _limit('${item.koordinat} | GPS +/- ${item.prioritas.isEmpty ? '-' : 'terkunci'}', 54),
+      _limit('${item.koordinat} | GPS TERKUNCI <= 5 M', 54),
       left,
       top + px(207),
       accent: true,
