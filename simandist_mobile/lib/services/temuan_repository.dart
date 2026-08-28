@@ -8,6 +8,7 @@ import 'package:sqflite/sqflite.dart';
 import '../models/temuan_inspeksi.dart';
 import '../models/wo_insjar.dart';
 import 'api_service.dart';
+import 'photo_watermark_service.dart';
 import 'sqlite_service.dart';
 
 class TemuanRepository {
@@ -81,13 +82,23 @@ class TemuanRepository {
     if (item.fotoTemuan.isEmpty || item.fotoLingkungan.isEmpty) {
       throw StateError('Foto Temuan dan Foto Sekitar Tiang wajib diambil.');
     }
+    final watermarkedPrimary = await PhotoWatermarkService.render(
+      sourcePath: item.fotoTemuan,
+      item: item,
+      photoLabel: 'Foto Temuan',
+    );
+    final watermarkedEnvironment = await PhotoWatermarkService.render(
+      sourcePath: item.fotoLingkungan,
+      item: item,
+      photoLabel: 'Foto Lingkungan',
+    );
     final primary = await _persistPhoto(
-      item.fotoTemuan,
+      watermarkedPrimary,
       item.kodeTemuan,
       'Foto Temuan',
     );
     final environment = await _persistPhoto(
-      item.fotoLingkungan,
+      watermarkedEnvironment,
       item.kodeTemuan,
       'Foto Lingkungan',
     );
