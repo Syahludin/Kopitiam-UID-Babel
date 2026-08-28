@@ -1,10 +1,10 @@
 {
   "name": "kopitiam-backend",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "private": true,
   "description": "CI harness for the Kopitiam Google Apps Script backend",
   "scripts": {
-    "check": "node --check Code.js && node --check Setup.js && node --check SecurityValidation.js && node --check IdempotentUpload.js && node --check RuntimeGuards.js",
+    "check": "node --check Code.js && node --check Setup.js && node --check SecurityValidation.js && node --check IdempotentUpload.js && node --check RuntimeGuards.js && node --check ZZ_RuntimeIntegration.js",
     "test": "node --test test/*.test.js"
   },
   "engines": {
