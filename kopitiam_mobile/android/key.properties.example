@@ -1,0 +1,5 @@
+# Salin menjadi key.properties. Jangan commit file asli atau keystore.
+storePassword=GANTI_PASSWORD_KEYSTORE
+keyPassword=GANTI_PASSWORD_KEY
+keyAlias=kopitiam
+storeFile=app/kopitiam-release.jks
