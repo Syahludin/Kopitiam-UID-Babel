@@ -19,10 +19,6 @@ class SessionBootstrapService {
     'aksesMenu',
   ];
 
-  /// Restores a saved device session. Online validation is preferred because
-  /// it also issues a fresh short-lived API token. If the API is unreachable,
-  /// the encrypted profile may be used for at most 24 hours after the last
-  /// successful online validation.
   static Future<Map<String, dynamic>?> restore() async {
     final deviceToken = await DeviceSessionService.token();
     if (deviceToken.isEmpty) return null;
@@ -39,14 +35,11 @@ class SessionBootstrapService {
         deviceToken: (session['deviceToken'] ?? deviceToken).toString(),
         profile: session,
       );
-      await _savePreferences(session, onlineVerifiedAt: DateTime.now().toUtc());
+      await _savePreferences(session);
       return session;
     } catch (_) {
       final cached = await DeviceSessionService.profile();
-      final prefs = await SharedPreferences.getInstance();
-      final verifiedAt = DateTime.tryParse(
-        prefs.getString('sessionOnlineVerifiedAt') ?? '',
-      )?.toUtc();
+      final verifiedAt = await DeviceSessionService.verifiedAt();
       final now = DateTime.now().toUtc();
       if (cached == null ||
           verifiedAt == null ||
@@ -64,14 +57,7 @@ class SessionBootstrapService {
     }
   }
 
-  static Future<void> saveOnlineLogin(Map<String, dynamic> session) async {
-    await _savePreferences(session, onlineVerifiedAt: DateTime.now().toUtc());
-  }
-
-  static Future<void> _savePreferences(
-    Map<String, dynamic> session, {
-    DateTime? onlineVerifiedAt,
-  }) async {
+  static Future<void> _savePreferences(Map<String, dynamic> session) async {
     final prefs = await SharedPreferences.getInstance();
     for (final key in sessionKeys) {
       await prefs.setString(key, (session[key] ?? '').toString());
@@ -86,12 +72,6 @@ class SessionBootstrapService {
     } else {
       await prefs.remove('offlineExpiresAt');
     }
-    if (onlineVerifiedAt != null) {
-      await prefs.setString(
-        'sessionOnlineVerifiedAt',
-        onlineVerifiedAt.toIso8601String(),
-      );
-    }
   }
 
   static Future<void> clearPreferencesOnly() async {
@@ -101,6 +81,5 @@ class SessionBootstrapService {
     }
     await prefs.remove('offlineLogin');
     await prefs.remove('offlineExpiresAt');
-    await prefs.remove('sessionOnlineVerifiedAt');
   }
 }
