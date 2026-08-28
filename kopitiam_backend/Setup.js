@@ -1,6 +1,6 @@
 var DEVICE_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var DEVICE_TOKEN_IDLE_MS = 1 * 24 * 60 * 60 * 1000;
-var DEVICE_CLEANUP_HANDLER = 'bersihkanTokenPerangkatKedaluwarsa';
+var DEVICE_CLEANUP_HANDLER = "bersihkanTokenPerangkatKedaluwarsa";
 
 /**
  * Menyiapkan dan memvalidasi backend tanpa mengubah data pengguna yang ada.
@@ -8,10 +8,10 @@ var DEVICE_CLEANUP_HANDLER = 'bersihkanTokenPerangkatKedaluwarsa';
  */
 function setupBackend() {
   var props = PropertiesService.getScriptProperties();
-  if (!props.getProperty('PASSWORD_PEPPER')) {
+  if (!props.getProperty("PASSWORD_PEPPER")) {
     props.setProperty(
-      'PASSWORD_PEPPER',
-      Utilities.getUuid() + Utilities.getUuid() + Utilities.getUuid()
+      "PASSWORD_PEPPER",
+      Utilities.getUuid() + Utilities.getUuid() + Utilities.getUuid(),
     );
   }
 
@@ -20,27 +20,47 @@ function setupBackend() {
   var temuan = SpreadsheetApp.openById(CONFIG.TEMUAN_SPREADSHEET_ID);
 
   ensureSheet_(master, CONFIG.USERS_SHEET, [
-    'No', 'Kode UIW', 'Kode UP3', 'Kode ULP', 'ULP', 'Username',
-    'Password', 'Role', 'Bidang', 'Tim', 'Sub-Tim', 'Akses Menu'
+    "No",
+    "Kode UIW",
+    "Kode UP3",
+    "Kode ULP",
+    "ULP",
+    "Username",
+    "Password",
+    "Role",
+    "Bidang",
+    "Tim",
+    "Sub-Tim",
+    "Akses Menu",
   ]);
   requireSheet_(wo, CONFIG.WO_INSJAR_SHEET, [
-    'Kode WO', 'Kode ULP', 'Status WO'
+    "Kode WO",
+    "Kode ULP",
+    "Status WO",
   ]);
   requireSheet_(temuan, CONFIG.TEMUAN_SHEET, [
-    'Kode WO', 'Kode Temuan', 'Kode ULP', 'Jenis Object', 'Tier', 'Temuan',
-    'Koordinat Temuan', 'Foto Temuan', 'Link Foto',
-    'Foto Lingkungan Sekitaran Tiang', 'Link Foto Sekitaran Tiang'
+    "Kode WO",
+    "Kode Temuan",
+    "Kode ULP",
+    "Jenis Object",
+    "Tier",
+    "Temuan",
+    "Koordinat Temuan",
+    "Foto Temuan",
+    "Link Foto",
+    "Foto Lingkungan Sekitaran Tiang",
+    "Link Foto Sekitaran Tiang",
   ]);
 
   pasangTriggerPembersihanToken_();
   var cleanup = bersihkanTokenPerangkatKedaluwarsa();
   return {
     success: true,
-    service: 'SiManDist API',
-    version: '2.5.3',
+    service: "SiManDist API",
+    version: "2.5.3",
     deviceTokenMaxDays: 7,
     deviceTokenIdleDays: 1,
-    expiredTokensRemoved: cleanup.dihapus
+    expiredTokensRemoved: cleanup.dihapus,
   };
 }
 
@@ -59,14 +79,15 @@ function bersihkanTokenPerangkatKedaluwarsa() {
     var removed = 0;
     var active = 0;
 
-    Object.keys(all).forEach(function(key) {
-      if (key.indexOf('device_') !== 0) return;
+    Object.keys(all).forEach(function (key) {
+      if (key.indexOf("device_") !== 0) return;
       var remove = false;
       try {
         var record = JSON.parse(all[key]);
         var createdAt = Number(record.createdAt || 0);
         var lastUsedAt = Number(record.lastUsedAt || createdAt || 0);
-        remove = !createdAt ||
+        remove =
+          !createdAt ||
           !lastUsedAt ||
           createdAt > now ||
           lastUsedAt > now ||
@@ -83,14 +104,14 @@ function bersihkanTokenPerangkatKedaluwarsa() {
       }
     });
 
-    return {success: true, dihapus: removed, aktif: active};
+    return { success: true, dihapus: removed, aktif: active };
   } finally {
     lock.releaseLock();
   }
 }
 
 function pasangTriggerPembersihanToken_() {
-  var exists = ScriptApp.getProjectTriggers().some(function(trigger) {
+  var exists = ScriptApp.getProjectTriggers().some(function (trigger) {
     return trigger.getHandlerFunction() === DEVICE_CLEANUP_HANDLER;
   });
   if (!exists) {
@@ -103,7 +124,7 @@ function pasangTriggerPembersihanToken_() {
 
 function requireSheet_(spreadsheet, name, requiredHeaders) {
   var sheet = spreadsheet.getSheetByName(name);
-  if (!sheet) throw new Error('Sheet wajib tidak ditemukan: ' + name);
+  if (!sheet) throw new Error("Sheet wajib tidak ditemukan: " + name);
   validateHeaders_(sheet, requiredHeaders);
   return sheet;
 }
@@ -113,7 +134,7 @@ function ensureSheet_(spreadsheet, name, headers) {
   if (sheet.getLastRow() === 0) {
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     sheet.setFrozenRows(1);
-    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
   } else {
     validateHeaders_(sheet, headers);
   }
@@ -122,16 +143,25 @@ function ensureSheet_(spreadsheet, name, headers) {
 
 function validateHeaders_(sheet, requiredHeaders) {
   var lastColumn = sheet.getLastColumn();
-  if (lastColumn < 1) throw new Error('Header sheet kosong: ' + sheet.getName());
-  var current = sheet.getRange(1, 1, 1, lastColumn)
+  if (lastColumn < 1)
+    throw new Error("Header sheet kosong: " + sheet.getName());
+  var current = sheet
+    .getRange(1, 1, 1, lastColumn)
     .getDisplayValues()[0]
-    .map(function(value) { return String(value || '').trim().toLowerCase(); });
-  var missing = requiredHeaders.filter(function(header) {
+    .map(function (value) {
+      return String(value || "")
+        .trim()
+        .toLowerCase();
+    });
+  var missing = requiredHeaders.filter(function (header) {
     return current.indexOf(String(header).trim().toLowerCase()) < 0;
   });
   if (missing.length) {
     throw new Error(
-      'Header sheet ' + sheet.getName() + ' tidak lengkap: ' + missing.join(', ')
+      "Header sheet " +
+        sheet.getName() +
+        " tidak lengkap: " +
+        missing.join(", "),
     );
   }
 }

@@ -1,35 +1,721 @@
-var CONFIG={SPREADSHEET_ID:'18mVJgfMaPjs8ppmlhf5JVYvHhysHYy9L77bwfRPI5O0',WO_SPREADSHEET_ID:'15T21iCLPb8vwzFNtUbWjZ_T3RGGDZ-Y9UX5-4UV1Zgk',TEMUAN_SPREADSHEET_ID:'1qFBQq3hMTA98ZV6UWg-Pj5sz-J41pm0r13TLYP2LF0I',USERS_SHEET:'User_App_Mobile',WO_INSJAR_SHEET:'WO_Ins_Jar',TEMUAN_SHEET:'Inp_Temuan',SESSION_TTL_SEC:900,MAX_LOGIN_FAILURES:5,MAX_IMAGE_BYTES:5*1024*1024,MASTER_SHEETS:['User_App_Mobile','Master_Penyulang','Master_Keypoint','List_Temuan','Jenis Pohon']};
-var USER_COL={no:0,kodeUiw:1,kodeUp3:2,kodeUlp:3,ulp:4,username:5,password:6,role:7,bidang:8,tim:9,subTim:10,aksesMenu:11};
-var WO_MUTABLE_HEADERS=['koordinat awal','koordinat akhir','realisasi kms','waktu mulai','waktu selesai','durasi pekerjaan','status wo'];
-function doGet(e){var a=String((e&&e.parameter&&e.parameter.action)||'health').trim();return a==='health'?json_({success:true,service:'SiManDist API',version:'2.5.5'}):json_({success:false,kode:'POST_REQUIRED',message:'Gunakan POST untuk operasi API.'});}
-function doPost(e){try{var b=parseBody_(e),a=String(b.action||'').trim();if(a==='login'||a==='loginPerangkat')return json_(loginPerangkat_(b.username,b.password,b.perangkat));if(a==='cekPerangkat')return json_(cekPerangkat_(b.deviceToken));if(a==='logoutPerangkat')return json_(logoutPerangkat_(b.deviceToken,b.token));if(a==='cekSesi')return json_(cekSesi_(b.token));if(a==='logout')return json_(logout_(b.token));if(a==='getMasterData')return json_(getMasterData_(b.token));if(a==='getWoInsjar')return json_(getWoInsjar_(b.token));if(a==='syncWoInsjar')return json_(syncWoInsjar_(b.token,b.rows));if(a==='getTemuanInspeksi')return json_(getTemuanInspeksi_(b.token,b.kodeWo));if(a==='syncTemuanInspeksi')return json_(syncTemuanInspeksiIdempotent_(b.token,b.row));return json_({success:false,kode:'ACTION_INVALID',message:'Action API tidak dikenal.'});}catch(x){console.error(x&&x.stack?x.stack:x);return json_({success:false,kode:'SERVER_ERROR',message:'Permintaan tidak dapat diproses.'});}}
-function loginPerangkat_(u,p,d){u=String(u||'').trim();p=String(p||'');if(!u||!p)return fail_('LOGIN_REQUIRED','Username dan kata sandi wajib diisi.');var c=CacheService.getScriptCache(),k='login_fail_'+sha256_(normalize_(u)).substring(0,24),n=Number(c.get(k)||0);if(n>=CONFIG.MAX_LOGIN_FAILURES)return fail_('LOGIN_RATE_LIMIT','Terlalu banyak percobaan. Coba lagi 5 menit.');var r=findUser_(u),supplied=passwordSignature_(p),expected=passwordSignature_(r?String(r[USER_COL.password]||''):'__invalid_password__');p='';if(!r||!constantTimeEqual_(expected,supplied)){c.put(k,String(n+1),300);return fail_('LOGIN_FAILED','Username atau kata sandi salah.');}c.remove(k);r[USER_COL.password]='';var dt=Utilities.getUuid().replace(/-/g,'')+Utilities.getUuid().replace(/-/g,''),now=Date.now();PropertiesService.getScriptProperties().setProperty('device_'+dt,JSON.stringify({username:String(r[USER_COL.username]).trim(),passwordSignature:expected,createdAt:now,lastUsedAt:now,device:safeText_(d,120)}));var s=issueSession_(r,dt);s.success=true;s.deviceToken=dt;return s;}
-function cekPerangkat_(t){t=String(t||'').trim();if(!/^[a-f0-9]{64}$/i.test(t))return fail_('DEVICE_INVALID','Sesi perangkat tidak valid.');var p=PropertiesService.getScriptProperties(),raw=p.getProperty('device_'+t);if(!raw)return fail_('DEVICE_UNKNOWN','Sesi perangkat tidak dikenali. Silakan login ulang.');var rec=JSON.parse(raw),r=findUser_(rec.username),expected=passwordSignature_(r?String(r[USER_COL.password]||''):'__invalid_password__');if(!r||!constantTimeEqual_(expected,String(rec.passwordSignature||''))){p.deleteProperty('device_'+t);return fail_('DEVICE_REVOKED','Akun berubah. Silakan login ulang.');}r[USER_COL.password]='';rec.lastUsedAt=Date.now();p.setProperty('device_'+t,JSON.stringify(rec));var s=issueSession_(r,t);s.success=true;s.deviceToken=t;return s;}
-function logoutPerangkat_(d,t){var p=PropertiesService.getScriptProperties();if(d)p.deleteProperty('device_'+String(d).trim());if(t)CacheService.getScriptCache().remove('session_'+String(t).trim());return{success:true};}
-function issueSession_(r,d){var t=Utilities.getUuid(),s=userFromRow_(r);s.token=t;s.deviceToken=d;s.loginAt=new Date().toISOString();CacheService.getScriptCache().put('session_'+t,JSON.stringify(s),CONFIG.SESSION_TTL_SEC);return s;}
-function cekSesi_(t){t=String(t||'').trim();if(!/^[a-f0-9-]{36}$/i.test(t))return fail_('SESSION_INVALID','Sesi tidak valid atau sudah berakhir.');var c=CacheService.getScriptCache(),raw=c.get('session_'+t);if(!raw)return fail_('SESSION_EXPIRED','Sesi tidak valid atau sudah berakhir.');c.put('session_'+t,raw,CONFIG.SESSION_TTL_SEC);return{success:true,sesi:JSON.parse(raw)};}
-function logout_(t){if(t)CacheService.getScriptCache().remove('session_'+String(t));return{success:true};}
-function getMasterData_(t){var a=cekSesi_(t);if(!a.success)return a;var u=normalize_(a.sesi.username),ss=getSpreadsheet_(),sets={},total=0;for(var i=0;i<CONFIG.MASTER_SHEETS.length;i++){var n=CONFIG.MASTER_SHEETS[i],sh=ss.getSheetByName(n);if(!sh)return fail_('MASTER_SHEET_MISSING','Data master belum tersedia.');var v=sh.getDataRange().getDisplayValues(),h=v.length?v[0].map(function(x){return String(x).trim();}):[],rows=[];for(var r=1;r<v.length;r++){if(n===CONFIG.USERS_SHEET&&normalize_(v[r][USER_COL.username])!==u)continue;var item={},has=false;for(var c=0;c<h.length;c++){var k=h[c]||('kolom_'+(c+1));if(n===CONFIG.USERS_SHEET&&normalize_(k)==='password')continue;item[k]=v[r][c];if(v[r][c]!=='')has=true;}if(has)rows.push(item);}sets[n]=rows;total+=rows.length;}return{success:true,generatedAt:new Date().toISOString(),total:total,datasets:sets};}
-function woAccess_(s){var sub=normalize_(s.subTim||s.tim);if(sub.indexOf('inspeksi jaringan')<0&&sub.indexOf('insjar')<0)return fail_('WO_ACCESS_DENIED','WO Inspeksi Jaringan hanya tersedia untuk Sub-Tim Inspeksi Jaringan.');var k=normalizeCode_(s.kodeUlp);return k?{success:true,kodeUlp:k}:fail_('ULP_MISSING','Kode ULP akun belum terisi.');}
-function woSheet_(){var s=SpreadsheetApp.openById(CONFIG.WO_SPREADSHEET_ID).getSheetByName(CONFIG.WO_INSJAR_SHEET);if(!s)throw new Error('WO sheet missing');return s;}
-function woContext_(s,k,editable){var a=woAccess_(s);if(!a.success)return a;k=safeText_(k,100);if(!k)return fail_('WO_REQUIRED','Kode WO wajib diisi.');var sh=woSheet_(),v=sh.getDataRange().getDisplayValues();if(v.length<2)return fail_('WO_NOT_FOUND','WO tidak ditemukan.');var h=v[0].map(function(x){return String(x).trim();}),ix=headerIndex_(h),ki=ix['kode wo'],ui=ix['kode ulp'],si=ix['status wo'];if(ki===undefined||ui===undefined||si===undefined)throw new Error('WO headers invalid');for(var r=1;r<v.length;r++)if(String(v[r][ki]||'').trim()===k){if(normalizeCode_(v[r][ui])!==a.kodeUlp)return fail_('WO_OWNERSHIP_DENIED','WO bukan milik ULP akun ini.');var st=normalize_(v[r][si]);if(editable&&st==='selesai')return fail_('WO_LOCKED','WO sudah selesai dan hanya dapat dilihat.');return{success:true,sheet:sh,headers:h,index:ix,row:v[r],rowNumber:r+1,status:st,kodeUlp:a.kodeUlp};}return fail_('WO_NOT_FOUND','WO tidak ditemukan.');}
-function getWoInsjar_(t){var a=cekSesi_(t);if(!a.success)return a;var ac=woAccess_(a.sesi);if(!ac.success)return ac;var sh=woSheet_(),v=sh.getDataRange().getDisplayValues();if(v.length<2)return{success:true,total:0,rows:[]};var h=v[0].map(function(x){return String(x).trim();}),ix=headerIndex_(h);if(ix['kode wo']===undefined||ix['kode ulp']===undefined)throw new Error('WO headers invalid');var rows=[];for(var r=1;r<v.length;r++)if(String(v[r][ix['kode wo']]||'').trim()&&normalizeCode_(v[r][ix['kode ulp']])===ac.kodeUlp)rows.push(rowObject_(h,v[r]));return{success:true,total:rows.length,totalSheet:v.length-1,kodeUlpFilter:ac.kodeUlp,rows:rows};}
-function syncWoInsjar_(t,rows){var a=cekSesi_(t);if(!a.success)return a;if(!Array.isArray(rows)||rows.length>100)return fail_('BATCH_INVALID','Maksimal 100 WO per sinkronisasi.');var l=LockService.getScriptLock();l.waitLock(20000);try{var done=0;for(var i=0;i<rows.length;i++){var d=rows[i]||{},x=woContext_(a.sesi,d['Kode WO'],true);if(!x.success)return x;var out=x.row.slice();for(var c=0;c<x.headers.length;c++){var n=normalize_(x.headers[c]);if(WO_MUTABLE_HEADERS.indexOf(n)>=0&&d[x.headers[c]]!==undefined)out[c]=d[x.headers[c]];}var st=normalize_(out[x.index['status wo']]);if(['mulai pengerjaan','dalam pengerjaan','selesai'].indexOf(st)<0)return fail_('STATUS_INVALID','Status WO tidak valid.');x.sheet.getRange(x.rowNumber,1,1,x.headers.length).setValues([out]);done++;}SpreadsheetApp.flush();return{success:true,diproses:done,diperbarui:done,ditambahkan:0};}finally{l.releaseLock();}}
-function temuanSheet_(){var s=SpreadsheetApp.openById(CONFIG.TEMUAN_SPREADSHEET_ID).getSheetByName(CONFIG.TEMUAN_SHEET);if(!s)throw new Error('Findings sheet missing');return s;}
-function getTemuanInspeksi_(t,k){var a=cekSesi_(t);if(!a.success)return a;var x=woContext_(a.sesi,k,false);if(!x.success)return x;var sh=temuanSheet_(),v=sh.getDataRange().getDisplayValues();if(v.length<2)return{success:true,total:0,rows:[]};var h=v[0].map(function(z){return String(z).trim();}),ix=headerIndex_(h);if(ix['kode wo']===undefined||ix['kode ulp']===undefined)throw new Error('Finding headers invalid');var rows=[];for(var r=1;r<v.length;r++)if(String(v[r][ix['kode wo']]||'').trim()===String(k).trim()&&normalizeCode_(v[r][ix['kode ulp']])===x.kodeUlp)rows.push(rowObject_(h,v[r]));return{success:true,total:rows.length,rows:rows};}
-function syncTemuanInspeksi_(t,incoming){var a=cekSesi_(t);if(!a.success)return a;if(!incoming||typeof incoming!=='object')return fail_('FINDING_REQUIRED','Data temuan kosong.');var k=safeText_(incoming['Kode WO'],100),x=woContext_(a.sesi,k,true);if(!x.success)return x;var code=safeText_(incoming['Kode Temuan'],120);if(code.indexOf(k+'.TO-')!==0||!/^[0-9]{3}$/.test(code.substring((k+'.TO-').length)))return fail_('FINDING_CODE_INVALID','Kode Temuan tidak valid.');var tier=safeText_(incoming['Tier'],20),obj=safeText_(incoming['Jenis Object'],40);if(tier!=='Tier 1'&&tier!=='Tier 2')return fail_('TIER_INVALID','Tier tidak valid.');var sub=normalize_(a.sesi.subTim||a.sesi.tim);var auto=obj;if(sub.indexOf('inspeksi jaringan')>=0||sub.indexOf('insjar')>=0)auto='Jaringan';else if(sub.indexOf('inspeksi gardu')>=0||sub.indexOf('insdu')>=0)auto='Gardu';else if(obj!=='Jaringan'&&obj!=='Gardu')return fail_('OBJECT_INVALID','Jenis Object harus Jaringan atau Gardu.');if(auto!==obj)return fail_('OBJECT_MISMATCH','Jenis Object tidak sesuai Sub-Tim.');var tem=safeText_(incoming['Temuan'],200),seg=safeText_(incoming['Segmen'],200),coord=safeText_(incoming['Koordinat Temuan'],80);if(!tem||!seg)return fail_('FINDING_INVALID','Data wajib temuan belum valid.');var point;try{point=validateCoordinate_(coord);}catch(_){return fail_('COORDINATE_INVALID','Koordinat temuan tidak valid. Ambil ulang GPS.');}if(!incoming.fotoTemuanBase64||!incoming.fotoLingkunganBase64)return fail_('PHOTO_REQUIRED','Foto Temuan dan Foto Sekitar Tiang wajib diunggah.');var now=new Date(),wi=x.index,server=x.row,row={};row['Kode WO']=k;row['Kode Temuan']=code;row['Kode UIW']=server[wi['kode uiw']]||a.sesi.kodeUiw||'';row['Kode UP3']=server[wi['kode up3']]||a.sesi.kodeUp3||'';row['Kode ULP']=x.kodeUlp;row['ULP']=server[wi['ulp']]||a.sesi.ulp||'';row['Hari']=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][now.getDay()];row['Tanggal']=Utilities.formatDate(now,Session.getScriptTimeZone(),'dd MMMM yyyy');row['Penyulang']=server[wi['penyulang']]||'';row['Section Awal']=server[wi['section awal']]||'';row['Section Akhir']=server[wi['section akhir']]||'';row['Section']=server[wi['section']]||'';row['Segmen']=seg;row['Koordinat Temuan']=point.latitude+', '+point.longitude;row['Lat Temuan']=point.latitude;row['Long Temuan']=point.longitude;row['Jenis Object']=obj;row['Tier']=tier;row['Temuan']=tem;row['Jarak Terhadap Jaringan']=numericOrBlank_(incoming['Jarak Terhadap Jaringan']);row['Jenis Pohon']=safeText_(incoming['Jenis Pohon'],100);row['Tinggi Pohon']=numericOrBlank_(incoming['Tinggi Pohon']);row['Prioritas']=safeText_(incoming['Prioritas'],20);row['Pekerjaan (Padam / Tanpa Padam)']='';row['Jenis WO']='';row['Waktu Input']=Utilities.formatDate(now,Session.getScriptTimeZone(),'dd MMMM yyyy, HH:mm:ss');row['User Input']=a.sesi.username;row['Folder Path']=buildFindingPath_(x.kodeUlp,obj,k,code,now);var folder=folderPath_(row['Folder Path']);var stamp=Utilities.formatDate(now,Session.getScriptTimeZone(),'HHmmss');var f,e2;try{f=saveImage_(folder,incoming.fotoTemuanBase64,code+'.Foto Temuan.'+stamp+'.jpg');e2=saveImage_(folder,incoming.fotoLingkunganBase64,code+'.Foto Lingkungan.'+stamp+'.jpg');}catch(_){return fail_('PHOTO_INVALID','File foto bukan JPEG valid atau ukurannya tidak diizinkan.');}row['Foto Temuan']=f.name;row['Link Foto']=f.url;row['Foto Lingkungan Sekitaran Tiang']=e2.name;row['Link Foto Sekitaran Tiang']=e2.url;var sh=temuanSheet_(),vals=sh.getDataRange().getValues(),heads=sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0],idx=headerIndex_(heads),target=0;for(var r=1;r<vals.length;r++)if(String(vals[r][idx['kode temuan']]||'')===code){target=r+1;break;}var out=heads.map(function(h){return row[h]===undefined||row[h]===null?'':row[h];});if(target){out[0]=vals[target-1][0];sh.getRange(target,1,1,heads.length).setValues([out]);}else{out[0]=sh.getLastRow();sh.appendRow(out);}return{success:true,linkFoto:f.url,linkLingkungan:e2.url,folderPath:row['Folder Path']};}
-function saveImage_(folder,b64,name){if(!b64)throw new Error('Image required');b64=String(b64);if(b64.length>Math.ceil(CONFIG.MAX_IMAGE_BYTES*4/3)+16)throw new Error('Image too large');var bytes;try{bytes=Utilities.base64Decode(b64);}catch(_){throw new Error('Invalid base64 image');}if(bytes.length>CONFIG.MAX_IMAGE_BYTES)throw new Error('Image too large');validateJpegBytes_(bytes);var file=folder.createFile(Utilities.newBlob(bytes,'image/jpeg',safePath_(name)));return{name:file.getName(),url:file.getUrl()};}
-function buildFindingPath_(u,o,k,c,d){var m=Utilities.formatDate(d,Session.getScriptTimeZone(),'MM'),b=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];return['SiManDist','Rekap Temuan Inspeksi',safePath_(u),safePath_(o),Utilities.formatDate(d,Session.getScriptTimeZone(),'yyyy'),m+'. '+b[Number(m)-1],Utilities.formatDate(d,Session.getScriptTimeZone(),'dd'),safePath_(k),safePath_(c)].join('/')+'/';}
-function folderPath_(path){var a=String(path||'').split('/').filter(String);if(a.length<2||a[0]!=='SiManDist'||a[1]!=='Rekap Temuan Inspeksi'||a.length>10)throw new Error('Invalid folder path');var f=DriveApp.getRootFolder();for(var i=0;i<a.length;i++){var n=safePath_(a[i]),it=f.getFoldersByName(n);f=it.hasNext()?it.next():f.createFolder(n);}return f;}
-function findUser_(u){var s=getSpreadsheet_().getSheetByName(CONFIG.USERS_SHEET);if(!s)throw new Error('User sheet missing');var r=s.getDataRange().getDisplayValues(),t=normalize_(u);for(var i=1;i<r.length;i++)if(normalize_(r[i][USER_COL.username])===t)return r[i].slice();return null;}
-function userFromRow_(r){return{no:String(r[0]||''),kodeUiw:String(r[1]||''),kodeUp3:String(r[2]||''),kodeUlp:String(r[3]||''),ulp:String(r[4]||''),username:String(r[5]||''),role:String(r[7]||''),bidang:String(r[8]||''),tim:String(r[9]||''),subTim:String(r[10]||''),aksesMenu:String(r[11]||'')};}
-function passwordPepper_(){var props=PropertiesService.getScriptProperties(),value=props.getProperty('PASSWORD_PEPPER');if(value)return value;var lock=LockService.getScriptLock();lock.waitLock(10000);try{value=props.getProperty('PASSWORD_PEPPER');if(!value){value=Utilities.getUuid()+Utilities.getUuid()+Utilities.getUuid();props.setProperty('PASSWORD_PEPPER',value);}return value;}finally{lock.releaseLock();}}
-function passwordSignature_(v){return sha256_(passwordPepper_()+'\n'+String(v||''));}
-function headerIndex_(h){var x={};for(var i=0;i<h.length;i++)x[normalize_(h[i])]=i;return x;}
-function rowObject_(h,r){var x={};for(var i=0;i<h.length;i++)x[h[i]||('kolom_'+(i+1))]=r[i];return x;}
-function numericOrBlank_(v){if(v===''||v===null||v===undefined)return'';var n=Number(String(v).replace(',','.'));if(!isFinite(n)||n<0)throw new Error('Invalid numeric value');return n;}
-function safeText_(v,n){return String(v||'').trim().substring(0,n);}
-function safePath_(v){var s=String(v||'').trim().replace(/[\\/:*?"<>|\x00-\x1F]/g,'_').substring(0,120);if(!s||s==='.'||s==='..')throw new Error('Invalid path');return s;}
-function constantTimeEqual_(a,b){a=String(a);b=String(b);var d=a.length^b.length,n=Math.max(a.length,b.length);for(var i=0;i<n;i++)d|=(a.charCodeAt(i%(a.length||1))||0)^(b.charCodeAt(i%(b.length||1))||0);return d===0;}
-function fail_(c,m){return{success:false,kode:c,message:m};}
-function normalize_(v){return String(v||'').trim().toLowerCase().replace(/\s+/g,' ');}function normalizeCode_(v){return String(v||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/^0+/,'');}function getSpreadsheet_(){return SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);}function parseBody_(e){if(!e||!e.postData||!e.postData.contents)throw new Error('Empty body');if(e.postData.contents.length>15*1024*1024)throw new Error('Payload too large');return JSON.parse(e.postData.contents);}function sha256_(v){return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,String(v),Utilities.Charset.UTF_8).map(function(b){var n=b<0?b+256:b;return('0'+n.toString(16)).slice(-2);}).join('');}function json_(p){return ContentService.createTextOutput(JSON.stringify(p)).setMimeType(ContentService.MimeType.JSON);}
+var CONFIG = {
+  SPREADSHEET_ID: "18mVJgfMaPjs8ppmlhf5JVYvHhysHYy9L77bwfRPI5O0",
+  WO_SPREADSHEET_ID: "15T21iCLPb8vwzFNtUbWjZ_T3RGGDZ-Y9UX5-4UV1Zgk",
+  TEMUAN_SPREADSHEET_ID: "1qFBQq3hMTA98ZV6UWg-Pj5sz-J41pm0r13TLYP2LF0I",
+  USERS_SHEET: "User_App_Mobile",
+  WO_INSJAR_SHEET: "WO_Ins_Jar",
+  TEMUAN_SHEET: "Inp_Temuan",
+  SESSION_TTL_SEC: 900,
+  MAX_LOGIN_FAILURES: 5,
+  MAX_IMAGE_BYTES: 5 * 1024 * 1024,
+  MASTER_SHEETS: [
+    "User_App_Mobile",
+    "Master_Penyulang",
+    "Master_Keypoint",
+    "List_Temuan",
+    "Jenis Pohon",
+  ],
+};
+var USER_COL = {
+  no: 0,
+  kodeUiw: 1,
+  kodeUp3: 2,
+  kodeUlp: 3,
+  ulp: 4,
+  username: 5,
+  password: 6,
+  role: 7,
+  bidang: 8,
+  tim: 9,
+  subTim: 10,
+  aksesMenu: 11,
+};
+var WO_MUTABLE_HEADERS = [
+  "koordinat awal",
+  "koordinat akhir",
+  "realisasi kms",
+  "waktu mulai",
+  "waktu selesai",
+  "durasi pekerjaan",
+  "status wo",
+];
+function doGet(e) {
+  var a = String((e && e.parameter && e.parameter.action) || "health").trim();
+  return a === "health"
+    ? json_({ success: true, service: "SiManDist API", version: "2.5.5" })
+    : json_({
+        success: false,
+        kode: "POST_REQUIRED",
+        message: "Gunakan POST untuk operasi API.",
+      });
+}
+function doPost(e) {
+  try {
+    var b = parseBody_(e),
+      a = String(b.action || "").trim();
+    if (a === "login" || a === "loginPerangkat")
+      return json_(loginPerangkat_(b.username, b.password, b.perangkat));
+    if (a === "cekPerangkat") return json_(cekPerangkat_(b.deviceToken));
+    if (a === "logoutPerangkat")
+      return json_(logoutPerangkat_(b.deviceToken, b.token));
+    if (a === "cekSesi") return json_(cekSesi_(b.token));
+    if (a === "logout") return json_(logout_(b.token));
+    if (a === "getMasterData") return json_(getMasterData_(b.token));
+    if (a === "getWoInsjar") return json_(getWoInsjar_(b.token));
+    if (a === "syncWoInsjar") return json_(syncWoInsjar_(b.token, b.rows));
+    if (a === "getTemuanInspeksi")
+      return json_(getTemuanInspeksi_(b.token, b.kodeWo));
+    if (a === "syncTemuanInspeksi")
+      return json_(syncTemuanInspeksiIdempotent_(b.token, b.row));
+    return json_({
+      success: false,
+      kode: "ACTION_INVALID",
+      message: "Action API tidak dikenal.",
+    });
+  } catch (x) {
+    console.error(x && x.stack ? x.stack : x);
+    return json_({
+      success: false,
+      kode: "SERVER_ERROR",
+      message: "Permintaan tidak dapat diproses.",
+    });
+  }
+}
+function loginPerangkat_(u, p, d) {
+  u = String(u || "").trim();
+  p = String(p || "");
+  if (!u || !p)
+    return fail_("LOGIN_REQUIRED", "Username dan kata sandi wajib diisi.");
+  var c = CacheService.getScriptCache(),
+    k = "login_fail_" + sha256_(normalize_(u)).substring(0, 24),
+    n = Number(c.get(k) || 0);
+  if (n >= CONFIG.MAX_LOGIN_FAILURES)
+    return fail_(
+      "LOGIN_RATE_LIMIT",
+      "Terlalu banyak percobaan. Coba lagi 5 menit.",
+    );
+  var r = findUser_(u),
+    supplied = passwordSignature_(p),
+    expected = passwordSignature_(
+      r ? String(r[USER_COL.password] || "") : "__invalid_password__",
+    );
+  p = "";
+  if (!r || !constantTimeEqual_(expected, supplied)) {
+    c.put(k, String(n + 1), 300);
+    return fail_("LOGIN_FAILED", "Username atau kata sandi salah.");
+  }
+  c.remove(k);
+  r[USER_COL.password] = "";
+  var dt =
+      Utilities.getUuid().replace(/-/g, "") +
+      Utilities.getUuid().replace(/-/g, ""),
+    now = Date.now();
+  PropertiesService.getScriptProperties().setProperty(
+    "device_" + dt,
+    JSON.stringify({
+      username: String(r[USER_COL.username]).trim(),
+      passwordSignature: expected,
+      createdAt: now,
+      lastUsedAt: now,
+      device: safeText_(d, 120),
+    }),
+  );
+  var s = issueSession_(r, dt);
+  s.success = true;
+  s.deviceToken = dt;
+  return s;
+}
+function cekPerangkat_(t) {
+  t = String(t || "").trim();
+  if (!/^[a-f0-9]{64}$/i.test(t))
+    return fail_("DEVICE_INVALID", "Sesi perangkat tidak valid.");
+  var p = PropertiesService.getScriptProperties(),
+    raw = p.getProperty("device_" + t);
+  if (!raw)
+    return fail_(
+      "DEVICE_UNKNOWN",
+      "Sesi perangkat tidak dikenali. Silakan login ulang.",
+    );
+  var rec = JSON.parse(raw),
+    r = findUser_(rec.username),
+    expected = passwordSignature_(
+      r ? String(r[USER_COL.password] || "") : "__invalid_password__",
+    );
+  if (
+    !r ||
+    !constantTimeEqual_(expected, String(rec.passwordSignature || ""))
+  ) {
+    p.deleteProperty("device_" + t);
+    return fail_("DEVICE_REVOKED", "Akun berubah. Silakan login ulang.");
+  }
+  r[USER_COL.password] = "";
+  rec.lastUsedAt = Date.now();
+  p.setProperty("device_" + t, JSON.stringify(rec));
+  var s = issueSession_(r, t);
+  s.success = true;
+  s.deviceToken = t;
+  return s;
+}
+function logoutPerangkat_(d, t) {
+  var p = PropertiesService.getScriptProperties();
+  if (d) p.deleteProperty("device_" + String(d).trim());
+  if (t) CacheService.getScriptCache().remove("session_" + String(t).trim());
+  return { success: true };
+}
+function issueSession_(r, d) {
+  var t = Utilities.getUuid(),
+    s = userFromRow_(r);
+  s.token = t;
+  s.deviceToken = d;
+  s.loginAt = new Date().toISOString();
+  CacheService.getScriptCache().put(
+    "session_" + t,
+    JSON.stringify(s),
+    CONFIG.SESSION_TTL_SEC,
+  );
+  return s;
+}
+function cekSesi_(t) {
+  t = String(t || "").trim();
+  if (!/^[a-f0-9-]{36}$/i.test(t))
+    return fail_("SESSION_INVALID", "Sesi tidak valid atau sudah berakhir.");
+  var c = CacheService.getScriptCache(),
+    raw = c.get("session_" + t);
+  if (!raw)
+    return fail_("SESSION_EXPIRED", "Sesi tidak valid atau sudah berakhir.");
+  c.put("session_" + t, raw, CONFIG.SESSION_TTL_SEC);
+  return { success: true, sesi: JSON.parse(raw) };
+}
+function logout_(t) {
+  if (t) CacheService.getScriptCache().remove("session_" + String(t));
+  return { success: true };
+}
+function getMasterData_(t) {
+  var a = cekSesi_(t);
+  if (!a.success) return a;
+  var u = normalize_(a.sesi.username),
+    ss = getSpreadsheet_(),
+    sets = {},
+    total = 0;
+  for (var i = 0; i < CONFIG.MASTER_SHEETS.length; i++) {
+    var n = CONFIG.MASTER_SHEETS[i],
+      sh = ss.getSheetByName(n);
+    if (!sh)
+      return fail_("MASTER_SHEET_MISSING", "Data master belum tersedia.");
+    var v = sh.getDataRange().getDisplayValues(),
+      h = v.length
+        ? v[0].map(function (x) {
+            return String(x).trim();
+          })
+        : [],
+      rows = [];
+    for (var r = 1; r < v.length; r++) {
+      if (n === CONFIG.USERS_SHEET && normalize_(v[r][USER_COL.username]) !== u)
+        continue;
+      var item = {},
+        has = false;
+      for (var c = 0; c < h.length; c++) {
+        var k = h[c] || "kolom_" + (c + 1);
+        if (n === CONFIG.USERS_SHEET && normalize_(k) === "password") continue;
+        item[k] = v[r][c];
+        if (v[r][c] !== "") has = true;
+      }
+      if (has) rows.push(item);
+    }
+    sets[n] = rows;
+    total += rows.length;
+  }
+  return {
+    success: true,
+    generatedAt: new Date().toISOString(),
+    total: total,
+    datasets: sets,
+  };
+}
+function woAccess_(s) {
+  var sub = normalize_(s.subTim || s.tim);
+  if (sub.indexOf("inspeksi jaringan") < 0 && sub.indexOf("insjar") < 0)
+    return fail_(
+      "WO_ACCESS_DENIED",
+      "WO Inspeksi Jaringan hanya tersedia untuk Sub-Tim Inspeksi Jaringan.",
+    );
+  var k = normalizeCode_(s.kodeUlp);
+  return k
+    ? { success: true, kodeUlp: k }
+    : fail_("ULP_MISSING", "Kode ULP akun belum terisi.");
+}
+function woSheet_() {
+  var s = SpreadsheetApp.openById(CONFIG.WO_SPREADSHEET_ID).getSheetByName(
+    CONFIG.WO_INSJAR_SHEET,
+  );
+  if (!s) throw new Error("WO sheet missing");
+  return s;
+}
+function woContext_(s, k, editable) {
+  var a = woAccess_(s);
+  if (!a.success) return a;
+  k = safeText_(k, 100);
+  if (!k) return fail_("WO_REQUIRED", "Kode WO wajib diisi.");
+  var sh = woSheet_(),
+    v = sh.getDataRange().getDisplayValues();
+  if (v.length < 2) return fail_("WO_NOT_FOUND", "WO tidak ditemukan.");
+  var h = v[0].map(function (x) {
+      return String(x).trim();
+    }),
+    ix = headerIndex_(h),
+    ki = ix["kode wo"],
+    ui = ix["kode ulp"],
+    si = ix["status wo"];
+  if (ki === undefined || ui === undefined || si === undefined)
+    throw new Error("WO headers invalid");
+  for (var r = 1; r < v.length; r++)
+    if (String(v[r][ki] || "").trim() === k) {
+      if (normalizeCode_(v[r][ui]) !== a.kodeUlp)
+        return fail_("WO_OWNERSHIP_DENIED", "WO bukan milik ULP akun ini.");
+      var st = normalize_(v[r][si]);
+      if (editable && st === "selesai")
+        return fail_("WO_LOCKED", "WO sudah selesai dan hanya dapat dilihat.");
+      return {
+        success: true,
+        sheet: sh,
+        headers: h,
+        index: ix,
+        row: v[r],
+        rowNumber: r + 1,
+        status: st,
+        kodeUlp: a.kodeUlp,
+      };
+    }
+  return fail_("WO_NOT_FOUND", "WO tidak ditemukan.");
+}
+function getWoInsjar_(t) {
+  var a = cekSesi_(t);
+  if (!a.success) return a;
+  var ac = woAccess_(a.sesi);
+  if (!ac.success) return ac;
+  var sh = woSheet_(),
+    v = sh.getDataRange().getDisplayValues();
+  if (v.length < 2) return { success: true, total: 0, rows: [] };
+  var h = v[0].map(function (x) {
+      return String(x).trim();
+    }),
+    ix = headerIndex_(h);
+  if (ix["kode wo"] === undefined || ix["kode ulp"] === undefined)
+    throw new Error("WO headers invalid");
+  var rows = [];
+  for (var r = 1; r < v.length; r++)
+    if (
+      String(v[r][ix["kode wo"]] || "").trim() &&
+      normalizeCode_(v[r][ix["kode ulp"]]) === ac.kodeUlp
+    )
+      rows.push(rowObject_(h, v[r]));
+  return {
+    success: true,
+    total: rows.length,
+    totalSheet: v.length - 1,
+    kodeUlpFilter: ac.kodeUlp,
+    rows: rows,
+  };
+}
+function syncWoInsjar_(t, rows) {
+  var a = cekSesi_(t);
+  if (!a.success) return a;
+  if (!Array.isArray(rows) || rows.length > 100)
+    return fail_("BATCH_INVALID", "Maksimal 100 WO per sinkronisasi.");
+  var l = LockService.getScriptLock();
+  l.waitLock(20000);
+  try {
+    var done = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var d = rows[i] || {},
+        x = woContext_(a.sesi, d["Kode WO"], true);
+      if (!x.success) return x;
+      var out = x.row.slice();
+      for (var c = 0; c < x.headers.length; c++) {
+        var n = normalize_(x.headers[c]);
+        if (WO_MUTABLE_HEADERS.indexOf(n) >= 0 && d[x.headers[c]] !== undefined)
+          out[c] = d[x.headers[c]];
+      }
+      var st = normalize_(out[x.index["status wo"]]);
+      if (["mulai pengerjaan", "dalam pengerjaan", "selesai"].indexOf(st) < 0)
+        return fail_("STATUS_INVALID", "Status WO tidak valid.");
+      x.sheet.getRange(x.rowNumber, 1, 1, x.headers.length).setValues([out]);
+      done++;
+    }
+    SpreadsheetApp.flush();
+    return { success: true, diproses: done, diperbarui: done, ditambahkan: 0 };
+  } finally {
+    l.releaseLock();
+  }
+}
+function temuanSheet_() {
+  var s = SpreadsheetApp.openById(CONFIG.TEMUAN_SPREADSHEET_ID).getSheetByName(
+    CONFIG.TEMUAN_SHEET,
+  );
+  if (!s) throw new Error("Findings sheet missing");
+  return s;
+}
+function getTemuanInspeksi_(t, k) {
+  var a = cekSesi_(t);
+  if (!a.success) return a;
+  var x = woContext_(a.sesi, k, false);
+  if (!x.success) return x;
+  var sh = temuanSheet_(),
+    v = sh.getDataRange().getDisplayValues();
+  if (v.length < 2) return { success: true, total: 0, rows: [] };
+  var h = v[0].map(function (z) {
+      return String(z).trim();
+    }),
+    ix = headerIndex_(h);
+  if (ix["kode wo"] === undefined || ix["kode ulp"] === undefined)
+    throw new Error("Finding headers invalid");
+  var rows = [];
+  for (var r = 1; r < v.length; r++)
+    if (
+      String(v[r][ix["kode wo"]] || "").trim() === String(k).trim() &&
+      normalizeCode_(v[r][ix["kode ulp"]]) === x.kodeUlp
+    )
+      rows.push(rowObject_(h, v[r]));
+  return { success: true, total: rows.length, rows: rows };
+}
+function syncTemuanInspeksi_(t, incoming) {
+  var a = cekSesi_(t);
+  if (!a.success) return a;
+  if (!incoming || typeof incoming !== "object")
+    return fail_("FINDING_REQUIRED", "Data temuan kosong.");
+  var k = safeText_(incoming["Kode WO"], 100),
+    x = woContext_(a.sesi, k, true);
+  if (!x.success) return x;
+  var code = safeText_(incoming["Kode Temuan"], 120);
+  if (
+    code.indexOf(k + ".TO-") !== 0 ||
+    !/^[0-9]{3}$/.test(code.substring((k + ".TO-").length))
+  )
+    return fail_("FINDING_CODE_INVALID", "Kode Temuan tidak valid.");
+  var tier = safeText_(incoming["Tier"], 20),
+    obj = safeText_(incoming["Jenis Object"], 40);
+  if (tier !== "Tier 1" && tier !== "Tier 2")
+    return fail_("TIER_INVALID", "Tier tidak valid.");
+  var sub = normalize_(a.sesi.subTim || a.sesi.tim);
+  var auto = obj;
+  if (sub.indexOf("inspeksi jaringan") >= 0 || sub.indexOf("insjar") >= 0)
+    auto = "Jaringan";
+  else if (sub.indexOf("inspeksi gardu") >= 0 || sub.indexOf("insdu") >= 0)
+    auto = "Gardu";
+  else if (obj !== "Jaringan" && obj !== "Gardu")
+    return fail_("OBJECT_INVALID", "Jenis Object harus Jaringan atau Gardu.");
+  if (auto !== obj)
+    return fail_("OBJECT_MISMATCH", "Jenis Object tidak sesuai Sub-Tim.");
+  var tem = safeText_(incoming["Temuan"], 200),
+    seg = safeText_(incoming["Segmen"], 200),
+    coord = safeText_(incoming["Koordinat Temuan"], 80);
+  if (!tem || !seg)
+    return fail_("FINDING_INVALID", "Data wajib temuan belum valid.");
+  var point;
+  try {
+    point = validateCoordinate_(coord);
+  } catch (_) {
+    return fail_(
+      "COORDINATE_INVALID",
+      "Koordinat temuan tidak valid. Ambil ulang GPS.",
+    );
+  }
+  if (!incoming.fotoTemuanBase64 || !incoming.fotoLingkunganBase64)
+    return fail_(
+      "PHOTO_REQUIRED",
+      "Foto Temuan dan Foto Sekitar Tiang wajib diunggah.",
+    );
+  var now = new Date(),
+    wi = x.index,
+    server = x.row,
+    row = {};
+  row["Kode WO"] = k;
+  row["Kode Temuan"] = code;
+  row["Kode UIW"] = server[wi["kode uiw"]] || a.sesi.kodeUiw || "";
+  row["Kode UP3"] = server[wi["kode up3"]] || a.sesi.kodeUp3 || "";
+  row["Kode ULP"] = x.kodeUlp;
+  row["ULP"] = server[wi["ulp"]] || a.sesi.ulp || "";
+  row["Hari"] = [
+    "Minggu",
+    "Senin",
+    "Selasa",
+    "Rabu",
+    "Kamis",
+    "Jumat",
+    "Sabtu",
+  ][now.getDay()];
+  row["Tanggal"] = Utilities.formatDate(
+    now,
+    Session.getScriptTimeZone(),
+    "dd MMMM yyyy",
+  );
+  row["Penyulang"] = server[wi["penyulang"]] || "";
+  row["Section Awal"] = server[wi["section awal"]] || "";
+  row["Section Akhir"] = server[wi["section akhir"]] || "";
+  row["Section"] = server[wi["section"]] || "";
+  row["Segmen"] = seg;
+  row["Koordinat Temuan"] = point.latitude + ", " + point.longitude;
+  row["Lat Temuan"] = point.latitude;
+  row["Long Temuan"] = point.longitude;
+  row["Jenis Object"] = obj;
+  row["Tier"] = tier;
+  row["Temuan"] = tem;
+  row["Jarak Terhadap Jaringan"] = numericOrBlank_(
+    incoming["Jarak Terhadap Jaringan"],
+  );
+  row["Jenis Pohon"] = safeText_(incoming["Jenis Pohon"], 100);
+  row["Tinggi Pohon"] = numericOrBlank_(incoming["Tinggi Pohon"]);
+  row["Prioritas"] = safeText_(incoming["Prioritas"], 20);
+  row["Pekerjaan (Padam / Tanpa Padam)"] = "";
+  row["Jenis WO"] = "";
+  row["Waktu Input"] = Utilities.formatDate(
+    now,
+    Session.getScriptTimeZone(),
+    "dd MMMM yyyy, HH:mm:ss",
+  );
+  row["User Input"] = a.sesi.username;
+  row["Folder Path"] = buildFindingPath_(x.kodeUlp, obj, k, code, now);
+  var folder = folderPath_(row["Folder Path"]);
+  var stamp = Utilities.formatDate(now, Session.getScriptTimeZone(), "HHmmss");
+  var f, e2;
+  try {
+    f = saveImage_(
+      folder,
+      incoming.fotoTemuanBase64,
+      code + ".Foto Temuan." + stamp + ".jpg",
+    );
+    e2 = saveImage_(
+      folder,
+      incoming.fotoLingkunganBase64,
+      code + ".Foto Lingkungan." + stamp + ".jpg",
+    );
+  } catch (_) {
+    return fail_(
+      "PHOTO_INVALID",
+      "File foto bukan JPEG valid atau ukurannya tidak diizinkan.",
+    );
+  }
+  row["Foto Temuan"] = f.name;
+  row["Link Foto"] = f.url;
+  row["Foto Lingkungan Sekitaran Tiang"] = e2.name;
+  row["Link Foto Sekitaran Tiang"] = e2.url;
+  var sh = temuanSheet_(),
+    vals = sh.getDataRange().getValues(),
+    heads = sh.getRange(1, 1, 1, sh.getLastColumn()).getDisplayValues()[0],
+    idx = headerIndex_(heads),
+    target = 0;
+  for (var r = 1; r < vals.length; r++)
+    if (String(vals[r][idx["kode temuan"]] || "") === code) {
+      target = r + 1;
+      break;
+    }
+  var out = heads.map(function (h) {
+    return row[h] === undefined || row[h] === null ? "" : row[h];
+  });
+  if (target) {
+    out[0] = vals[target - 1][0];
+    sh.getRange(target, 1, 1, heads.length).setValues([out]);
+  } else {
+    out[0] = sh.getLastRow();
+    sh.appendRow(out);
+  }
+  return {
+    success: true,
+    linkFoto: f.url,
+    linkLingkungan: e2.url,
+    folderPath: row["Folder Path"],
+  };
+}
+function saveImage_(folder, b64, name) {
+  if (!b64) throw new Error("Image required");
+  b64 = String(b64);
+  if (b64.length > Math.ceil((CONFIG.MAX_IMAGE_BYTES * 4) / 3) + 16)
+    throw new Error("Image too large");
+  var bytes;
+  try {
+    bytes = Utilities.base64Decode(b64);
+  } catch (_) {
+    throw new Error("Invalid base64 image");
+  }
+  if (bytes.length > CONFIG.MAX_IMAGE_BYTES) throw new Error("Image too large");
+  validateJpegBytes_(bytes);
+  var file = folder.createFile(
+    Utilities.newBlob(bytes, "image/jpeg", safePath_(name)),
+  );
+  return { name: file.getName(), url: file.getUrl() };
+}
+function buildFindingPath_(u, o, k, c, d) {
+  var m = Utilities.formatDate(d, Session.getScriptTimeZone(), "MM"),
+    b = [
+      "Januari",
+      "Februari",
+      "Maret",
+      "April",
+      "Mei",
+      "Juni",
+      "Juli",
+      "Agustus",
+      "September",
+      "Oktober",
+      "November",
+      "Desember",
+    ];
+  return (
+    [
+      "SiManDist",
+      "Rekap Temuan Inspeksi",
+      safePath_(u),
+      safePath_(o),
+      Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy"),
+      m + ". " + b[Number(m) - 1],
+      Utilities.formatDate(d, Session.getScriptTimeZone(), "dd"),
+      safePath_(k),
+      safePath_(c),
+    ].join("/") + "/"
+  );
+}
+function folderPath_(path) {
+  var a = String(path || "")
+    .split("/")
+    .filter(String);
+  if (
+    a.length < 2 ||
+    a[0] !== "SiManDist" ||
+    a[1] !== "Rekap Temuan Inspeksi" ||
+    a.length > 10
+  )
+    throw new Error("Invalid folder path");
+  var f = DriveApp.getRootFolder();
+  for (var i = 0; i < a.length; i++) {
+    var n = safePath_(a[i]),
+      it = f.getFoldersByName(n);
+    f = it.hasNext() ? it.next() : f.createFolder(n);
+  }
+  return f;
+}
+function findUser_(u) {
+  var s = getSpreadsheet_().getSheetByName(CONFIG.USERS_SHEET);
+  if (!s) throw new Error("User sheet missing");
+  var r = s.getDataRange().getDisplayValues(),
+    t = normalize_(u);
+  for (var i = 1; i < r.length; i++)
+    if (normalize_(r[i][USER_COL.username]) === t) return r[i].slice();
+  return null;
+}
+function userFromRow_(r) {
+  return {
+    no: String(r[0] || ""),
+    kodeUiw: String(r[1] || ""),
+    kodeUp3: String(r[2] || ""),
+    kodeUlp: String(r[3] || ""),
+    ulp: String(r[4] || ""),
+    username: String(r[5] || ""),
+    role: String(r[7] || ""),
+    bidang: String(r[8] || ""),
+    tim: String(r[9] || ""),
+    subTim: String(r[10] || ""),
+    aksesMenu: String(r[11] || ""),
+  };
+}
+function passwordPepper_() {
+  var props = PropertiesService.getScriptProperties(),
+    value = props.getProperty("PASSWORD_PEPPER");
+  if (value) return value;
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    value = props.getProperty("PASSWORD_PEPPER");
+    if (!value) {
+      value = Utilities.getUuid() + Utilities.getUuid() + Utilities.getUuid();
+      props.setProperty("PASSWORD_PEPPER", value);
+    }
+    return value;
+  } finally {
+    lock.releaseLock();
+  }
+}
+function passwordSignature_(v) {
+  return sha256_(passwordPepper_() + "\n" + String(v || ""));
+}
+function headerIndex_(h) {
+  var x = {};
+  for (var i = 0; i < h.length; i++) x[normalize_(h[i])] = i;
+  return x;
+}
+function rowObject_(h, r) {
+  var x = {};
+  for (var i = 0; i < h.length; i++) x[h[i] || "kolom_" + (i + 1)] = r[i];
+  return x;
+}
+function numericOrBlank_(v) {
+  if (v === "" || v === null || v === undefined) return "";
+  var n = Number(String(v).replace(",", "."));
+  if (!isFinite(n) || n < 0) throw new Error("Invalid numeric value");
+  return n;
+}
+function safeText_(v, n) {
+  return String(v || "")
+    .trim()
+    .substring(0, n);
+}
+function safePath_(v) {
+  var s = String(v || "")
+    .trim()
+    .replace(/[\\/:*?"<>|\x00-\x1F]/g, "_")
+    .substring(0, 120);
+  if (!s || s === "." || s === "..") throw new Error("Invalid path");
+  return s;
+}
+function constantTimeEqual_(a, b) {
+  a = String(a);
+  b = String(b);
+  var d = a.length ^ b.length,
+    n = Math.max(a.length, b.length);
+  for (var i = 0; i < n; i++)
+    d |=
+      (a.charCodeAt(i % (a.length || 1)) || 0) ^
+      (b.charCodeAt(i % (b.length || 1)) || 0);
+  return d === 0;
+}
+function fail_(c, m) {
+  return { success: false, kode: c, message: m };
+}
+function normalize_(v) {
+  return String(v || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+function normalizeCode_(v) {
+  return String(v || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .replace(/^0+/, "");
+}
+function getSpreadsheet_() {
+  return SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+}
+function parseBody_(e) {
+  if (!e || !e.postData || !e.postData.contents) throw new Error("Empty body");
+  if (e.postData.contents.length > 15 * 1024 * 1024)
+    throw new Error("Payload too large");
+  return JSON.parse(e.postData.contents);
+}
+function sha256_(v) {
+  return Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    String(v),
+    Utilities.Charset.UTF_8,
+  )
+    .map(function (b) {
+      var n = b < 0 ? b + 256 : b;
+      return ("0" + n.toString(16)).slice(-2);
+    })
+    .join("");
+}
+function json_(p) {
+  return ContentService.createTextOutput(JSON.stringify(p)).setMimeType(
+    ContentService.MimeType.JSON,
+  );
+}
