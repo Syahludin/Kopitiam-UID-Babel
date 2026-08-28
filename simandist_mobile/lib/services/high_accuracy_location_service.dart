@@ -29,6 +29,7 @@ class HighAccuracyLocationService {
   static const double lockAccuracy = 5;
   static const int maxSamples = 30;
   static const Duration maxDuration = Duration(seconds: 45);
+  static const Duration maxPositionAge = Duration(seconds: 30);
 
   static Future<void> _ensureReady() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
@@ -49,6 +50,33 @@ class HighAccuracyLocationService {
     }
   }
 
+  static void _assertTrusted(Position position) {
+    if (position.isMocked) {
+      throw StateError(
+        'Lokasi tiruan terdeteksi. Nonaktifkan Fake GPS atau aplikasi '
+        'pengubah lokasi, lalu ambil koordinat ulang.',
+      );
+    }
+    if (!position.latitude.isFinite ||
+        !position.longitude.isFinite ||
+        !position.accuracy.isFinite ||
+        position.latitude < -90 ||
+        position.latitude > 90 ||
+        position.longitude < -180 ||
+        position.longitude > 180 ||
+        (position.latitude == 0 && position.longitude == 0) ||
+        position.accuracy <= 0) {
+      throw StateError('Data lokasi perangkat tidak valid.');
+    }
+    final now = DateTime.now();
+    final age = now.difference(position.timestamp);
+    if (age > maxPositionAge || age < const Duration(minutes: -1)) {
+      throw StateError(
+        'Data GPS sudah kedaluwarsa atau waktu perangkat tidak valid.',
+      );
+    }
+  }
+
   static Future<LocationFix> acquire({
     void Function(int sample, double bestAccuracy)? onSample,
   }) async {
@@ -56,8 +84,15 @@ class HighAccuracyLocationService {
 
     Position? best;
     var samples = 0;
+    Object? securityError;
 
     void consider(Position position) {
+      try {
+        _assertTrusted(position);
+      } catch (error) {
+        securityError = error;
+        rethrow;
+      }
       samples++;
       if (best == null || position.accuracy < best!.accuracy) {
         best = position;
@@ -78,6 +113,8 @@ class HighAccuracyLocationService {
       consider(initial);
     } on TimeoutException {
       // Stream berikutnya tetap mencoba pembacaan GPS.
+    } on StateError {
+      rethrow;
     } catch (_) {
       // Provider awal bisa belum siap; stream berikutnya tetap dicoba.
     }
@@ -102,8 +139,12 @@ class HighAccuracyLocationService {
       ),
     ).listen(
       (position) {
-        consider(position);
-        if (position.accuracy <= lockAccuracy || samples >= maxSamples) {
+        try {
+          consider(position);
+          if (position.accuracy <= lockAccuracy || samples >= maxSamples) {
+            finish();
+          }
+        } catch (_) {
           finish();
         }
       },
@@ -119,14 +160,17 @@ class HighAccuracyLocationService {
       await subscription.cancel();
     }
 
+    if (securityError != null) throw securityError!;
     final result = best;
     if (result == null) {
       throw StateError('Koordinat tidak terbaca. Coba lagi di area terbuka.');
     }
+    _assertTrusted(result);
     return _toFix(result, samples, result.accuracy <= lockAccuracy);
   }
 
   static LocationFix _toFix(Position position, int samples, bool locked) {
+    _assertTrusted(position);
     return LocationFix(
       latitude: position.latitude,
       longitude: position.longitude,
