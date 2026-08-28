@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-labelledby="title">
+  <title id="title">Sedang menyinkronkan</title>
+  <g fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M25 11a10 10 0 0 0-17-3L5 11m0 0V5m0 6h6M7 21a10 10 0 0 0 17 3l3-3m0 0v6m0-6h-6"/>
+    <circle cx="16" cy="16" r="3"/>
+    <animateTransform
+      attributeName="transform"
+      attributeType="XML"
+      type="rotate"
+      from="0 16 16"
+      to="360 16 16"
+      dur="1s"
+      repeatCount="indefinite"
+    />
+  </g>
+  <style>
+    @media (prefers-reduced-motion: reduce) {
+      g { animation: none; }
+    }
+  </style>
+</svg>

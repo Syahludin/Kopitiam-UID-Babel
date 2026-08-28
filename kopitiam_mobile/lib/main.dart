@@ -24,7 +24,7 @@ class SiManDistApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: appNavigatorKey,
-      title: 'SiManDist Mobile',
+      title: 'KOPITIAM',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

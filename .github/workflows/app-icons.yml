@@ -1,0 +1,57 @@
+name: App Icons
+
+on:
+  push:
+    branches: [main, 'feat/**']
+    paths:
+      - 'branding/**'
+      - 'kopitiam_mobile/assets/branding/**'
+      - 'ci/generate_app_icons.py'
+      - '.github/workflows/app-icons.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install rendering dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcairo2 fonts-dejavu-core
+          python -m pip install --upgrade pip
+          pip install pillow cairosvg
+
+      - name: Generate launcher icons
+        run: python3 ci/generate_app_icons.py
+
+      - name: Commit regenerated icons
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Icons already up to date."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'chore(branding): regenerate launcher icons from branding source'
+          git push
+
+      - name: Upload icons as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kopitiam-launcher-icons
+          if-no-files-found: warn
+          path: |
+            kopitiam_mobile/android/app/src/main/res/mipmap-*/**
+            kopitiam_mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/**
+            kopitiam_mobile/web/icons/**
+            kopitiam_mobile/web/favicon.png
