@@ -1,0 +1,89 @@
+name: Integrate menu icons once
+
+on:
+  push:
+    branches: [feat/integrate-menu-icons]
+    paths: ['.github/workflows/integrate-menu-icons-once.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/integrate-menu-icons
+
+      - name: Integrate approved menu icons
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('kopitiam_mobile/lib/screens/dashboard_screen.dart')
+          source = path.read_text(encoding='utf-8')
+
+          old_logo = """          SvgPicture.asset('assets/icons/logo_app.svg', width: 38, height: 38),"""
+          new_logo = """          Image.asset(
+            'assets/icons/logo_app.png',
+            width: 38,
+            height: 38,
+            filterQuality: FilterQuality.high,
+          ),"""
+
+          old_bubble = """                        border: Border.all(color: cyan500, width: 2),"""
+          new_bubble = """                        border: Border.all(color: amber600, width: 2),"""
+
+          old_nav = """  Widget _navIcon(int index, bool active) {
+    final size = active ? 34.0 : 23.0;
+    final color = active ? Colors.white : navy700;
+    if (index == 0)
+      return Icon(Icons.assignment_outlined, size: size, color: color);
+    if (index == 1) return Icon(Icons.home_rounded, size: size, color: color);
+    return SvgPicture.asset(
+      'assets/icons/pengaturan.svg',
+      width: size,
+      height: size,
+    );
+  }
+"""
+          new_nav = """  Widget _navIcon(int index, bool active) {
+    final size = active ? 34.0 : 23.0;
+    final color = active ? amber600 : navy700;
+    const paths = [
+      'assets/icons/work_order.svg',
+      'assets/icons/beranda.svg',
+      'assets/icons/pengaturan.svg',
+    ];
+    return SvgPicture.asset(
+      paths[index],
+      width: size,
+      height: size,
+      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+    );
+  }
+"""
+
+          replacements = [
+              (old_logo, new_logo, 'app bar logo'),
+              (old_bubble, new_bubble, 'gold bubble ring'),
+              (old_nav, new_nav, 'menu icon mapping'),
+          ]
+          for old, new, label in replacements:
+              if old not in source:
+                  raise SystemExit(f'expected block not found: {label}')
+              source = source.replace(old, new, 1)
+
+          path.write_text(source, encoding='utf-8')
+
+          # This workflow is deliberately one-shot; remove it from the final branch.
+          Path('.github/workflows/integrate-menu-icons-once.yml').unlink()
+
+      - name: Commit integration
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'feat(navigation): integrasikan ikon menu KOPITIAM'
+          git push
