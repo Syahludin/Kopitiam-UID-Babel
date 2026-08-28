@@ -311,7 +311,12 @@ class _DashboardScreenState extends State<DashboardScreen>
       foregroundColor: Colors.white,
       title: Row(
         children: [
-          SvgPicture.asset('assets/icons/logo_app.svg', width: 38, height: 38),
+          Image.asset(
+            'assets/icons/logo_app.png',
+            width: 38,
+            height: 38,
+            filterQuality: FilterQuality.high,
+          ),
           const SizedBox(width: 10),
           Text(
             _labels[_selectedIndex],
@@ -673,7 +678,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: navy700,
-                        border: Border.all(color: cyan500, width: 2),
+                        border: Border.all(color: amber600, width: 2),
                       ),
                       child: Center(child: _navIcon(_selectedIndex, true)),
                     ),
@@ -721,14 +726,17 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Widget _navIcon(int index, bool active) {
     final size = active ? 34.0 : 23.0;
-    final color = active ? Colors.white : navy700;
-    if (index == 0)
-      return Icon(Icons.assignment_outlined, size: size, color: color);
-    if (index == 1) return Icon(Icons.home_rounded, size: size, color: color);
-    return SvgPicture.asset(
+    final color = active ? amber600 : navy700;
+    const paths = [
+      'assets/icons/work_order.svg',
+      'assets/icons/beranda.svg',
       'assets/icons/pengaturan.svg',
+    ];
+    return SvgPicture.asset(
+      paths[index],
       width: size,
       height: size,
+      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
     );
   }
 }
