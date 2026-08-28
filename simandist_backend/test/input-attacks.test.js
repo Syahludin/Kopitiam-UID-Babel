@@ -6,10 +6,12 @@ const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
 
+const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(
-  path.resolve(__dirname, '..', 'SecurityValidation.js'),
+  path.join(root, 'SecurityValidation.js'),
   'utf8',
 );
+const production = fs.readFileSync(path.join(root, 'Code.js'), 'utf8');
 
 function validators() {
   const sandbox = {Number, String, isFinite};
@@ -27,6 +29,17 @@ function jpegBytes(size = 2048) {
   bytes[size - 1] = 0xD9;
   return bytes;
 }
+
+test('production Temuan flow invokes coordinate and JPEG validators', () => {
+  assert.match(production, /point=validateCoordinate_\(coord\)/);
+  assert.match(production, /validateJpegBytes_\(bytes\)/);
+  assert.match(production, /COORDINATE_INVALID/);
+  assert.match(production, /PHOTO_INVALID/);
+  assert.match(
+    production,
+    /!incoming\.fotoTemuanBase64\|\|!incoming\.fotoLingkunganBase64/,
+  );
+});
 
 test('accepts a real-looking JPEG signature and valid Babel coordinate', () => {
   const backend = validators();
