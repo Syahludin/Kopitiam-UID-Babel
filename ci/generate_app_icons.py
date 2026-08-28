@@ -45,10 +45,17 @@ ANDROID_DENSITIES = {
     "mipmap-xxxhdpi": 192,
 }
 
+# (points, scale, idiom) mirroring the standard Xcode app icon set.
 IOS_SIZES = [
-    (20, 1), (20, 2), (20, 3), (29, 1), (29, 2), (29, 3),
-    (40, 1), (40, 2), (40, 3), (60, 2), (60, 3),
-    (76, 1), (76, 2), (83.5, 2), (1024, 1),
+    (20, 2, "iphone"), (20, 3, "iphone"),
+    (29, 1, "iphone"), (29, 2, "iphone"), (29, 3, "iphone"),
+    (40, 2, "iphone"), (40, 3, "iphone"),
+    (60, 2, "iphone"), (60, 3, "iphone"),
+    (20, 1, "ipad"), (20, 2, "ipad"),
+    (29, 1, "ipad"), (29, 2, "ipad"),
+    (40, 1, "ipad"), (40, 2, "ipad"),
+    (76, 1, "ipad"), (76, 2, "ipad"), (83.5, 2, "ipad"),
+    (1024, 1, "ios-marketing"),
 ]
 
 
@@ -140,14 +147,19 @@ def ios(master: Image.Image) -> None:
     opaque = flat.convert("RGBA")
 
     images = []
-    for point, scale in IOS_SIZES:
+    rendered = set()
+    for point, scale, idiom in IOS_SIZES:
         px = int(round(point * scale))
         name = f"Icon-App-{point:g}x{point:g}@{scale}x.png"
-        write(compose(opaque, px, EMBLEM_SCALE, BACKGROUND[:3]).convert("RGB").convert("RGBA"),
-              IOS_ICONS / name)
+        if name not in rendered:
+            write(
+                compose(opaque, px, EMBLEM_SCALE, BACKGROUND[:3]).convert("RGB").convert("RGBA"),
+                IOS_ICONS / name,
+            )
+            rendered.add(name)
         images.append({
             "size": f"{point:g}x{point:g}",
-            "idiom": "ios-marketing" if point == 1024 else ("ipad" if point in (76, 83.5) else "iphone"),
+            "idiom": idiom,
             "filename": name,
             "scale": f"{scale}x",
         })

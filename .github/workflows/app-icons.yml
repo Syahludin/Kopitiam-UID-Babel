@@ -5,6 +5,7 @@ on:
     branches: [main, 'feat/**']
     paths:
       - 'branding/**'
+      - 'kopitiam_mobile/assets/branding/**'
       - 'ci/generate_app_icons.py'
       - '.github/workflows/app-icons.yml'
   workflow_dispatch:
