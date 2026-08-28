@@ -3,6 +3,11 @@ allprojects {
         google()
         mavenCentral()
     }
+    configurations.configureEach {
+        resolutionStrategy {
+            force("androidx.concurrent:concurrent-futures:1.2.0")
+        }
+    }
 }
 
 val newBuildDir: Directory =
@@ -20,12 +25,18 @@ subprojects {
 }
 
 subprojects {
-    afterEvaluate {
-        if (project.hasProperty("android")) {
-            dependencies {
-                add("compileOnly", "androidx.concurrent:concurrent-futures:1.2.0")
-                add("implementation", "androidx.concurrent:concurrent-futures:1.2.0")
-            }
+    fun injectFuturesDependency(p: Project) {
+        if (p.hasProperty("android")) {
+            p.dependencies.add("compileOnly", "androidx.concurrent:concurrent-futures:1.2.0")
+            p.dependencies.add("implementation", "androidx.concurrent:concurrent-futures:1.2.0")
+        }
+    }
+
+    if (state.executed) {
+        injectFuturesDependency(this)
+    } else {
+        afterEvaluate {
+            injectFuturesDependency(this)
         }
     }
 }
