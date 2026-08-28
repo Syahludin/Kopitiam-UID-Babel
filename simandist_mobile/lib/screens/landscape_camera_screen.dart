@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image/image.dart' as img;
+import 'package:path/path.dart' as p;
 
 class LandscapeCameraScreen extends StatefulWidget {
   final String title;
@@ -27,6 +29,7 @@ class LandscapeCameraScreen extends StatefulWidget {
 }
 
 class _LandscapeCameraScreenState extends State<LandscapeCameraScreen> {
+  static const outputWidth = 2048;
   CameraController? _controller;
   String? _error;
   bool _capturing = false;
@@ -53,7 +56,7 @@ class _LandscapeCameraScreenState extends State<LandscapeCameraScreen> {
       );
       final controller = CameraController(
         back,
-        ResolutionPreset.high,
+        ResolutionPreset.max,
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -69,6 +72,34 @@ class _LandscapeCameraScreenState extends State<LandscapeCameraScreen> {
     }
   }
 
+  Future<String> _normalizeLandscape(String sourcePath) async {
+    final source = File(sourcePath);
+    final decoded = img.decodeImage(await source.readAsBytes());
+    if (decoded == null) {
+      throw StateError('Format foto kamera tidak dapat dibaca.');
+    }
+    var normalized = img.bakeOrientation(decoded);
+    if (normalized.height > normalized.width) {
+      normalized = img.copyRotate(normalized, angle: 90);
+    }
+    final resized = img.copyResize(
+      normalized,
+      width: outputWidth,
+      interpolation: img.Interpolation.cubic,
+    );
+    final target = File(
+      p.join(
+        p.dirname(sourcePath),
+        '${p.basenameWithoutExtension(sourcePath)}_2048.jpg',
+      ),
+    );
+    await target.writeAsBytes(img.encodeJpg(resized, quality: 80), flush: true);
+    if (await target.length() == 0) {
+      throw StateError('Foto landscape gagal diproses.');
+    }
+    return target.path;
+  }
+
   Future<void> _capture() async {
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized || _capturing) {
@@ -81,7 +112,8 @@ class _LandscapeCameraScreenState extends State<LandscapeCameraScreen> {
       if (!await file.exists() || await file.length() == 0) {
         throw StateError('Foto tidak tersimpan. Silakan ambil ulang.');
       }
-      if (mounted) Navigator.of(context).pop(image.path);
+      final landscapePath = await _normalizeLandscape(image.path);
+      if (mounted) Navigator.of(context).pop(landscapePath);
     } catch (error) {
       if (mounted) {
         setState(() {
@@ -162,7 +194,7 @@ class _LandscapeCameraScreenState extends State<LandscapeCameraScreen> {
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Text(
-                    'Putar perangkat mendatar, pastikan objek memenuhi bingkai',
+                    'Landscape wajib • Output 2048 px',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 12,
