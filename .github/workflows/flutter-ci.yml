@@ -19,32 +19,106 @@ jobs:
         working-directory: kopitiam_mobile
     steps:
       - uses: actions/checkout@v4
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - name: Resolve dependencies
-        run: flutter pub get
-      - name: Static analysis
-        id: analyze
+
+      - name: Prepare log directory
+        run: mkdir -p ci-logs
+
+      - name: Environment report
         shell: bash
         run: |
-          set +e
-          flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee analyze.log
-          code=${PIPESTATUS[0]}
-          if [ "$code" -ne 0 ] && [ "${{ github.event_name }}" = "pull_request" ]; then
-            {
-              echo 'CI analyzer gagal:'
-              echo '```text'
-              tail -n 80 analyze.log
-              echo '```'
-            } > analyze-comment.md
-            gh pr comment "${{ github.event.pull_request.number }}" --body-file analyze-comment.md
-          fi
-          exit "$code"
+          set -o pipefail
+          {
+            flutter --version
+            echo
+            dart --version
+            echo
+            java -version 2>&1 || true
+          } 2>&1 | tee ci-logs/00-environment.log
+
+      - name: Resolve dependencies
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter pub get 2>&1 | tee ci-logs/10-pub-get.log
+
+      - name: Static analysis
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee ci-logs/20-analyze.log
+
+      - name: Tests
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter test --reporter expanded 2>&1 | tee ci-logs/30-test.log
+
+      - name: Build debug APK
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter build apk --debug 2>&1 | tee ci-logs/40-build-apk.log
+
+      - name: Report failure on pull request
+        if: failure() && github.event_name == 'pull_request'
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-      - name: Tests
-        run: flutter test
-      - name: Build debug APK
-        run: flutter build apk --debug
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          report=ci-logs/failure-comment.md
+          {
+            echo '## Flutter CI gagal'
+            echo
+            echo "Commit: \`${GITHUB_SHA:0:7}\` · [buka log lengkap]($RUN_URL)"
+            echo
+          } > "$report"
+
+          shopt -s nullglob
+          logs=(ci-logs/[0-9]*.log)
+          if [ ${#logs[@]} -eq 0 ]; then
+            {
+              echo 'Tidak ada log yang terekam. Kegagalan terjadi sebelum tahap pertama berjalan,'
+              echo 'kemungkinan saat menyiapkan Flutter SDK.'
+            } >> "$report"
+          else
+            # Tahap yang gagal adalah log terakhir yang terbentuk.
+            last="${logs[${#logs[@]}-1]}"
+            {
+              echo "### Tahap gagal: \`$(basename "$last" .log)\`"
+              echo
+              echo '```text'
+              tail -n 120 "$last"
+              echo '```'
+              echo
+              echo '<details><summary>Tahap yang sudah selesai</summary>'
+              echo
+              for log in "${logs[@]}"; do
+                [ "$log" = "$last" ] && continue
+                echo "- \`$(basename "$log" .log)\`, $(wc -l < "$log") baris"
+              done
+              echo
+              echo '</details>'
+            } >> "$report"
+          fi
+
+          {
+            echo
+            echo 'Seluruh log tersedia sebagai artifact `flutter-ci-logs` pada run ini.'
+          } >> "$report"
+
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file "$report"
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-ci-logs
+          if-no-files-found: warn
+          retention-days: 14
+          path: kopitiam_mobile/ci-logs/**
