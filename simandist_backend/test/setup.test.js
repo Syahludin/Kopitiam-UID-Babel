@@ -50,9 +50,9 @@ test('setup matches the active backend schema and avoids legacy session APIs', (
   assert.doesNotMatch(source, /hashPassword_|getSheet_/);
 });
 
-test('device policy is 30 days absolute and 7 days idle', () => {
-  assert.match(source, /DEVICE_TOKEN_MAX_AGE_MS = 30 \* 24 \* 60 \* 60 \* 1000/);
-  assert.match(source, /DEVICE_TOKEN_IDLE_MS = 7 \* 24 \* 60 \* 60 \* 1000/);
+test('device policy is 7 days absolute and 1 day idle', () => {
+  assert.match(source, /DEVICE_TOKEN_MAX_AGE_MS = 7 \* 24 \* 60 \* 60 \* 1000/);
+  assert.match(source, /DEVICE_TOKEN_IDLE_MS = 1 \* 24 \* 60 \* 60 \* 1000/);
   assert.match(source, /everyHours\(1\)/);
 });
 
@@ -62,8 +62,8 @@ test('server cleanup removes expired, idle, future, and corrupt device tokens', 
   const records = {
     PASSWORD_PEPPER: 'keep-me',
     device_active: JSON.stringify({createdAt: now - day, lastUsedAt: now - 1000}),
-    device_expired: JSON.stringify({createdAt: now - 30 * day, lastUsedAt: now - 1000}),
-    device_idle: JSON.stringify({createdAt: now - 8 * day, lastUsedAt: now - 7 * day}),
+    device_expired: JSON.stringify({createdAt: now - 7 * day, lastUsedAt: now - 1000}),
+    device_idle: JSON.stringify({createdAt: now - 2 * day, lastUsedAt: now - day}),
     device_future: JSON.stringify({createdAt: now + day, lastUsedAt: now + day}),
     device_corrupt: '{bad-json',
   };
