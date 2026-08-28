@@ -19,6 +19,17 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+subprojects {
+    afterEvaluate {
+        if (project.hasProperty("android")) {
+            dependencies {
+                add("compileOnly", "androidx.concurrent:concurrent-futures:1.2.0")
+                add("implementation", "androidx.concurrent:concurrent-futures:1.2.0")
+            }
+        }
+    }
+}
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
