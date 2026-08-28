@@ -12,6 +12,69 @@ function runtimeIdentity_(body) {
   return body.deviceToken || body.token || body.username || 'anonymous';
 }
 
+function revokeBoundSession_(sessionToken, deviceToken) {
+  var cache = CacheService.getScriptCache();
+  if (sessionToken) cache.remove('session_' + String(sessionToken).trim());
+  if (deviceToken) {
+    PropertiesService.getScriptProperties()
+      .deleteProperty('device_' + String(deviceToken).trim());
+  }
+}
+
+function verifySessionDeviceBinding_(sessionToken, session) {
+  if (!session || typeof session !== 'object') {
+    revokeBoundSession_(sessionToken, '');
+    return fail_('SESSION_BINDING_INVALID', 'Sesi tidak terikat ke perangkat.');
+  }
+  var deviceToken = String(session.deviceToken || '').trim();
+  if (!/^[a-f0-9]{64}$/i.test(deviceToken)) {
+    revokeBoundSession_(sessionToken, '');
+    return fail_('SESSION_BINDING_INVALID', 'Sesi tidak terikat ke perangkat.');
+  }
+  var props = PropertiesService.getScriptProperties();
+  var raw = props.getProperty('device_' + deviceToken);
+  if (!raw) {
+    revokeBoundSession_(sessionToken, '');
+    return fail_('DEVICE_UNKNOWN', 'Perangkat sesi tidak dikenali.');
+  }
+  var record;
+  try { record = JSON.parse(raw); }
+  catch (_) {
+    revokeBoundSession_(sessionToken, deviceToken);
+    return fail_('DEVICE_CORRUPT', 'Data perangkat sesi rusak.');
+  }
+  var expiry = validateDeviceRecord_(record, Date.now());
+  if (expiry) {
+    revokeBoundSession_(sessionToken, deviceToken);
+    return fail_(expiry, 'Sesi perangkat sudah berakhir.');
+  }
+  if (normalize_(record.username) !== normalize_(session.username)) {
+    revokeBoundSession_(sessionToken, deviceToken);
+    return fail_('SESSION_DEVICE_MISMATCH', 'Sesi tidak cocok dengan perangkat.');
+  }
+  var userRow = findUser_(session.username);
+  if (!userRow) {
+    revokeBoundSession_(sessionToken, deviceToken);
+    return fail_('ACCOUNT_INACTIVE', 'Akun tidak aktif atau tidak ditemukan.');
+  }
+  var currentSignature = passwordSignature_(
+    String(userRow[USER_COL.password] || '')
+  );
+  if (!constantTimeEqual_(
+    currentSignature,
+    String(record.passwordSignature || '')
+  )) {
+    revokeBoundSession_(sessionToken, deviceToken);
+    return fail_('DEVICE_REVOKED', 'Kredensial akun berubah. Silakan login ulang.');
+  }
+  var account = accountStatus_(session.username);
+  if (!account.exists || !account.active) {
+    revokeBoundSession_(sessionToken, deviceToken);
+    return fail_('ACCOUNT_INACTIVE', 'Akun tidak aktif atau tidak ditemukan.');
+  }
+  return {success: true, deviceToken: deviceToken};
+}
+
 doPost = function(e) {
   try {
     var body = parseBody_(e);
@@ -57,11 +120,8 @@ cekPerangkat_ = function(token) {
 cekSesi_ = function(token) {
   var result = _unguardedCekSesi_(token);
   if (!result.success) return result;
-  var account = accountStatus_(result.sesi.username);
-  if (!account.exists || !account.active) {
-    CacheService.getScriptCache().remove('session_' + String(token || '').trim());
-    return fail_('ACCOUNT_INACTIVE', 'Akun tidak aktif atau tidak ditemukan.');
-  }
+  var binding = verifySessionDeviceBinding_(token, result.sesi);
+  if (!binding.success) return binding;
   return result;
 };
 

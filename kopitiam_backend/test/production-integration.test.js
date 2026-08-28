@@ -33,10 +33,27 @@ test('device handler fails closed before issuing a fresh session', () => {
   assert.match(integration, /ACCOUNT_INACTIVE/);
 });
 
-test('cached sessions are revoked when account becomes inactive', () => {
-  assert.match(integration, /cekSesi_ = function\(token\)/);
-  assert.match(integration, /remove\('session_'/);
-  assert.match(integration, /accountStatus_\(result\.sesi\.username\)/);
+test('every cached session is bound to a live device record', () => {
+  assert.match(integration, /verifySessionDeviceBinding_\(token, result\.sesi\)/);
+  assert.match(integration, /session\.deviceToken/);
+  assert.match(integration, /device_.*deviceToken/);
+  assert.match(integration, /validateDeviceRecord_\(record, Date\.now\(\)\)/);
+  assert.match(integration, /SESSION_DEVICE_MISMATCH/);
+  assert.match(integration, /SESSION_BINDING_INVALID/);
+});
+
+test('password changes revoke both the session and bound device', () => {
+  assert.match(integration, /passwordSignature_/);
+  assert.match(integration, /record\.passwordSignature/);
+  assert.match(integration, /constantTimeEqual_/);
+  assert.match(integration, /revokeBoundSession_\(sessionToken, deviceToken\)/);
+  assert.match(integration, /DEVICE_REVOKED/);
+});
+
+test('account status is checked on every cached session request', () => {
+  assert.match(integration, /accountStatus_\(session\.username\)/);
+  assert.match(integration, /ACCOUNT_INACTIVE/);
+  expectBefore('verifySessionDeviceBinding_(token, result.sesi)', 'return result;');
 });
 
 test('master validation runs before idempotent Temuan transaction', () => {
