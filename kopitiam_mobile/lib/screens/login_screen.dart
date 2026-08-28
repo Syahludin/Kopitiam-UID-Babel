@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api_service.dart';
@@ -51,35 +50,29 @@ class LoginScreen extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SvgPicture.asset(
-                      'assets/icons/logo_app.svg',
-                      width: 132,
-                      height: 132,
+                    Image.asset(
+                      'assets/icons/logo_app.png',
+                      width: 148,
+                      height: 148,
+                      filterQuality: FilterQuality.high,
                     ),
                     const SizedBox(height: 18),
-                    const Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'SiMan',
-                            style: TextStyle(color: AppColors.navy900),
-                          ),
-                          TextSpan(
-                            text: 'Dist',
-                            style: TextStyle(color: AppColors.amber600),
-                          ),
-                        ],
-                      ),
+                    const Text(
+                      'KOPITIAM',
                       style: TextStyle(
                         fontSize: 40,
                         fontWeight: FontWeight.w800,
+                        letterSpacing: 2,
+                        color: AppColors.navy900,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     const Text(
-                      'Sistem Manajemen Distribusi',
+                      'Kontrol Operasional, Pemantauan Integritas,\n& Teknologi Informasi Aset Manajemen',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 13,
+                        height: 1.45,
                         color: AppColors.neutral500,
                       ),
                     ),
@@ -156,7 +149,7 @@ class LoginScreen extends StatelessWidget {
               left: 16,
               right: 16,
               child: Text(
-                'Sistem Manajemen Distribusi © 2026 · PLN UID Babel',
+                'KOPITIAM © 2026 · PLN UID Babel',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 11,
