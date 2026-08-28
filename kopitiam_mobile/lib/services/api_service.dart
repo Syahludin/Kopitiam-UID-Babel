@@ -55,7 +55,7 @@ class ApiService {
         ..headers['Accept'] = 'application/json'
         ..headers['Cache-Control'] = 'no-store';
       final contentStream = await client.send(contentRequest).timeout(timeout);
-      return http.Response.fromStream(contentStream);
+      return await http.Response.fromStream(contentStream);
     } finally {
       client.close();
     }
