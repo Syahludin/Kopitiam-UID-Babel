@@ -1,5 +1,5 @@
-name: simandist_mobile
-description: "SiManDist UIW Babel mobile application."
+name: kopitiam_mobile
+description: "Kopitiam UID Babel mobile application."
 publish_to: 'none'
 version: 1.0.0+1
 environment:

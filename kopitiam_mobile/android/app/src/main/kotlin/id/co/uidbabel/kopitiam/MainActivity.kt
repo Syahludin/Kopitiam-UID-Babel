@@ -1,4 +1,4 @@
-package com.example.simandist_mobile
+package id.co.uidbabel.kopitiam
 
 import io.flutter.embedding.android.FlutterActivity
 
