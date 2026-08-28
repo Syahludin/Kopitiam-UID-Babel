@@ -1,5 +1,5 @@
-var DEVICE_TOKEN_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
-var DEVICE_TOKEN_IDLE_MS = 7 * 24 * 60 * 60 * 1000;
+var DEVICE_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+var DEVICE_TOKEN_IDLE_MS = 1 * 24 * 60 * 60 * 1000;
 var DEVICE_CLEANUP_HANDLER = 'bersihkanTokenPerangkatKedaluwarsa';
 
 /**
@@ -38,15 +38,15 @@ function setupBackend() {
     success: true,
     service: 'SiManDist API',
     version: '2.5.3',
-    deviceTokenMaxDays: 30,
-    deviceTokenIdleDays: 7,
+    deviceTokenMaxDays: 7,
+    deviceTokenIdleDays: 1,
     expiredTokensRemoved: cleanup.dihapus
   };
 }
 
 /**
- * Menghapus token perangkat yang berumur lebih dari 30 hari, tidak dipakai
- * selama 7 hari, rusak, atau memiliki waktu yang tidak masuk akal.
+ * Menghapus token perangkat yang berumur lebih dari 7 hari, tidak dipakai
+ * selama 1 hari, rusak, atau memiliki waktu yang tidak masuk akal.
  * Dipanggil otomatis setiap jam oleh trigger yang dibuat setupBackend().
  */
 function bersihkanTokenPerangkatKedaluwarsa() {
