@@ -88,12 +88,17 @@ test('rollback trashes only files created by the failed request', () => {
   assert.equal(created.file.trashed, true);
 });
 
-test('production flow must validate both photos before creating Drive files and use a lock', () => {
-  assert.match(production, /preparePhoto_\(incoming\.fotoTemuanBase64/);
-  assert.match(production, /preparePhoto_\(incoming\.fotoLingkunganBase64/);
-  assert.match(production, /putPhotoIdempotent_/);
-  assert.match(production, /photoIdempotencyKey_/);
-  assert.match(production, /rollbackCreatedPhotos_/);
-  assert.match(production, /removeStalePhotos_/);
-  assert.match(production, /LockService\.getScriptLock\(\)/);
+test('production router uses the idempotent transaction', () => {
+  assert.match(production, /syncTemuanInspeksiIdempotent_\(b\.token,b\.row\)/);
+  assert.doesNotMatch(production, /syncTemuanInspeksi_\(b\.token,b\.row\)/);
+});
+
+test('idempotent transaction validates before Drive and protects commit', () => {
+  assert.match(helperSource, /preparePhoto_\(incoming\.fotoTemuanBase64/);
+  assert.match(helperSource, /preparePhoto_\([\s\S]*incoming\.fotoLingkunganBase64/);
+  assert.match(helperSource, /putPhotoIdempotent_/);
+  assert.match(helperSource, /photoIdempotencyKey_/);
+  assert.match(helperSource, /rollbackCreatedPhotos_/);
+  assert.match(helperSource, /removeStalePhotos_/);
+  assert.match(helperSource, /LockService\.getScriptLock\(\)/);
 });
