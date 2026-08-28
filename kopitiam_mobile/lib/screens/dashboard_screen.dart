@@ -24,14 +24,17 @@ class _DashboardScreenState extends State<DashboardScreen>
   static const navy950 = Color(0xFF071B30);
   static const navy700 = Color(0xFF004D8C);
   static const cyan500 = Color(0xFF00E5FF);
+  static const cyan600 = Color(0xFF0891B2);
   static const amber600 = Color(0xFFFFB800);
   static const green600 = Color(0xFF16A34A);
+  static const green400 = Color(0xFF4ADE80);
   static const green100 = Color(0xFFDCFCE7);
   static const neutral500 = Color(0xFF64748B);
-  static const neutral100 = Color(0xFFF1F5F9);
   static const neutral200 = Color(0xFFE2E8F0);
   static const red600 = Color(0xFFDC2626);
   static const blueCard = Color(0xFFE8F4FC);
+  static const blueSoft = Color(0xFFE8F1FA);
+  static const bgLight = Color(0xFFEDF4FA);
 
   final _labels = const ['Work Order', 'Beranda', 'Pengaturan'];
   final _woRepo = WoInsjarRepository();
@@ -305,7 +308,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: neutral100,
+    backgroundColor: bgLight,
     appBar: AppBar(
       backgroundColor: navy700,
       foregroundColor: Colors.white,
@@ -353,76 +356,378 @@ class _DashboardScreenState extends State<DashboardScreen>
   );
 
   Widget _home() {
-    final dirty = _woList.where((wo) => wo.isDirty).length;
-    final username = (widget.sesi['username'] ?? 'Pengguna').toString();
+    final total = _woList.length;
+    final menunggu = _woList
+        .where(
+          (wo) => WoInsjar.normalisasiStatus(wo.statusWo) == WoInsjar.statusMulai,
+        )
+        .length;
+    final sedang = _woList
+        .where(
+          (wo) => WoInsjar.normalisasiStatus(wo.statusWo) == WoInsjar.statusDalam,
+        )
+        .length;
+    final selesai = _woList
+        .where(
+          (wo) =>
+              WoInsjar.normalisasiStatus(wo.statusWo) == WoInsjar.statusSelesai,
+        )
+        .length;
+
     return ListView(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
       children: [
-        const Text('Selamat datang,', style: TextStyle(color: neutral500)),
-        Text(
-          username,
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            color: navy950,
+        _welcomeCard(),
+        const SizedBox(height: 16),
+        _woDataCard(),
+        const SizedBox(height: 16),
+        _woSummaryCard(total, menunggu, sedang, selesai),
+      ],
+    );
+  }
+
+  Widget _welcomeCard() {
+    final username = (widget.sesi['username'] ?? 'Pengguna').toString();
+    final subTim = (widget.sesi['subTim'] ?? widget.sesi['tim'] ?? '-')
+        .toString();
+    final ulp = (widget.sesi['ulp'] ?? '-').toString();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: navy700,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: navy950.withValues(alpha: .10)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14004D8C),
+            blurRadius: 12,
+            offset: Offset(0, 4),
           ),
-        ),
-        const SizedBox(height: 20),
-        const Text(
-          'Data Work Order',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: navy700,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-            side: const BorderSide(color: neutral200),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Selamat datang,',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: .75),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .14),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _woBusy ? null : _downloadWo,
-                        icon: const Icon(Icons.cloud_download_outlined),
-                        label: const Text('Download WO'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _woBusy ? null : _syncWo,
-                        icon: const Icon(Icons.cloud_upload_outlined),
-                        label: Text(
-                          dirty > 0 ? 'Sinkron ($dirty)' : 'Sinkron WO',
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: navy700,
-                          foregroundColor: Colors.white,
-                        ),
+                    Icon(Icons.circle, size: 8, color: green400),
+                    SizedBox(width: 6),
+                    Text(
+                      'Sesi Aktif',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
                       ),
                     ),
                   ],
                 ),
-                if (_woBusy) ...[
-                  const SizedBox(height: 14),
-                  _progressView(_woProgress, _woProgressLabel),
-                ],
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            username,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 16),
+          Container(height: 1, color: Colors.white.withValues(alpha: .16)),
+          const SizedBox(height: 16),
+          _welcomeInfo(Icons.groups_rounded, 'Sub-Tim', subTim),
+          const SizedBox(height: 12),
+          _welcomeInfo(Icons.location_city_rounded, 'ULP', ulp),
+        ],
+      ),
     );
   }
+
+  Widget _welcomeInfo(IconData icon, String label, String value) => Row(
+    children: [
+      Icon(icon, size: 16, color: Colors.white.withValues(alpha: .70)),
+      const SizedBox(width: 10),
+      Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: Colors.white.withValues(alpha: .70),
+        ),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(
+          value.isEmpty ? '-' : value,
+          textAlign: TextAlign.right,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    ],
+  );
+
+  Widget _woDataCard() {
+    final dirty = _woList.where((wo) => wo.isDirty).length;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: blueSoft,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.cloud_sync_rounded,
+                  size: 18,
+                  color: navy700,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Data Work Order',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: navy950,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: _woBusy ? null : _downloadWo,
+                    icon: const Icon(Icons.cloud_download_outlined, size: 18),
+                    label: const Text(
+                      'Download WO',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: navy700,
+                      side: const BorderSide(color: neutral200),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    onPressed: _woBusy ? null : _syncWo,
+                    icon: const Icon(Icons.cloud_upload_outlined, size: 18),
+                    label: FittedBox(
+                      child: Text(
+                        dirty > 0 ? 'Sinkron ($dirty)' : 'Sinkron WO',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: navy700,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (_woBusy) ...[
+            const SizedBox(height: 16),
+            Container(height: 1, color: neutral200),
+            const SizedBox(height: 14),
+            _progressView(_woProgress, _woProgressLabel),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _woSummaryCard(int total, int menunggu, int sedang, int selesai) =>
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: _cardDecoration(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: blueSoft,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.insights_rounded,
+                    size: 18,
+                    color: navy700,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Ringkasan Work Order',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: navy950,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(height: 1, color: neutral200),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Total WO',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: neutral500,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$total',
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: navy700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Container(height: 1, color: neutral200),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _statItem('Menunggu Dikerjakan', menunggu, amber600),
+                ),
+                _statDivider(),
+                Expanded(child: _statItem('Sedang Dikerjakan', sedang, cyan600)),
+                _statDivider(),
+                Expanded(child: _statItem('Selesai', selesai, green600)),
+              ],
+            ),
+          ],
+        ),
+      );
+
+  Widget _statDivider() => Container(
+    width: 1,
+    height: 44,
+    color: neutral200,
+    margin: const EdgeInsets.symmetric(horizontal: 4),
+  );
+
+  Widget _statItem(String label, int value, Color color) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      FittedBox(
+        child: Text(
+          '$value',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: color,
+          ),
+        ),
+      ),
+      const SizedBox(height: 6),
+      Text(
+        label,
+        textAlign: TextAlign.center,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          fontSize: 11,
+          height: 1.3,
+          fontWeight: FontWeight.w600,
+          color: neutral500,
+        ),
+      ),
+    ],
+  );
+
+  BoxDecoration _cardDecoration() => BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(20),
+    border: Border.all(color: neutral200),
+    boxShadow: const [
+      BoxShadow(
+        color: Color(0x0A0F172A),
+        blurRadius: 10,
+        offset: Offset(0, 2),
+      ),
+    ],
+  );
 
   Widget _workOrders() => RefreshIndicator(
     onRefresh: _loadWo,
