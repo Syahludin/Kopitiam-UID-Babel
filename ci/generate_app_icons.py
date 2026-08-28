@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Generate every launcher icon for kopitiam_mobile from one branding source.
+"""Generate every KOPITIAM branding asset from a single source image.
 
 Source priority:
-  1. branding/kopitiam_logo_master.png  (drop the pixel-exact artwork here)
-  2. branding/kopitiam_logo.svg         (vector fallback, always in the repo)
+  1. kopitiam_mobile/assets/branding/kopitiam-logo-master-2048.png  (official artwork)
+  2. branding/kopitiam_logo_master.png                              (alternate drop-in)
+  3. branding/kopitiam_logo.svg                                     (vector fallback)
 
 Run locally:  python3 ci/generate_app_icons.py
 CI runs the same command, then commits whatever changed.
@@ -22,9 +23,14 @@ APP = ROOT / "kopitiam_mobile"
 ANDROID_RES = APP / "android/app/src/main/res"
 IOS_ICONS = APP / "ios/Runner/Assets.xcassets/AppIcon.appiconset"
 WEB = APP / "web"
+APP_ICONS = APP / "assets/icons"
 
-MASTER_PNG = ROOT / "branding/kopitiam_logo_master.png"
-MASTER_SVG = ROOT / "branding/kopitiam_logo.svg"
+# Checked in order; the first existing entry wins.
+RASTER_SOURCES = [
+    APP / "assets/branding/kopitiam-logo-master-2048.png",
+    ROOT / "branding/kopitiam_logo_master.png",
+]
+VECTOR_SOURCE = ROOT / "branding/kopitiam_logo.svg"
 
 BACKGROUND = (7, 45, 67, 255)   # #072D43
 BACKGROUND_HEX = "#072D43"
@@ -48,15 +54,19 @@ IOS_SIZES = [
 
 def load_master() -> Image.Image:
     """Return the emblem as a square RGBA image with a transparent surround."""
-    if MASTER_PNG.exists():
-        img = Image.open(MASTER_PNG).convert("RGBA")
-        print(f"source: {MASTER_PNG.relative_to(ROOT)} ({img.width}x{img.height})")
-    else:
-        import cairosvg  # only needed for the vector path
+    img = None
+    for candidate in RASTER_SOURCES:
+        if candidate.exists():
+            img = Image.open(candidate).convert("RGBA")
+            print(f"source: {candidate.relative_to(ROOT)} ({img.width}x{img.height})")
+            break
 
-        png = cairosvg.svg2png(url=str(MASTER_SVG), output_width=1024, output_height=1024)
+    if img is None:
+        import cairosvg  # only needed for the vector fallback
+
+        png = cairosvg.svg2png(url=str(VECTOR_SOURCE), output_width=1024, output_height=1024)
         img = Image.open(io.BytesIO(png)).convert("RGBA")
-        print(f"source: {MASTER_SVG.relative_to(ROOT)} (rasterised to 1024x1024)")
+        print(f"source: {VECTOR_SOURCE.relative_to(ROOT)} (rasterised to 1024x1024)")
 
     side = max(img.size)
     if img.size != (side, side):
@@ -157,14 +167,24 @@ def web(master: Image.Image) -> None:
     write(compose(master, 64, EMBLEM_SCALE, BACKGROUND), WEB / "favicon.png")
 
 
+def in_app(master: Image.Image) -> None:
+    """Logo shown inside the app, transparent so it sits on any screen colour."""
+    print("in-app logo")
+    write(master.resize((512, 512), Image.Resampling.LANCZOS), APP_ICONS / "logo_app.png")
+
+    stale_svg = APP_ICONS / "logo_app.svg"
+    if stale_svg.exists():
+        stale_svg.unlink()
+        print("  removed stale logo_app.svg")
+
+
 def main() -> None:
-    if not MASTER_PNG.exists() and not MASTER_SVG.exists():
-        raise SystemExit("no branding source found in branding/")
     master = load_master()
     android(master)
     ios(master)
     web(master)
-    print("done: launcher icons regenerated from the KOPITIAM emblem")
+    in_app(master)
+    print("done: semua aset branding dibuat dari logo KOPITIAM")
 
 
 if __name__ == "__main__":
