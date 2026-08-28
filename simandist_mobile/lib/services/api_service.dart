@@ -7,8 +7,7 @@ import 'device_session_service.dart';
 class ApiService {
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue:
-        'https://script.google.com/macros/s/AKfycbxi45JX9sm_sgeLvXzI6KZsvJAlzaWhjtfT6p2W51vqwvp-TY7gAsXC9PA-Q_HZYp0o3Q/exec',
+    defaultValue: 'https://script.google.com/macros/s/AKfycbxi45JX9sm_sgeLvXzI6KZsvJAlzaWhjtfT6p2W51vqwvp-TY7gAsXC9PA-Q_HZYp0o3Q/exec',
   );
 
   static const _redirectCodes = {301, 302, 303, 307, 308};
@@ -95,8 +94,7 @@ class ApiService {
 
   static Future<Map<String, dynamic>> _postMap(
     Map<String, dynamic> payload,
-  ) async =>
-      _decode(await _postAppsScript(payload));
+  ) async => _decode(await _postAppsScript(payload));
 
   static Future<Map<String, dynamic>> loginPerangkat(
     String username,
@@ -123,10 +121,7 @@ class ApiService {
     if (deviceToken.isEmpty) {
       return {'success': false, 'kode': 'TANPA_TOKEN'};
     }
-    return _postMap({
-      'action': 'cekPerangkat',
-      'deviceToken': deviceToken,
-    });
+    return _postMap({'action': 'cekPerangkat', 'deviceToken': deviceToken});
   }
 
   static Future<Map<String, dynamic>> getMasterData(String token) =>
@@ -135,10 +130,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getWoInsjar(String token) =>
       _postMap({'action': 'getWoInsjar', 'token': token});
 
-  static Future<Map<String, dynamic>> getTemuan(
-    String token,
-    String kodeWo,
-  ) =>
+  static Future<Map<String, dynamic>> getTemuan(String token, String kodeWo) =>
       _postMap({
         'action': 'getTemuanInspeksi',
         'token': token,
@@ -148,22 +140,12 @@ class ApiService {
   static Future<Map<String, dynamic>> syncWoInsjar(
     String token,
     List<Map<String, dynamic>> rows,
-  ) =>
-      _postMap({
-        'action': 'syncWoInsjar',
-        'token': token,
-        'rows': rows,
-      });
+  ) => _postMap({'action': 'syncWoInsjar', 'token': token, 'rows': rows});
 
   static Future<Map<String, dynamic>> syncTemuan(
     String token,
     Map<String, dynamic> row,
-  ) =>
-      _postMap({
-        'action': 'syncTemuanInspeksi',
-        'token': token,
-        'row': row,
-      });
+  ) => _postMap({'action': 'syncTemuanInspeksi', 'token': token, 'row': row});
 
   static Future<Map<String, dynamic>> logoutPerangkat({
     String token = '',
