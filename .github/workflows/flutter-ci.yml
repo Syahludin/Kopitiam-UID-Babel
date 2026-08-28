@@ -96,11 +96,11 @@ jobs:
               tail -n 120 "$last"
               echo '```'
               echo
-              echo '<details><summary>Tahap yang sudah lewas</summary>'
+              echo '<details><summary>Tahap yang sudah selesai</summary>'
               echo
               for log in "${logs[@]}"; do
                 [ "$log" = "$last" ] && continue
-                echo "- \`$(basename "$log" .log)\` selesai, $(wc -l < "$log") baris"
+                echo "- \`$(basename "$log" .log)\`, $(wc -l < "$log") baris"
               done
               echo
               echo '</details>'
