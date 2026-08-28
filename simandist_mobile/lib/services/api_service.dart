@@ -7,30 +7,45 @@ import 'device_session_service.dart';
 class ApiService {
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://script.google.com/macros/s/AKfycbxi45JX9sm_sgeLvXzI6KZsvJAlzaWhjtfT6p2W51vqwvp-TY7gAsXC9PA-Q_HZYp0o3Q/exec',
+    defaultValue:
+        'https://script.google.com/macros/s/AKfycbxi45JX9sm_sgeLvXzI6KZsvJAlzaWhjtfT6p2W51vqwvp-TY7gAsXC9PA-Q_HZYp0o3Q/exec',
   );
 
   static const _redirectCodes = {301, 302, 303, 307, 308};
+  static const _allowedRedirectHosts = {
+    'script.google.com',
+    'script.googleusercontent.com',
+  };
 
-  static Future<http.Response> _getAppsScript(
-    Uri initialUri, {
-    Duration timeout = const Duration(seconds: 90),
-  }) async {
+  static Future<http.Response> _postAppsScript(
+    Map<String, dynamic> payload,
+  ) async {
     final client = http.Client();
-    var current = initialUri;
+    const timeout = Duration(seconds: 120);
+    final body = jsonEncode(payload);
+    var current = Uri.parse(baseUrl);
     final visited = <String>{};
+
     try {
-      for (var hop = 0; hop < 8; hop++) {
+      for (var hop = 0; hop < 6; hop++) {
+        if (current.scheme != 'https' ||
+            !_allowedRedirectHosts.contains(current.host)) {
+          throw StateError('Redirect API menuju alamat yang tidak diizinkan.');
+        }
         if (!visited.add(current.toString())) {
           throw StateError('Redirect API berulang pada alamat yang sama.');
         }
-        final request = http.Request('GET', current)
+
+        final request = http.Request('POST', current)
           ..followRedirects = false
           ..headers['Accept'] = 'application/json'
-          ..headers['Cache-Control'] = 'no-cache';
+          ..headers['Content-Type'] = 'application/json; charset=utf-8'
+          ..headers['Cache-Control'] = 'no-store'
+          ..body = body;
         final streamed = await client.send(request).timeout(timeout);
         final response = await http.Response.fromStream(streamed);
         if (!_redirectCodes.contains(response.statusCode)) return response;
+
         final location = response.headers['location'];
         if (location == null || location.trim().isEmpty) {
           throw StateError('API mengirim redirect tanpa alamat tujuan.');
@@ -38,42 +53,6 @@ class ApiService {
         current = current.resolve(location.trim());
       }
       throw StateError('Redirect API terlalu banyak.');
-    } finally {
-      client.close();
-    }
-  }
-
-  static Future<http.Response> _postAppsScript(
-    Map<String, dynamic> payload,
-  ) async {
-    final client = http.Client();
-    const timeout = Duration(seconds: 120);
-    try {
-      final uri = Uri.parse(baseUrl);
-      final request = http.Request('POST', uri)
-        ..followRedirects = false
-        ..headers['Accept'] = 'application/json'
-        ..headers['Content-Type'] = 'application/json'
-        ..headers['Cache-Control'] = 'no-store'
-        ..body = jsonEncode(payload);
-      final streamed = await client.send(request).timeout(timeout);
-      var response = await http.Response.fromStream(streamed);
-      var hop = 0;
-      while (_redirectCodes.contains(response.statusCode) && hop < 5) {
-        final location = response.headers['location'];
-        if (location == null || location.trim().isEmpty) break;
-        response = await client
-            .get(
-              uri.resolve(location.trim()),
-              headers: const {
-                'Accept': 'application/json',
-                'Cache-Control': 'no-store',
-              },
-            )
-            .timeout(timeout);
-        hop++;
-      }
-      return response;
     } finally {
       client.close();
     }
@@ -94,7 +73,8 @@ class ApiService {
 
   static Future<Map<String, dynamic>> _postMap(
     Map<String, dynamic> payload,
-  ) async => _decode(await _postAppsScript(payload));
+  ) async =>
+      _decode(await _postAppsScript(payload));
 
   static Future<Map<String, dynamic>> loginPerangkat(
     String username,
@@ -140,12 +120,14 @@ class ApiService {
   static Future<Map<String, dynamic>> syncWoInsjar(
     String token,
     List<Map<String, dynamic>> rows,
-  ) => _postMap({'action': 'syncWoInsjar', 'token': token, 'rows': rows});
+  ) =>
+      _postMap({'action': 'syncWoInsjar', 'token': token, 'rows': rows});
 
   static Future<Map<String, dynamic>> syncTemuan(
     String token,
     Map<String, dynamic> row,
-  ) => _postMap({'action': 'syncTemuanInspeksi', 'token': token, 'row': row});
+  ) =>
+      _postMap({'action': 'syncTemuanInspeksi', 'token': token, 'row': row});
 
   static Future<Map<String, dynamic>> logoutPerangkat({
     String token = '',
