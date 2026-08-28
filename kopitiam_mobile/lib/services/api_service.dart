@@ -12,47 +12,49 @@ class ApiService {
   );
 
   static const _redirectCodes = {301, 302, 303, 307, 308};
-  static const _allowedRedirectHosts = {
-    'script.google.com',
-    'script.googleusercontent.com',
-  };
+  static const _appsScriptHost = 'script.google.com';
+  static const _contentHost = 'script.googleusercontent.com';
 
   static Future<http.Response> _postAppsScript(
     Map<String, dynamic> payload,
   ) async {
     final client = http.Client();
     const timeout = Duration(seconds: 120);
-    final body = jsonEncode(payload);
-    var current = Uri.parse(baseUrl);
-    final visited = <String>{};
+    final initialUri = Uri.parse(baseUrl);
+    if (initialUri.scheme != 'https' || initialUri.host != _appsScriptHost) {
+      throw StateError('Alamat API Apps Script tidak valid.');
+    }
 
     try {
-      for (var hop = 0; hop < 6; hop++) {
-        if (current.scheme != 'https' ||
-            !_allowedRedirectHosts.contains(current.host)) {
-          throw StateError('Redirect API menuju alamat yang tidak diizinkan.');
-        }
-        if (!visited.add(current.toString())) {
-          throw StateError('Redirect API berulang pada alamat yang sama.');
-        }
+      final request = http.Request('POST', initialUri)
+        ..followRedirects = false
+        ..headers['Accept'] = 'application/json'
+        ..headers['Content-Type'] = 'application/json; charset=utf-8'
+        ..headers['Cache-Control'] = 'no-store'
+        ..body = jsonEncode(payload);
+      final streamed = await client.send(request).timeout(timeout);
+      final response = await http.Response.fromStream(streamed);
+      if (!_redirectCodes.contains(response.statusCode)) return response;
 
-        final request = http.Request('POST', current)
-          ..followRedirects = false
-          ..headers['Accept'] = 'application/json'
-          ..headers['Content-Type'] = 'application/json; charset=utf-8'
-          ..headers['Cache-Control'] = 'no-store'
-          ..body = body;
-        final streamed = await client.send(request).timeout(timeout);
-        final response = await http.Response.fromStream(streamed);
-        if (!_redirectCodes.contains(response.statusCode)) return response;
-
-        final location = response.headers['location'];
-        if (location == null || location.trim().isEmpty) {
-          throw StateError('API mengirim redirect tanpa alamat tujuan.');
-        }
-        current = current.resolve(location.trim());
+      final location = response.headers['location'];
+      if (location == null || location.trim().isEmpty) {
+        throw StateError('API mengirim redirect tanpa alamat tujuan.');
       }
-      throw StateError('Redirect API terlalu banyak.');
+      final contentUri = initialUri.resolve(location.trim());
+      if (contentUri.scheme != 'https' || contentUri.host != _contentHost) {
+        throw StateError('Redirect respons API menuju alamat yang tidak diizinkan.');
+      }
+
+      // doPost sudah dieksekusi pada request pertama. ContentService kemudian
+      // memberikan URL sekali pakai yang memang hanya menerima GET untuk
+      // mengambil JSON hasil eksekusi. Body, password, dan token tidak dikirim
+      // ulang pada request kedua.
+      final contentRequest = http.Request('GET', contentUri)
+        ..followRedirects = false
+        ..headers['Accept'] = 'application/json'
+        ..headers['Cache-Control'] = 'no-store';
+      final contentStream = await client.send(contentRequest).timeout(timeout);
+      return http.Response.fromStream(contentStream);
     } finally {
       client.close();
     }
