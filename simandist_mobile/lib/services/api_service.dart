@@ -53,7 +53,9 @@ class ApiService {
       final uri = Uri.parse(baseUrl);
       final request = http.Request('POST', uri)
         ..followRedirects = false
+        ..headers['Accept'] = 'application/json'
         ..headers['Content-Type'] = 'application/json'
+        ..headers['Cache-Control'] = 'no-store'
         ..body = jsonEncode(payload);
       final streamed = await client.send(request).timeout(timeout);
       var response = await http.Response.fromStream(streamed);
@@ -61,7 +63,15 @@ class ApiService {
       while (_redirectCodes.contains(response.statusCode) && hop < 5) {
         final location = response.headers['location'];
         if (location == null || location.trim().isEmpty) break;
-        response = await client.get(uri.resolve(location.trim())).timeout(timeout);
+        response = await client
+            .get(
+              uri.resolve(location.trim()),
+              headers: const {
+                'Accept': 'application/json',
+                'Cache-Control': 'no-store',
+              },
+            )
+            .timeout(timeout);
         hop++;
       }
       return response;
@@ -83,19 +93,17 @@ class ApiService {
     throw StateError('Format respons API tidak valid.');
   }
 
-  static Future<Map<String, dynamic>> _getMap(
-    Map<String, String> parameters,
-  ) async {
-    final uri = Uri.parse(baseUrl).replace(queryParameters: parameters);
-    return _decode(await _getAppsScript(uri));
-  }
+  static Future<Map<String, dynamic>> _postMap(
+    Map<String, dynamic> payload,
+  ) async =>
+      _decode(await _postAppsScript(payload));
 
   static Future<Map<String, dynamic>> loginPerangkat(
     String username,
     String password,
   ) async {
     final device = await DeviceSessionService.deviceName();
-    final result = await _getMap({
+    final result = await _postMap({
       'action': 'loginPerangkat',
       'username': username,
       'password': password,
@@ -115,23 +123,23 @@ class ApiService {
     if (deviceToken.isEmpty) {
       return {'success': false, 'kode': 'TANPA_TOKEN'};
     }
-    return _getMap({
+    return _postMap({
       'action': 'cekPerangkat',
       'deviceToken': deviceToken,
     });
   }
 
   static Future<Map<String, dynamic>> getMasterData(String token) =>
-      _getMap({'action': 'getMasterData', 'token': token});
+      _postMap({'action': 'getMasterData', 'token': token});
 
   static Future<Map<String, dynamic>> getWoInsjar(String token) =>
-      _getMap({'action': 'getWoInsjar', 'token': token});
+      _postMap({'action': 'getWoInsjar', 'token': token});
 
   static Future<Map<String, dynamic>> getTemuan(
     String token,
     String kodeWo,
   ) =>
-      _getMap({
+      _postMap({
         'action': 'getTemuanInspeksi',
         'token': token,
         'kodeWo': kodeWo,
@@ -140,29 +148,29 @@ class ApiService {
   static Future<Map<String, dynamic>> syncWoInsjar(
     String token,
     List<Map<String, dynamic>> rows,
-  ) async =>
-      _decode(await _postAppsScript({
+  ) =>
+      _postMap({
         'action': 'syncWoInsjar',
         'token': token,
         'rows': rows,
-      }));
+      });
 
   static Future<Map<String, dynamic>> syncTemuan(
     String token,
     Map<String, dynamic> row,
-  ) async =>
-      _decode(await _postAppsScript({
+  ) =>
+      _postMap({
         'action': 'syncTemuanInspeksi',
         'token': token,
         'row': row,
-      }));
+      });
 
   static Future<Map<String, dynamic>> logoutPerangkat({
     String token = '',
   }) async {
     final deviceToken = await DeviceSessionService.token();
     try {
-      return await _getMap({
+      return await _postMap({
         'action': 'logoutPerangkat',
         'deviceToken': deviceToken,
         'token': token,
