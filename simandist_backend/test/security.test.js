@@ -14,11 +14,25 @@ const manifest = JSON.parse(
 );
 
 function loadBackend() {
+  const properties = new Map();
+  const propertyStore = {
+    getProperty(key) { return properties.get(key) || null; },
+    setProperty(key, value) { properties.set(key, String(value)); },
+    deleteProperty(key) { properties.delete(key); },
+  };
   const sandbox = {
     console,
+    PropertiesService: {getScriptProperties: () => propertyStore},
+    LockService: {
+      getScriptLock: () => ({waitLock() {}, releaseLock() {}}),
+    },
     Utilities: {
       Charset: {UTF_8: 'utf8'},
       DigestAlgorithm: {SHA_256: 'sha256'},
+      getUuid: (() => {
+        let value = 0;
+        return () => `00000000-0000-4000-8000-${String(++value).padStart(12, '0')}`;
+      })(),
       computeDigest(_algorithm, value) {
         return [...crypto.createHash('sha256').update(String(value)).digest()]
           .map((byte) => (byte > 127 ? byte - 256 : byte));
@@ -27,7 +41,7 @@ function loadBackend() {
   };
   vm.createContext(sandbox);
   vm.runInContext(code, sandbox, {filename: 'Code.js'});
-  return sandbox;
+  return {backend: sandbox, properties};
 }
 
 test('Apps Script source parses and exposes only health over GET', () => {
@@ -65,6 +79,24 @@ test('master-data response explicitly strips password', () => {
   );
 });
 
+test('plaintext password rows are never written into shared cache', () => {
+  assert.doesNotMatch(code, /CacheService[\s\S]{0,500}JSON\.stringify\(r\)/);
+  assert.doesNotMatch(code, /users_v2/);
+  assert.match(code, /r\[USER_COL\.password\]=''/);
+});
+
+test('password signatures use a server-side pepper without changing GSheet values', () => {
+  const {backend, properties} = loadBackend();
+  const first = backend.passwordSignature_('Password-GSheet');
+  const second = backend.passwordSignature_('Password-GSheet');
+  const other = backend.passwordSignature_('Password-Lain');
+  assert.equal(first, second);
+  assert.notEqual(first, other);
+  assert.equal(first.length, 64);
+  assert.ok(properties.get('PASSWORD_PEPPER'));
+  assert.doesNotMatch(first, /Password-GSheet/);
+});
+
 test('payload and image limits remain enforced', () => {
   assert.match(code, /MAX_IMAGE_BYTES:5\*1024\*1024/);
   assert.match(code, /rows\.length>100/);
@@ -73,7 +105,7 @@ test('payload and image limits remain enforced', () => {
 });
 
 test('pure validators reject traversal, negative numbers, and oversized bodies', () => {
-  const backend = loadBackend();
+  const {backend} = loadBackend();
   assert.throws(() => backend.safePath_('..'), /Invalid path/);
   assert.throws(() => backend.safePath_('.'), /Invalid path/);
   assert.throws(() => backend.numericOrBlank_('-1'), /Invalid numeric value/);
@@ -85,7 +117,7 @@ test('pure validators reject traversal, negative numbers, and oversized bodies',
 });
 
 test('constant-time comparison and code normalization behave predictably', () => {
-  const backend = loadBackend();
+  const {backend} = loadBackend();
   assert.equal(backend.constantTimeEqual_('secret', 'secret'), true);
   assert.equal(backend.constantTimeEqual_('secret', 'Secret'), false);
   assert.equal(backend.constantTimeEqual_('short', 'longer'), false);
