@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Kredensial offline hanya berlaku 24 jam sejak login online terakhir.
 class LocalAuthService {
@@ -30,6 +31,9 @@ class LocalAuthService {
       key: _verifiedAtKey,
       value: verifiedAt.toIso8601String(),
     );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('offlineLogin');
+    await prefs.remove('offlineExpiresAt');
   }
 
   static Future<Map<String, dynamic>?> verifyOffline({
@@ -59,11 +63,13 @@ class LocalAuthService {
     try {
       final decoded = jsonDecode(sessionRaw);
       if (decoded is Map) {
-        final session = Map<String, dynamic>.from(decoded);
-        session['offlineLogin'] = true;
-        session['offlineExpiresAt'] = verifiedAt
-            .add(offlineValidity)
-            .toIso8601String();
+        final expiresAt = verifiedAt.add(offlineValidity).toIso8601String();
+        final session = Map<String, dynamic>.from(decoded)
+          ..['offlineLogin'] = true
+          ..['offlineExpiresAt'] = expiresAt;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('offlineLogin', true);
+        await prefs.setString('offlineExpiresAt', expiresAt);
         return session;
       }
     } catch (_) {}
@@ -88,6 +94,9 @@ class LocalAuthService {
     ]) {
       await _storage.delete(key: key);
     }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('offlineLogin');
+    await prefs.remove('offlineExpiresAt');
   }
 
   static String _hash(String password, String salt) {
