@@ -31,13 +31,13 @@ function jpegBytes(size = 2048) {
 }
 
 test("production Temuan flow invokes coordinate and JPEG validators", () => {
-  assert.match(production, /point=validateCoordinate_\(coord\)/);
+  assert.match(production, /point = validateCoordinate_\(coord\)/);
   assert.match(production, /validateJpegBytes_\(bytes\)/);
   assert.match(production, /COORDINATE_INVALID/);
   assert.match(production, /PHOTO_INVALID/);
   assert.match(
     production,
-    /!incoming\.fotoTemuanBase64\|\|!incoming\.fotoLingkunganBase64/,
+    /!incoming\.fotoTemuanBase64 \|\| !incoming\.fotoLingkunganBase64/,
   );
 });
 

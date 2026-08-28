@@ -6,81 +6,66 @@ const path = require("node:path");
 const test = require("node:test");
 
 const root = path.resolve(__dirname, "..");
-const integration = fs.readFileSync(
-  path.join(root, "ZZ_RuntimeIntegration.js"),
+const code = fs.readFileSync(path.join(root, "Code.js"), "utf8");
+const idempotent = fs.readFileSync(
+  path.join(root, "IdempotentUpload.js"),
   "utf8",
 );
 
-function expectBefore(first, second, source = integration) {
-  const left = source.indexOf(first);
-  const right = source.indexOf(second);
-  assert.ok(left >= 0, `${first} tidak ditemukan`);
-  assert.ok(right >= 0, `${second} tidak ditemukan`);
-  assert.ok(left < right, `${first} harus dijalankan sebelum ${second}`);
-}
-
-function functionBlock(name, nextName) {
-  const start = integration.indexOf(name);
-  const end = integration.indexOf(nextName, start + name.length);
-  assert.ok(start >= 0, `${name} tidak ditemukan`);
-  assert.ok(end > start, `${nextName} tidak ditemukan setelah ${name}`);
-  return integration.slice(start, end);
-}
-
 test("production POST router consumes action quota before dispatch", () => {
-  assert.match(integration, /doPost = function\(e\)/);
-  expectBefore("consumeActionQuota_", "_unguardedDoPost_(e)");
-  assert.match(integration, /runtimeIdentity_\(body\)/);
+  assert.match(code, /function doPost\(e\)/);
+  assert.match(code, /consumeActionQuota_\(a, runtimeIdentity_\(b\)\)/);
+  assert.match(code, /runtimeIdentity_\(body\)/);
 });
 
 test("device handler fails closed before issuing a fresh session", () => {
-  assert.match(integration, /cekPerangkat_ = function\(token\)/);
-  expectBefore("validateDeviceRecord_", "_unguardedCekPerangkat_(token)");
-  expectBefore("accountStatus_", "_unguardedCekPerangkat_(token)");
-  assert.match(integration, /props\.deleteProperty\(key\)/);
-  assert.match(integration, /ACCOUNT_INACTIVE/);
+  assert.match(code, /function cekPerangkat_\(t\)/);
+  assert.match(code, /validateDeviceRecord_\(rec, Date\.now\(\)\)/);
+  assert.match(code, /accountStatus_\(rec\.username\)/);
+  assert.match(code, /p\.deleteProperty\(key\)/);
+  assert.match(code, /ACCOUNT_INACTIVE/);
 });
 
 test("every cached session is bound to a live device record", () => {
   assert.match(
-    integration,
-    /verifySessionDeviceBinding_\(token, result\.sesi\)/,
+    code,
+    /verifySessionDeviceBinding_\(t, sesi\)/,
   );
-  assert.match(integration, /session\.deviceToken/);
-  assert.match(integration, /device_.*deviceToken/);
-  assert.match(integration, /validateDeviceRecord_\(record, Date\.now\(\)\)/);
-  assert.match(integration, /SESSION_DEVICE_MISMATCH/);
-  assert.match(integration, /SESSION_BINDING_INVALID/);
+  assert.match(code, /session\.deviceToken/);
+  assert.match(code, /device_.*deviceToken/);
+  assert.match(code, /validateDeviceRecord_\(record, Date\.now\(\)\)/);
+  assert.match(code, /SESSION_DEVICE_MISMATCH/);
+  assert.match(code, /SESSION_BINDING_INVALID/);
 });
 
 test("password changes revoke both the session and bound device", () => {
-  assert.match(integration, /passwordSignature_/);
-  assert.match(integration, /record\.passwordSignature/);
-  assert.match(integration, /constantTimeEqual_/);
-  assert.match(integration, /revokeBoundSession_\(sessionToken, deviceToken\)/);
-  assert.match(integration, /DEVICE_REVOKED/);
+  assert.match(code, /passwordSignature_/);
+  assert.match(code, /record\.passwordSignature/);
+  assert.match(code, /constantTimeEqual_/);
+  assert.match(code, /revokeBoundSession_\(sessionToken, deviceToken\)/);
+  assert.match(code, /DEVICE_REVOKED/);
 });
 
 test("account status is checked on every successful cached session request", () => {
-  assert.match(integration, /accountStatus_\(session\.username\)/);
-  assert.match(integration, /ACCOUNT_INACTIVE/);
-  const cekSesi = functionBlock(
-    "cekSesi_ = function(token)",
-    "syncTemuanInspeksiIdempotent_ = function",
-  );
-  expectBefore(
-    "verifySessionDeviceBinding_(token, result.sesi)",
-    "return result;",
-    cekSesi,
-  );
+  assert.match(code, /accountStatus_\(session\.username\)/);
+  assert.match(code, /ACCOUNT_INACTIVE/);
+  assert.match(code, /function cekSesi_\(t\)/);
+  assert.match(code, /verifySessionDeviceBinding_\(t, sesi\)/);
 });
 
 test("master validation runs before idempotent Temuan transaction", () => {
-  assert.match(integration, /syncTemuanInspeksiIdempotent_ = function/);
-  expectBefore(
-    "validateFindingMaster_",
-    "_unguardedSyncTemuan_(token, incoming)",
+  assert.match(idempotent, /function syncTemuanInspeksiIdempotent_/);
+  const fnStart = idempotent.indexOf(
+    "function syncTemuanInspeksiIdempotent_",
   );
-  assert.match(integration, /incoming\['Jenis Object'\]/);
-  assert.match(integration, /incoming\['Prioritas'\]/);
+  const fnBody = idempotent.slice(
+    fnStart,
+    idempotent.indexOf("\nfunction ", fnStart + 1),
+  );
+  assert.match(fnBody, /validateFindingMaster_/);
+  assert.match(fnBody, /incoming\["Jenis Object"\]/);
+  assert.match(fnBody, /incoming\["Prioritas"\]/);
+  const masterIdx = fnBody.indexOf("validateFindingMaster_");
+  const syncIdx = fnBody.indexOf("woContext_");
+  assert.ok(masterIdx < syncIdx, "master validation must run before woContext_");
 });

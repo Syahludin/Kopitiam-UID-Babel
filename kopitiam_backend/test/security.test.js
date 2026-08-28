@@ -68,7 +68,7 @@ test("anonymous deployment executes as owner and routes protected work through P
     "getTemuanInspeksi",
     "syncTemuanInspeksi",
   ]) {
-    assert.match(code, new RegExp("a==='" + action + "'"));
+    assert.match(code, new RegExp('a === "' + action + '"'));
   }
 });
 
@@ -83,14 +83,14 @@ test("authorization and ownership guards remain present", () => {
 test("master-data response explicitly strips password", () => {
   assert.match(
     code,
-    /n===CONFIG\.USERS_SHEET&&normalize_\(k\)==='password'\)continue/,
+    /n === CONFIG\.USERS_SHEET && normalize_\(k\) === "password"\) continue/,
   );
 });
 
 test("plaintext password rows are never written into shared cache", () => {
   assert.doesNotMatch(code, /CacheService[\s\S]{0,500}JSON\.stringify\(r\)/);
   assert.doesNotMatch(code, /users_v2/);
-  assert.match(code, /r\[USER_COL\.password\]=''/);
+  assert.match(code, /r\[USER_COL\.password\] = ""/);
 });
 
 test("password signatures use a server-side pepper without changing GSheet values", () => {
@@ -106,10 +106,10 @@ test("password signatures use a server-side pepper without changing GSheet value
 });
 
 test("payload and image limits remain enforced", () => {
-  assert.match(code, /MAX_IMAGE_BYTES:5\*1024\*1024/);
-  assert.match(code, /rows\.length>100/);
-  assert.match(code, /e\.postData\.contents\.length>15\*1024\*1024/);
-  assert.match(code, /bytes\.length>CONFIG\.MAX_IMAGE_BYTES/);
+  assert.match(code, /MAX_IMAGE_BYTES: 5 \* 1024 \* 1024/);
+  assert.match(code, /rows\.length > 100/);
+  assert.match(code, /e\.postData\.contents\.length > 15 \* 1024 \* 1024/);
+  assert.match(code, /bytes\.length > CONFIG\.MAX_IMAGE_BYTES/);
 });
 
 test("pure validators reject traversal, negative numbers, and oversized bodies", () => {

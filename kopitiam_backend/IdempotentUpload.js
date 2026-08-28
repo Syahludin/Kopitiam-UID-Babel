@@ -96,6 +96,14 @@ function syncTemuanInspeksiIdempotent_(token, incoming) {
   if (!incoming || typeof incoming !== "object")
     return fail_("FINDING_REQUIRED", "Data temuan kosong.");
 
+  var master = validateFindingMaster_(
+    safeText_(incoming["Jenis Object"], 40),
+    safeText_(incoming["Tier"], 20),
+    safeText_(incoming["Temuan"], 200),
+    safeText_(incoming["Prioritas"], 20),
+  );
+  if (!master.success) return master;
+
   var kodeWo = safeText_(incoming["Kode WO"], 100);
   var code = safeText_(incoming["Kode Temuan"], 120);
   if (
@@ -225,7 +233,7 @@ function syncTemuanInspeksiIdempotent_(token, incoming) {
     var output = headers.map(function (header) {
       return row[header] === undefined || row[header] === null
         ? ""
-        : row[header];
+        : safeCell_(row[header]);
     });
     if (target) {
       output[0] = values[target - 1][0];

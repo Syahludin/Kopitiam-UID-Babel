@@ -1,4 +1,7 @@
 var ACTION_LIMITS_ = {
+  loginPerangkat: { limit: 70, seconds: 300 },
+  login: { limit: 70, seconds: 300 },
+  logoutPerangkat: { limit: 20, seconds: 60 },
   cekPerangkat: { limit: 20, seconds: 60 },
   getMasterData: { limit: 10, seconds: 60 },
   getWoInsjar: { limit: 20, seconds: 60 },

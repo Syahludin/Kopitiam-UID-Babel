@@ -16,6 +16,81 @@ var CONFIG = {
     "Jenis Pohon",
   ],
 };
+function runtimeIdentity_(body) {
+  body = body || {};
+  return body.deviceToken || body.token || body.username || "anonymous";
+}
+function revokeBoundSession_(sessionToken, deviceToken) {
+  var cache = CacheService.getScriptCache();
+  if (sessionToken) cache.remove("session_" + String(sessionToken).trim());
+  if (deviceToken) {
+    PropertiesService.getScriptProperties().deleteProperty(
+      "device_" + String(deviceToken).trim(),
+    );
+  }
+}
+function verifySessionDeviceBinding_(sessionToken, session) {
+  if (!session || typeof session !== "object") {
+    revokeBoundSession_(sessionToken, "");
+    return fail_("SESSION_BINDING_INVALID", "Sesi tidak terikat ke perangkat.");
+  }
+  var deviceToken = String(session.deviceToken || "").trim();
+  if (!/^[a-f0-9]{64}$/i.test(deviceToken)) {
+    revokeBoundSession_(sessionToken, "");
+    return fail_("SESSION_BINDING_INVALID", "Sesi tidak terikat ke perangkat.");
+  }
+  var props = PropertiesService.getScriptProperties();
+  var raw = props.getProperty("device_" + deviceToken);
+  if (!raw) {
+    revokeBoundSession_(sessionToken, "");
+    return fail_("DEVICE_UNKNOWN", "Perangkat sesi tidak dikenali.");
+  }
+  var record;
+  try {
+    record = JSON.parse(raw);
+  } catch (_) {
+    revokeBoundSession_(sessionToken, deviceToken);
+    return fail_("DEVICE_CORRUPT", "Data perangkat sesi rusak.");
+  }
+  var expiry = validateDeviceRecord_(record, Date.now());
+  if (expiry) {
+    revokeBoundSession_(sessionToken, deviceToken);
+    return fail_(expiry, "Sesi perangkat sudah berakhir.");
+  }
+  if (normalize_(record.username) !== normalize_(session.username)) {
+    revokeBoundSession_(sessionToken, deviceToken);
+    return fail_(
+      "SESSION_DEVICE_MISMATCH",
+      "Sesi tidak cocok dengan perangkat.",
+    );
+  }
+  var userRow = findUser_(session.username);
+  if (!userRow) {
+    revokeBoundSession_(sessionToken, deviceToken);
+    return fail_("ACCOUNT_INACTIVE", "Akun tidak aktif atau tidak ditemukan.");
+  }
+  var currentSignature = passwordSignature_(
+    String(userRow[USER_COL.password] || ""),
+  );
+  if (
+    !constantTimeEqual_(
+      currentSignature,
+      String(record.passwordSignature || ""),
+    )
+  ) {
+    revokeBoundSession_(sessionToken, deviceToken);
+    return fail_(
+      "DEVICE_REVOKED",
+      "Kredensial akun berubah. Silakan login ulang.",
+    );
+  }
+  var account = accountStatus_(session.username);
+  if (!account.exists || !account.active) {
+    revokeBoundSession_(sessionToken, deviceToken);
+    return fail_("ACCOUNT_INACTIVE", "Akun tidak aktif atau tidak ditemukan.");
+  }
+  return { success: true, deviceToken: deviceToken };
+}
 var USER_COL = {
   no: 0,
   kodeUiw: 1,
@@ -53,6 +128,8 @@ function doPost(e) {
   try {
     var b = parseBody_(e),
       a = String(b.action || "").trim();
+    var quota = consumeActionQuota_(a, runtimeIdentity_(b));
+    if (!quota.success) return json_(quota);
     if (a === "login" || a === "loginPerangkat")
       return json_(loginPerangkat_(b.username, b.password, b.perangkat));
     if (a === "cekPerangkat") return json_(cekPerangkat_(b.deviceToken));
@@ -110,6 +187,7 @@ function loginPerangkat_(u, p, d) {
       Utilities.getUuid().replace(/-/g, "") +
       Utilities.getUuid().replace(/-/g, ""),
     now = Date.now();
+  evictOldestDeviceIfNeeded_(normalize_(r[USER_COL.username]));
   PropertiesService.getScriptProperties().setProperty(
     "device_" + dt,
     JSON.stringify({
@@ -130,14 +208,34 @@ function cekPerangkat_(t) {
   if (!/^[a-f0-9]{64}$/i.test(t))
     return fail_("DEVICE_INVALID", "Sesi perangkat tidak valid.");
   var p = PropertiesService.getScriptProperties(),
-    raw = p.getProperty("device_" + t);
+    key = "device_" + t,
+    raw = p.getProperty(key);
   if (!raw)
     return fail_(
       "DEVICE_UNKNOWN",
       "Sesi perangkat tidak dikenali. Silakan login ulang.",
     );
-  var rec = JSON.parse(raw),
-    r = findUser_(rec.username),
+  var rec;
+  try {
+    rec = JSON.parse(raw);
+  } catch (_) {
+    p.deleteProperty(key);
+    return fail_(
+      "DEVICE_CORRUPT",
+      "Sesi perangkat rusak. Silakan login ulang.",
+    );
+  }
+  var expiry = validateDeviceRecord_(rec, Date.now());
+  if (expiry) {
+    p.deleteProperty(key);
+    return fail_(expiry, "Sesi perangkat sudah berakhir. Silakan login ulang.");
+  }
+  var account = accountStatus_(rec.username);
+  if (!account.exists || !account.active) {
+    p.deleteProperty(key);
+    return fail_("ACCOUNT_INACTIVE", "Akun tidak aktif atau tidak ditemukan.");
+  }
+  var r = findUser_(rec.username),
     expected = passwordSignature_(
       r ? String(r[USER_COL.password] || "") : "__invalid_password__",
     );
@@ -145,12 +243,12 @@ function cekPerangkat_(t) {
     !r ||
     !constantTimeEqual_(expected, String(rec.passwordSignature || ""))
   ) {
-    p.deleteProperty("device_" + t);
+    p.deleteProperty(key);
     return fail_("DEVICE_REVOKED", "Akun berubah. Silakan login ulang.");
   }
   r[USER_COL.password] = "";
   rec.lastUsedAt = Date.now();
-  p.setProperty("device_" + t, JSON.stringify(rec));
+  p.setProperty(key, JSON.stringify(rec));
   var s = issueSession_(r, t);
   s.success = true;
   s.deviceToken = t;
@@ -183,8 +281,11 @@ function cekSesi_(t) {
     raw = c.get("session_" + t);
   if (!raw)
     return fail_("SESSION_EXPIRED", "Sesi tidak valid atau sudah berakhir.");
+  var sesi = JSON.parse(raw);
+  var binding = verifySessionDeviceBinding_(t, sesi);
+  if (!binding.success) return binding;
   c.put("session_" + t, raw, CONFIG.SESSION_TTL_SEC);
-  return { success: true, sesi: JSON.parse(raw) };
+  return { success: true, sesi: sesi };
 }
 function logout_(t) {
   if (t) CacheService.getScriptCache().remove("session_" + String(t));
@@ -334,7 +435,7 @@ function syncWoInsjar_(t, rows) {
       for (var c = 0; c < x.headers.length; c++) {
         var n = normalize_(x.headers[c]);
         if (WO_MUTABLE_HEADERS.indexOf(n) >= 0 && d[x.headers[c]] !== undefined)
-          out[c] = d[x.headers[c]];
+          out[c] = safeCell_(d[x.headers[c]]);
       }
       var st = normalize_(out[x.index["status wo"]]);
       if (["mulai pengerjaan", "dalam pengerjaan", "selesai"].indexOf(st) < 0)
@@ -510,7 +611,7 @@ function syncTemuanInspeksi_(t, incoming) {
       break;
     }
   var out = heads.map(function (h) {
-    return row[h] === undefined || row[h] === null ? "" : row[h];
+    return row[h] === undefined || row[h] === null ? "" : safeCell_(row[h]);
   });
   if (target) {
     out[0] = vals[target - 1][0];
@@ -658,6 +759,11 @@ function safeText_(v, n) {
     .trim()
     .substring(0, n);
 }
+function safeCell_(v) {
+  var s = String(v == null ? "" : v);
+  if (/^[=+\-@\t\r]/.test(s)) return "'" + s;
+  return s;
+}
 function safePath_(v) {
   var s = String(v || "")
     .trim()
@@ -718,4 +824,24 @@ function json_(p) {
   return ContentService.createTextOutput(JSON.stringify(p)).setMimeType(
     ContentService.MimeType.JSON,
   );
+}
+function evictOldestDeviceIfNeeded_(username) {
+  var MAX_DEVICE_PER_USER = 3;
+  var props = PropertiesService.getScriptProperties();
+  var all = props.getProperties();
+  var devices = [];
+  for (var key in all) {
+    if (key.indexOf("device_") !== 0) continue;
+    try {
+      var rec = JSON.parse(all[key]);
+      if (normalize_(rec.username) === username)
+        devices.push({ key: key, lastUsedAt: Number(rec.lastUsedAt || 0) });
+    } catch (_) {}
+  }
+  if (devices.length < MAX_DEVICE_PER_USER) return;
+  devices.sort(function (a, b) {
+    return a.lastUsedAt - b.lastUsedAt;
+  });
+  for (var i = 0; i <= devices.length - MAX_DEVICE_PER_USER; i++)
+    props.deleteProperty(devices[i].key);
 }

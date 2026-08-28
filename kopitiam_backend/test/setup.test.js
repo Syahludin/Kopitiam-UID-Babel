@@ -51,7 +51,7 @@ test("setup matches the active backend schema and avoids legacy session APIs", (
   assert.match(source, /CONFIG\.SPREADSHEET_ID/);
   assert.match(source, /CONFIG\.WO_SPREADSHEET_ID/);
   assert.match(source, /CONFIG\.TEMUAN_SPREADSHEET_ID/);
-  assert.match(source, /'Kode UIW'[\s\S]*'Akses Menu'/);
+  assert.match(source, /"Kode UIW"[\s\S]*"Akses Menu"/);
   assert.doesNotMatch(source, /CONFIG\.SESSIONS_SHEET/);
   assert.doesNotMatch(source, /hashPassword_|getSheet_/);
 });

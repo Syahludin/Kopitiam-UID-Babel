@@ -134,8 +134,8 @@ test("rollback trashes only files created by the failed request", () => {
 });
 
 test("production router uses the idempotent transaction", () => {
-  assert.match(production, /syncTemuanInspeksiIdempotent_\(b\.token,b\.row\)/);
-  assert.doesNotMatch(production, /syncTemuanInspeksi_\(b\.token,b\.row\)/);
+  assert.match(production, /syncTemuanInspeksiIdempotent_\(b\.token, b\.row\)/);
+  assert.doesNotMatch(production, /syncTemuanInspeksi_\(b\.token, b\.row\)/);
 });
 
 test("idempotent transaction validates before Drive and protects commit", () => {
