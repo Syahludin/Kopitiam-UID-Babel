@@ -1,0 +1,13 @@
+{
+  "name": "simandist-backend",
+  "version": "2.5.1",
+  "private": true,
+  "description": "CI harness for the SiManDist Google Apps Script backend",
+  "scripts": {
+    "check": "node --check Code.js && node --check Setup.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
