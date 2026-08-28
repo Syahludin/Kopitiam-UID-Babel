@@ -1,60 +1,137 @@
+var DEVICE_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+var DEVICE_TOKEN_IDLE_MS = 1 * 24 * 60 * 60 * 1000;
+var DEVICE_CLEANUP_HANDLER = 'bersihkanTokenPerangkatKedaluwarsa';
+
+/**
+ * Menyiapkan dan memvalidasi backend tanpa mengubah data pengguna yang ada.
+ * Jalankan sekali dari editor Apps Script setelah deployment baru.
+ */
 function setupBackend() {
   var props = PropertiesService.getScriptProperties();
-  var spreadsheetId = props.getProperty('SPREADSHEET_ID');
-  if (!spreadsheetId) throw new Error('Isi SPREADSHEET_ID di Script Properties terlebih dahulu.');
   if (!props.getProperty('PASSWORD_PEPPER')) {
-    props.setProperty('PASSWORD_PEPPER', Utilities.getUuid() + Utilities.getUuid());
+    props.setProperty(
+      'PASSWORD_PEPPER',
+      Utilities.getUuid() + Utilities.getUuid() + Utilities.getUuid()
+    );
   }
 
-  var ss = SpreadsheetApp.openById(spreadsheetId);
-  ensureSheet_(ss, CONFIG.USERS_SHEET, [
-    'id', 'email', 'username', 'passwordHash', 'salt', 'role', 'unit', 'bidang', 'status', 'createdAt', 'updatedAt'
+  var master = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  var wo = SpreadsheetApp.openById(CONFIG.WO_SPREADSHEET_ID);
+  var temuan = SpreadsheetApp.openById(CONFIG.TEMUAN_SPREADSHEET_ID);
+
+  ensureSheet_(master, CONFIG.USERS_SHEET, [
+    'No', 'Kode UIW', 'Kode UP3', 'Kode ULP', 'ULP', 'Username',
+    'Password', 'Role', 'Bidang', 'Tim', 'Sub-Tim', 'Akses Menu'
   ]);
-  ensureSheet_(ss, CONFIG.SESSIONS_SHEET, [
-    'id', 'tokenHash', 'userId', 'username', 'createdAt', 'expiresAt', 'status'
+  requireSheet_(wo, CONFIG.WO_INSJAR_SHEET, [
+    'Kode WO', 'Kode ULP', 'Status WO'
   ]);
-  return 'Backend SiManDist siap.';
+  requireSheet_(temuan, CONFIG.TEMUAN_SHEET, [
+    'Kode WO', 'Kode Temuan', 'Kode ULP', 'Jenis Object', 'Tier', 'Temuan',
+    'Koordinat Temuan', 'Foto Temuan', 'Link Foto',
+    'Foto Lingkungan Sekitaran Tiang', 'Link Foto Sekitaran Tiang'
+  ]);
+
+  pasangTriggerPembersihanToken_();
+  var cleanup = bersihkanTokenPerangkatKedaluwarsa();
+  return {
+    success: true,
+    service: 'SiManDist API',
+    version: '2.5.3',
+    deviceTokenMaxDays: 7,
+    deviceTokenIdleDays: 1,
+    expiredTokensRemoved: cleanup.dihapus
+  };
 }
 
-function buatUserPertama(username, password, email) {
-  username = String(username || '').trim();
-  password = String(password || '');
-  if (!username || password.length < 8) throw new Error('Username wajib diisi dan password minimal 8 karakter.');
+/**
+ * Menghapus token perangkat yang berumur lebih dari 7 hari, tidak dipakai
+ * selama 1 hari, rusak, atau memiliki waktu yang tidak masuk akal.
+ * Dipanggil otomatis setiap jam oleh trigger yang dibuat setupBackend().
+ */
+function bersihkanTokenPerangkatKedaluwarsa() {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var all = props.getProperties();
+    var now = Date.now();
+    var removed = 0;
+    var active = 0;
 
-  var sheet = getSheet_(CONFIG.USERS_SHEET);
-  var values = sheet.getDataRange().getValues();
-  for (var i = 1; i < values.length; i++) {
-    if (String(values[i][2] || '').toLowerCase() === username.toLowerCase()) {
-      throw new Error('Username sudah tersedia.');
-    }
+    Object.keys(all).forEach(function(key) {
+      if (key.indexOf('device_') !== 0) return;
+      var remove = false;
+      try {
+        var record = JSON.parse(all[key]);
+        var createdAt = Number(record.createdAt || 0);
+        var lastUsedAt = Number(record.lastUsedAt || createdAt || 0);
+        remove = !createdAt ||
+          !lastUsedAt ||
+          createdAt > now ||
+          lastUsedAt > now ||
+          now - createdAt >= DEVICE_TOKEN_MAX_AGE_MS ||
+          now - lastUsedAt >= DEVICE_TOKEN_IDLE_MS;
+      } catch (_) {
+        remove = true;
+      }
+      if (remove) {
+        props.deleteProperty(key);
+        removed++;
+      } else {
+        active++;
+      }
+    });
+
+    return {success: true, dihapus: removed, aktif: active};
+  } finally {
+    lock.releaseLock();
   }
-
-  var salt = Utilities.getUuid();
-  var now = new Date();
-  sheet.appendRow([
-    Utilities.getUuid(), String(email || '').trim(), username,
-    hashPassword_(password, salt), salt, 'Admin', 'PLN UID Babel',
-    'Distribusi', 'AKTIF', now, now
-  ]);
-  return 'User ' + username + ' berhasil dibuat.';
 }
 
-function bersihkanSesiKedaluwarsa() {
-  var sheet = getSheet_(CONFIG.SESSIONS_SHEET);
-  var values = sheet.getDataRange().getValues();
-  var now = new Date();
-  for (var i = values.length - 1; i >= 1; i--) {
-    var expiresAt = values[i][5] instanceof Date ? values[i][5] : new Date(values[i][5]);
-    if (String(values[i][6] || '') !== 'AKTIF' || (expiresAt && expiresAt <= now)) sheet.deleteRow(i + 1);
+function pasangTriggerPembersihanToken_() {
+  var exists = ScriptApp.getProjectTriggers().some(function(trigger) {
+    return trigger.getHandlerFunction() === DEVICE_CLEANUP_HANDLER;
+  });
+  if (!exists) {
+    ScriptApp.newTrigger(DEVICE_CLEANUP_HANDLER)
+      .timeBased()
+      .everyHours(1)
+      .create();
   }
 }
 
-function ensureSheet_(ss, name, headers) {
-  var sheet = ss.getSheetByName(name) || ss.insertSheet(name);
+function requireSheet_(spreadsheet, name, requiredHeaders) {
+  var sheet = spreadsheet.getSheetByName(name);
+  if (!sheet) throw new Error('Sheet wajib tidak ditemukan: ' + name);
+  validateHeaders_(sheet, requiredHeaders);
+  return sheet;
+}
+
+function ensureSheet_(spreadsheet, name, headers) {
+  var sheet = spreadsheet.getSheetByName(name) || spreadsheet.insertSheet(name);
   if (sheet.getLastRow() === 0) {
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     sheet.setFrozenRows(1);
     sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+  } else {
+    validateHeaders_(sheet, headers);
   }
   return sheet;
+}
+
+function validateHeaders_(sheet, requiredHeaders) {
+  var lastColumn = sheet.getLastColumn();
+  if (lastColumn < 1) throw new Error('Header sheet kosong: ' + sheet.getName());
+  var current = sheet.getRange(1, 1, 1, lastColumn)
+    .getDisplayValues()[0]
+    .map(function(value) { return String(value || '').trim().toLowerCase(); });
+  var missing = requiredHeaders.filter(function(header) {
+    return current.indexOf(String(header).trim().toLowerCase()) < 0;
+  });
+  if (missing.length) {
+    throw new Error(
+      'Header sheet ' + sheet.getName() + ' tidak lengkap: ' + missing.join(', ')
+    );
+  }
 }
