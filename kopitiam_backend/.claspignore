@@ -3,3 +3,4 @@ local_schema/**
 package.json
 package-lock.json
 README.md
+.clasp.json

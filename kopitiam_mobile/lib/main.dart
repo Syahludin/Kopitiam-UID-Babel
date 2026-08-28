@@ -138,8 +138,7 @@ class _SessionGuardState extends State<_SessionGuard>
       MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
       (_) => false,
     );
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    messenger?.showSnackBar(
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
       const SnackBar(
         content: Text(
           'Login offline berakhir setelah 24 jam. Silakan login online.',
@@ -150,8 +149,23 @@ class _SessionGuardState extends State<_SessionGuard>
 
   Future<void> _selectBottomMenu(PointerUpEvent event) async {
     if (_mockLocationBlocked) return;
+
+    // Detail WO/Temuan adalah route turunan. Card sesi tidak boleh menempel
+    // pada route tersebut walaupun sebelumnya menu Pengaturan sedang aktif.
+    if (appNavigatorKey.currentState?.canPop() ?? false) {
+      if (_settingsSelected && mounted) {
+        setState(() {
+          _settingsSelected = false;
+          _session = const {};
+        });
+      }
+      return;
+    }
+
     final size = MediaQuery.sizeOf(context);
-    if (event.position.dy < size.height - 110) return;
+    // Area navigasi mencakup safe area perangkat, jadi beri toleransi lebih
+    // besar agar perpindahan ke Work Order/Beranda selalu menutup card.
+    if (event.position.dy < size.height - 170) return;
     final index = (event.position.dx / (size.width / 3)).floor().clamp(0, 2);
     if (index != 2) {
       if (_settingsSelected && mounted) {
@@ -162,6 +176,7 @@ class _SessionGuardState extends State<_SessionGuard>
       }
       return;
     }
+
     final prefs = await SharedPreferences.getInstance();
     final session = <String, dynamic>{
       for (final key in _sessionKeys) key: prefs.getString(key) ?? '',
@@ -192,7 +207,9 @@ class _SessionGuardState extends State<_SessionGuard>
           absorbing: _mockLocationBlocked,
           child: widget.child,
         ),
-        if (_settingsSelected && !_mockLocationBlocked)
+        if (_settingsSelected &&
+            !_mockLocationBlocked &&
+            !(appNavigatorKey.currentState?.canPop() ?? false))
           Positioned(
             left: 18,
             right: 18,

@@ -35,6 +35,8 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
   bool _gettingAwal = false;
   bool _gettingAkhir = false;
   bool _saving = false;
+  double? _awalSearchAccuracy;
+  double? _akhirSearchAccuracy;
 
   WoInsjar? get _wo => widget.existing;
   bool get _readOnly =>
@@ -83,12 +85,28 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
   }
 
   Future<void> _getCoordinate(bool start) async {
-    if (_readOnly) return;
-    setState(() => start ? _gettingAwal = true : _gettingAkhir = true);
+    if (_readOnly || _saving) return;
+    setState(() {
+      if (start) {
+        _gettingAwal = true;
+        _awalSearchAccuracy = null;
+      } else {
+        _gettingAkhir = true;
+        _akhirSearchAccuracy = null;
+      }
+    });
+    var completed = false;
     try {
       final fix = await HighAccuracyLocationService.acquire(
-        onSample: (_, __) {
-          if (mounted) setState(() {});
+        onSample: (_, bestAccuracy) {
+          if (!mounted) return;
+          setState(() {
+            if (start) {
+              _awalSearchAccuracy = bestAccuracy;
+            } else {
+              _akhirSearchAccuracy = bestAccuracy;
+            }
+          });
         },
       );
       if (!mounted) return;
@@ -109,21 +127,32 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
               ) /
               1000;
           _status = WoInsjar.statusSelesai;
+          completed = true;
         } else if (_awal != null) {
           _status = WoInsjar.statusDalam;
         }
       });
+
+      // Koordinat akhir adalah aksi penyelesaian. Simpan langsung agar status,
+      // waktu, durasi, jarak, dan kedua koordinat tidak sempat hilang.
+      if (completed) await _save(allowCompleted: true);
     } catch (error) {
       if (mounted) _message('$error', error: true);
     } finally {
       if (mounted) {
-        setState(() => start ? _gettingAwal = false : _gettingAkhir = false);
+        setState(() {
+          if (start) {
+            _gettingAwal = false;
+          } else {
+            _gettingAkhir = false;
+          }
+        });
       }
     }
   }
 
-  Future<void> _save() async {
-    if (_readOnly || _wo == null) return;
+  Future<void> _save({bool allowCompleted = false}) async {
+    if ((_readOnly && !allowCompleted) || _wo == null || _saving) return;
     setState(() => _saving = true);
     try {
       await _repo.simpan(
@@ -140,6 +169,8 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
         ),
       );
       if (mounted) Navigator.pop(context, true);
+    } catch (error) {
+      if (mounted) _message('Gagal menyimpan WO: $error', error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -254,186 +285,269 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
   }
 
   Widget _header(WoInsjar wo) => Container(
-        width: double.infinity,
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: blue,
-          borderRadius: BorderRadius.circular(16),
+    width: double.infinity,
+    margin: const EdgeInsets.all(16),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: blue,
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Kode WO', style: TextStyle(color: Color(0xFFB8DCEF))),
+        const SizedBox(height: 4),
+        Text(
+          wo.kodeWo,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Kode WO', style: TextStyle(color: Color(0xFFB8DCEF))),
-            const SizedBox(height: 4),
-            Text(
-              wo.kodeWo,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '${wo.ulp} • ${wo.kodeUlp}',
-              style: const TextStyle(color: Color(0xFFD5E8F3)),
-            ),
-          ],
+        const SizedBox(height: 6),
+        Text(
+          '${wo.ulp} • ${wo.kodeUlp}',
+          style: const TextStyle(color: Color(0xFFD5E8F3)),
         ),
-      );
+      ],
+    ),
+  );
 
   Widget _workOrder(WoInsjar wo) => Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-              children: [
-                _identity(wo),
-                const SizedBox(height: 14),
-                _coordinateCard('Koordinat Awal', _awal, _gettingAwal, true),
-                const SizedBox(height: 14),
-                _coordinateCard('Koordinat Akhir', _akhir, _gettingAkhir, false),
-                const SizedBox(height: 14),
-                _summary(),
-              ],
-            ),
-          ),
-          if (!_readOnly)
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.all(14),
-              child: SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _saving ? null : _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: amber,
-                    foregroundColor: navy,
-                  ),
-                  child: Text(
-                    _saving ? 'Menyimpan...' : 'Simpan WO ke Server Lokal',
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      );
-
-  Widget _identity(WoInsjar wo) => Container(
-        padding: const EdgeInsets.all(14),
-        decoration: _box(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Expanded(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
           children: [
-            _label('Penyulang'),
-            _value(wo.penyulang),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label('Section Awal'), _value(wo.sectionAwal)])),
-                const SizedBox(width: 10),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label('Section Akhir'), _value(wo.sectionAkhir)])),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _label('Section'),
-            _value(wo.section),
+            _identity(wo),
+            const SizedBox(height: 14),
+            _coordinateCard('Koordinat Awal', _awal, _gettingAwal, true),
+            const SizedBox(height: 14),
+            _coordinateCard('Koordinat Akhir', _akhir, _gettingAkhir, false),
+            const SizedBox(height: 14),
+            _summary(),
           ],
         ),
-      );
+      ),
+      if (!_readOnly)
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.all(14),
+          child: SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: _saving ? null : _save,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: amber,
+                foregroundColor: navy,
+              ),
+              child: _saving
+                  ? const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.4,
+                            color: blue,
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          'Menyimpan...',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ],
+                    )
+                  : const Text(
+                      'Simpan WO ke Server Lokal',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+            ),
+          ),
+        ),
+    ],
+  );
+
+  Widget _identity(WoInsjar wo) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: _box(),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label('Penyulang'),
+        _value(wo.penyulang),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [_label('Section Awal'), _value(wo.sectionAwal)],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [_label('Section Akhir'), _value(wo.sectionAkhir)],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _label('Section'),
+        _value(wo.section),
+      ],
+    ),
+  );
 
   Widget _coordinateCard(
     String title,
     LocationFix? fix,
     bool loading,
     bool start,
-  ) =>
-      Container(
-        padding: const EdgeInsets.all(16),
-        decoration: _box(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800))),
-                if (_readOnly) const Icon(Icons.lock_rounded, size: 17, color: muted),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              fix?.coordinate ?? '-',
-              style: const TextStyle(color: blue, fontWeight: FontWeight.w700),
-            ),
-            if (!_readOnly) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: loading ? null : () => _getCoordinate(start),
-                  icon: const Icon(Icons.my_location_rounded),
-                  label: Text(loading ? 'Mencari akurasi...' : 'Ambil Koordinat Perangkat'),
-                ),
-              ),
-            ],
-          ],
-        ),
-      );
-
-  Widget _summary() => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: _box(),
-        child: Column(
-          children: [
-            _row('Realisasi kmS', '${_kms.toStringAsFixed(3)} km'),
-            const Divider(),
-            _row('Waktu Mulai', _mulai == null ? '-' : WoInsjar.stampLengkap(_mulai!)),
-            const Divider(),
-            _row('Waktu Selesai', _selesai == null ? '-' : WoInsjar.stampLengkap(_selesai!)),
-            const Divider(),
-            _row('Durasi Pekerjaan', _duration),
-            const Divider(),
-            _row('Status WO', _status),
-          ],
-        ),
-      );
-
-  BoxDecoration _box() => BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: line),
-      );
-
-  Widget _label(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Text(text, style: const TextStyle(color: muted, fontSize: 12, fontWeight: FontWeight.w700)),
-      );
-
-  Widget _value(String text) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(text.isEmpty ? '-' : text),
-      );
-
-  Widget _row(String label, String value) => Row(
+  ) {
+    final liveAccuracy = start ? _awalSearchAccuracy : _akhirSearchAccuracy;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _box(),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 112, child: Text(label, style: const TextStyle(color: muted, fontSize: 12))),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              if (_readOnly)
+                const Icon(Icons.lock_rounded, size: 17, color: muted),
+            ],
           ),
+          const SizedBox(height: 8),
+          Text(
+            fix?.coordinate ?? '-',
+            style: const TextStyle(color: blue, fontWeight: FontWeight.w700),
+          ),
+          if (loading || fix != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              loading
+                  ? liveAccuracy == null
+                      ? 'Menunggu sampel GPS...'
+                      : 'Akurasi terbaik: ${liveAccuracy.toStringAsFixed(1)} m'
+                  : 'Akurasi: ${fix!.accuracyLabel}',
+              style: TextStyle(
+                color: loading || !(fix?.locked ?? false)
+                    ? const Color(0xFFD97706)
+                    : const Color(0xFF047857),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+          if (!_readOnly) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: loading || _saving
+                    ? null
+                    : () => _getCoordinate(start),
+                icon: loading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2.3),
+                      )
+                    : const Icon(Icons.my_location_rounded),
+                label: Text(
+                  loading ? 'Mencari koordinat...' : 'Ambil Koordinat Perangkat',
+                ),
+              ),
+            ),
+          ],
         ],
-      );
+      ),
+    );
+  }
+
+  Widget _summary() => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: _box(),
+    child: Column(
+      children: [
+        _row('Realisasi kmS', '${_kms.toStringAsFixed(3)} km'),
+        const Divider(),
+        _row(
+          'Waktu Mulai',
+          _mulai == null ? '-' : WoInsjar.stampLengkap(_mulai!),
+        ),
+        const Divider(),
+        _row(
+          'Waktu Selesai',
+          _selesai == null ? '-' : WoInsjar.stampLengkap(_selesai!),
+        ),
+        const Divider(),
+        _row('Durasi Pekerjaan', _duration),
+        const Divider(),
+        _row('Status WO', _status),
+      ],
+    ),
+  );
+
+  BoxDecoration _box() => BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(color: line),
+  );
+
+  Widget _label(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Text(
+      text,
+      style: const TextStyle(
+        color: muted,
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
+
+  Widget _value(String text) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF8FAFC),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Text(text.isEmpty ? '-' : text),
+  );
+
+  Widget _row(String label, String value) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      SizedBox(
+        width: 112,
+        child: Text(
+          label,
+          style: const TextStyle(color: muted, fontSize: 12),
+        ),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(
+          value,
+          textAlign: TextAlign.right,
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+        ),
+      ),
+    ],
+  );
 }
