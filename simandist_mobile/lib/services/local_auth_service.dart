@@ -4,15 +4,15 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Penyimpanan kredensial lokal untuk mode offline.
-/// Password asli tidak pernah disimpan. Hanya hash + salt lokal yang disimpan
-/// di Android Keystore / iOS Keychain melalui flutter_secure_storage.
+/// Kredensial offline hanya berlaku 24 jam sejak login online terakhir.
 class LocalAuthService {
   static const _storage = FlutterSecureStorage();
   static const _usernameKey = 'local_auth_username';
   static const _hashKey = 'local_auth_password_hash';
   static const _saltKey = 'local_auth_password_salt';
   static const _sessionKey = 'local_auth_session_json';
+  static const _verifiedAtKey = 'local_auth_verified_at';
+  static const offlineValidity = Duration(days: 1);
 
   static Future<void> saveAfterOnlineLogin({
     required String username,
@@ -21,10 +21,15 @@ class LocalAuthService {
   }) async {
     final salt = _randomSalt();
     final hash = _hash(password, salt);
+    final verifiedAt = DateTime.now().toUtc();
     await _storage.write(key: _usernameKey, value: username.trim().toLowerCase());
     await _storage.write(key: _hashKey, value: hash);
     await _storage.write(key: _saltKey, value: salt);
     await _storage.write(key: _sessionKey, value: jsonEncode(profile));
+    await _storage.write(
+      key: _verifiedAtKey,
+      value: verifiedAt.toIso8601String(),
+    );
   }
 
   static Future<Map<String, dynamic>?> verifyOffline({
@@ -35,18 +40,52 @@ class LocalAuthService {
     final savedHash = await _storage.read(key: _hashKey);
     final salt = await _storage.read(key: _saltKey);
     final sessionRaw = await _storage.read(key: _sessionKey);
-    if (savedUsername == null || savedHash == null || salt == null || sessionRaw == null) return null;
+    final verifiedAtRaw = await _storage.read(key: _verifiedAtKey);
+    final verifiedAt = DateTime.tryParse(verifiedAtRaw ?? '')?.toUtc();
+    final now = DateTime.now().toUtc();
+
+    if (savedUsername == null ||
+        savedHash == null ||
+        salt == null ||
+        sessionRaw == null ||
+        verifiedAt == null ||
+        now.difference(verifiedAt) >= offlineValidity ||
+        now.isBefore(verifiedAt)) {
+      await clear();
+      return null;
+    }
     if (savedUsername != username.trim().toLowerCase()) return null;
     if (_hash(password, salt) != savedHash) return null;
     try {
-      final session = jsonDecode(sessionRaw);
-      if (session is Map) return Map<String, dynamic>.from(session);
+      final decoded = jsonDecode(sessionRaw);
+      if (decoded is Map) {
+        final session = Map<String, dynamic>.from(decoded);
+        session['offlineLogin'] = true;
+        session['offlineExpiresAt'] = verifiedAt
+            .add(offlineValidity)
+            .toIso8601String();
+        return session;
+      }
     } catch (_) {}
     return null;
   }
 
+  static bool offlineSessionExpired(Map<String, dynamic> session) {
+    if (session['offlineLogin'] != true) return false;
+    final expiresAt = DateTime.tryParse(
+      (session['offlineExpiresAt'] ?? '').toString(),
+    )?.toUtc();
+    return expiresAt == null || !DateTime.now().toUtc().isBefore(expiresAt);
+  }
+
   static Future<void> clear() async {
-    for (final key in [_usernameKey, _hashKey, _saltKey, _sessionKey]) {
+    for (final key in [
+      _usernameKey,
+      _hashKey,
+      _saltKey,
+      _sessionKey,
+      _verifiedAtKey,
+    ]) {
       await _storage.delete(key: key);
     }
   }
