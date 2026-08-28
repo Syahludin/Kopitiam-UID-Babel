@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/settings_session_section.dart';
+import 'screens/startup_screen.dart';
 import 'services/api_service.dart';
 import 'services/device_session_service.dart';
 import 'services/local_auth_service.dart';
@@ -29,7 +30,7 @@ class SiManDistApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF004D8C)),
       ),
-      home: const LoginScreen(),
+      home: const StartupScreen(),
       builder: (context, child) => _SessionGuard(child: child!),
     );
   }
@@ -149,9 +150,6 @@ class _SessionGuardState extends State<_SessionGuard>
 
   Future<void> _selectBottomMenu(PointerUpEvent event) async {
     if (_mockLocationBlocked) return;
-
-    // Detail WO/Temuan adalah route turunan. Card sesi tidak boleh menempel
-    // pada route tersebut walaupun sebelumnya menu Pengaturan sedang aktif.
     if (appNavigatorKey.currentState?.canPop() ?? false) {
       if (_settingsSelected && mounted) {
         setState(() {
@@ -163,8 +161,6 @@ class _SessionGuardState extends State<_SessionGuard>
     }
 
     final size = MediaQuery.sizeOf(context);
-    // Area navigasi mencakup safe area perangkat, jadi beri toleransi lebih
-    // besar agar perpindahan ke Work Order/Beranda selalu menutup card.
     if (event.position.dy < size.height - 170) return;
     final index = (event.position.dx / (size.width / 3)).floor().clamp(0, 2);
     if (index != 2) {
