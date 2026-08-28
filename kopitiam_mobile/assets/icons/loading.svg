@@ -1,1 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFF066"/><stop offset="1" stop-color="#FFB800"/></linearGradient></defs><circle cx="60" cy="60" r="50" fill="none" stroke="#0A355C" stroke-width="6"/><path d="M22 28A50 50 0 0 1 110 60" fill="none" stroke="#00E5FF" stroke-width="6" stroke-linecap="round"/><polygon points="65,35 50,62 58,62 53,85 70,55 62,55" fill="url(#b)" stroke="#D97706"/></svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-labelledby="judul">
+  <title id="judul">Memuat</title>
+  <defs>
+    <linearGradient id="emas" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#FFE770"/>
+      <stop offset="0.45" stop-color="#FDC730"/>
+      <stop offset="1" stop-color="#EC9F0D"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Jalur cincin, tetap terlihat sebagai penanda progres. -->
+  <circle cx="60" cy="60" r="45" fill="none" stroke="#DCE9F1" stroke-width="9"/>
+
+  <!-- Busur berputar dengan laju tetap, satu detik per putaran. -->
+  <g>
+    <animateTransform attributeName="transform" type="rotate"
+                      from="0 60 60" to="360 60 60"
+                      dur="1s" repeatCount="indefinite"/>
+    <path d="M60 15a45 45 0 0 1 42 29" fill="none" stroke="#0D5C82"
+          stroke-width="9" stroke-linecap="round"/>
+  </g>
+
+  <!-- Petir mengikuti bentuk pada emblem utama KOPITIAM. -->
+  <path d="M69 26 44 63h13l-6 31 27-40H63z" fill="url(#emas)" stroke="#0A3B59"
+        stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <animate attributeName="opacity" values="1;.5;1" dur="1s" repeatCount="indefinite"/>
+  </path>
+</svg>
