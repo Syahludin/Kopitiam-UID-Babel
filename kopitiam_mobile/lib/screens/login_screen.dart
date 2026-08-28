@@ -50,12 +50,7 @@ class LoginScreen extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Image.asset(
-                      'assets/icons/logo_app.png',
-                      width: 148,
-                      height: 148,
-                      filterQuality: FilterQuality.high,
-                    ),
+                    const _AppLogo(size: 148),
                     const SizedBox(height: 18),
                     const Text(
                       'KOPITIAM',
@@ -162,6 +157,35 @@ class LoginScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Logo KOPITIAM dengan cadangan aman bila berkas gambar gagal dimuat.
+class _AppLogo extends StatelessWidget {
+  final double size;
+
+  const _AppLogo({required this.size});
+
+  @override
+  Widget build(BuildContext context) => Image.asset(
+    'assets/icons/logo_app.png',
+    width: size,
+    height: size,
+    filterQuality: FilterQuality.high,
+    errorBuilder: (context, error, stackTrace) => Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        color: AppColors.navy700,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.bolt_rounded,
+        size: size * .5,
+        color: AppColors.amber600,
+      ),
+    ),
+  );
 }
 
 class _PlnBadge extends StatelessWidget {
