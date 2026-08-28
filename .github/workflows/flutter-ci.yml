@@ -3,9 +3,9 @@ name: Flutter CI
 on:
   push:
     branches: [main]
-    paths: ['simandist_mobile/**', '.github/workflows/flutter-ci.yml']
+    paths: ['kopitiam_mobile/**', '.github/workflows/flutter-ci.yml']
   pull_request:
-    paths: ['simandist_mobile/**', '.github/workflows/flutter-ci.yml']
+    paths: ['kopitiam_mobile/**', '.github/workflows/flutter-ci.yml']
 
 permissions:
   contents: read
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: simandist_mobile
+        working-directory: kopitiam_mobile
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2

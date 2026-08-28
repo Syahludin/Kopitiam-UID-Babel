@@ -4,11 +4,11 @@ on:
   push:
     branches: [main]
     paths:
-      - 'simandist_backend/**'
+      - 'kopitiam_backend/**'
       - '.github/workflows/backend-ci.yml'
   pull_request:
     paths:
-      - 'simandist_backend/**'
+      - 'kopitiam_backend/**'
       - '.github/workflows/backend-ci.yml'
 
 permissions:
@@ -20,14 +20,14 @@ jobs:
     timeout-minutes: 10
     defaults:
       run:
-        working-directory: simandist_backend
+        working-directory: kopitiam_backend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: simandist_backend/package-lock.json
+          cache-dependency-path: kopitiam_backend/package-lock.json
       - name: Install locked dependencies
         run: npm ci
       - name: JavaScript syntax
