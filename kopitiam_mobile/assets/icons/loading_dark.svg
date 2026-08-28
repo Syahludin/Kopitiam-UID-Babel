@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-labelledby="judul">
+  <title id="judul">Memuat</title>
+  <defs>
+    <linearGradient id="emas" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#FFE770"/>
+      <stop offset="0.45" stop-color="#FDC730"/>
+      <stop offset="1" stop-color="#EC9F0D"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="60" cy="60" r="45" fill="none" stroke="#164C6C" stroke-width="9"/>
+
+  <g>
+    <animateTransform attributeName="transform" type="rotate"
+                      from="0 60 60" to="360 60 60"
+                      dur="1s" repeatCount="indefinite"/>
+    <path d="M60 15a45 45 0 0 1 42 29" fill="none" stroke="#5CC0E6"
+          stroke-width="9" stroke-linecap="round"/>
+  </g>
+
+  <path d="M69 26 44 63h13l-6 31 27-40H63z" fill="url(#emas)" stroke="#072D43"
+        stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <animate attributeName="opacity" values="1;.5;1" dur="1s" repeatCount="indefinite"/>
+  </path>
+</svg>
