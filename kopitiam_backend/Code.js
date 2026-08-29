@@ -4,6 +4,7 @@ var CONFIG = {
   TEMUAN_SPREADSHEET_ID: "1qFBQq3hMTA98ZV6UWg-Pj5sz-J41pm0r13TLYP2LF0I",
   USERS_SHEET: "User_App_Mobile",
   WO_INSJAR_SHEET: "WO_Ins_Jar",
+  WO_ROW_SHEET: "WO_ROW",
   TEMUAN_SHEET: "Inp_Temuan",
   SESSION_TTL_SEC: 900,
   MAX_LOGIN_FAILURES: 5,
@@ -140,6 +141,8 @@ function doPost(e) {
     if (a === "getMasterData") return json_(getMasterData_(b.token));
     if (a === "getWoInsjar") return json_(getWoInsjar_(b.token));
     if (a === "syncWoInsjar") return json_(syncWoInsjar_(b.token, b.rows));
+    if (a === "getWoRow") return json_(getWoRow_(b.token));
+    if (a === "syncWoRow") return json_(syncWoRow_(b.token, b.rows));
     if (a === "getTemuanInspeksi")
       return json_(getTemuanInspeksi_(b.token, b.kodeWo));
     if (a === "syncTemuanInspeksi")
@@ -449,6 +452,198 @@ function syncWoInsjar_(t, rows) {
     l.releaseLock();
   }
 }
+function woRowAccess_(s) {
+  var sub = normalize_(s.subTim || s.tim);
+  if (sub.indexOf("row") < 0)
+    return fail_(
+      "ROW_ACCESS_DENIED",
+      "Data ROW hanya tersedia untuk Sub-Tim Eksekusi ROW.",
+    );
+  var k = normalizeCode_(s.kodeUlp);
+  return k
+    ? { success: true, kodeUlp: k, subTim: sub }
+    : fail_("ULP_MISSING", "Kode ULP akun belum terisi.");
+}
+
+function woRowSheet_() {
+  var s = SpreadsheetApp.openById(CONFIG.WO_SPREADSHEET_ID).getSheetByName(
+    CONFIG.WO_ROW_SHEET,
+  );
+  if (!s) throw new Error("WO_ROW sheet missing");
+  return s;
+}
+
+function woRowContext_(s, k, editable) {
+  var a = woRowAccess_(s);
+  if (!a.success) return a;
+  k = safeText_(k, 100);
+  if (!k) return fail_("WO_REQUIRED", "Kode WO wajib diisi.");
+  var sh = woRowSheet_(),
+    v = sh.getDataRange().getDisplayValues();
+  if (v.length < 2) return fail_("WO_NOT_FOUND", "WO tidak ditemukan.");
+  var h = v[0].map(function (x) {
+      return String(x).trim();
+    }),
+    ix = headerIndex_(h),
+    ki = ix["kode wo"],
+    ui = ix["kode ulp"],
+    si = ix["status wo"],
+    ti = ix["tim eksekusi"];
+  if (ki === undefined || ui === undefined || si === undefined)
+    throw new Error("WO_ROW headers invalid");
+  for (var r = 1; r < v.length; r++) {
+    if (String(v[r][ki] || "").trim() === k) {
+      if (normalizeCode_(v[r][ui]) !== a.kodeUlp)
+        return fail_("WO_OWNERSHIP_DENIED", "WO bukan milik ULP akun ini.");
+      if (ti !== undefined) {
+        var rowTim = normalize_(v[r][ti]);
+        if (rowTim && rowTim !== a.subTim)
+          return fail_("WO_TEAM_DENIED", "Tim eksekusi tidak sesuai.");
+      }
+      var st = normalize_(v[r][si]);
+      if (editable && st === "selesai")
+        return fail_("WO_LOCKED", "WO sudah selesai dan hanya dapat dilihat.");
+      return {
+        success: true,
+        sheet: sh,
+        headers: h,
+        index: ix,
+        row: v[r],
+        rowNumber: r + 1,
+        status: st,
+        kodeUlp: a.kodeUlp,
+      };
+    }
+  }
+  return fail_("WO_NOT_FOUND", "WO tidak ditemukan.");
+}
+
+function getWoRow_(t) {
+  var a = cekSesi_(t);
+  if (!a.success) return a;
+  var ac = woRowAccess_(a.sesi);
+  if (!ac.success) return ac;
+  var sh = woRowSheet_(),
+    v = sh.getDataRange().getDisplayValues();
+  if (v.length < 2) return { success: true, total: 0, rows: [] };
+  var h = v[0].map(function (x) {
+      return String(x).trim();
+    }),
+    ix = headerIndex_(h);
+  if (ix["kode wo"] === undefined || ix["kode ulp"] === undefined)
+    throw new Error("WO_ROW headers invalid");
+  var ti = ix["tim eksekusi"],
+    rows = [];
+  for (var r = 1; r < v.length; r++) {
+    if (!String(v[r][ix["kode wo"]] || "").trim()) continue;
+    if (normalizeCode_(v[r][ix["kode ulp"]]) !== ac.kodeUlp) continue;
+    if (ti !== undefined) {
+      var rowTim = normalize_(v[r][ti]);
+      if (rowTim && rowTim !== ac.subTim) continue;
+    }
+    rows.push(rowObject_(h, v[r]));
+  }
+  return {
+    success: true,
+    total: rows.length,
+    kodeUlpFilter: ac.kodeUlp,
+    timEksekusiFilter: ac.subTim,
+    rows: rows,
+  };
+}
+
+var WO_ROW_MUTABLE_HEADERS = [
+  "status wo",
+  "tindak lanjut",
+  "ukuran diamter batan (cm)",
+  "jenis tebangan",
+  "foto sesudah",
+  "link foto sesudah",
+  "waktu realisasi",
+  "user input",
+  "waktu input",
+];
+
+function jenisTebanganFromDiameter_(v) {
+  if (v === "" || v === null || v === undefined) return "";
+  var n = Number(String(v).replace(",", "."));
+  if (!isFinite(n) || n < 0) return "";
+  if (n === 0) return "Rabas / Pangkas";
+  return n <= 50 ? "Tebang Sedang" : "Tebang Besar";
+}
+
+function syncWoRow_(t, rows) {
+  var a = cekSesi_(t);
+  if (!a.success) return a;
+  if (!Array.isArray(rows) || rows.length > 100)
+    return fail_("BATCH_INVALID", "Maksimal 100 ROW per sinkronisasi.");
+  var l = LockService.getScriptLock();
+  l.waitLock(20000);
+  try {
+    var done = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var d = rows[i] || {},
+        x = woRowContext_(a.sesi, d["Kode WO"], true);
+      if (!x.success) return x;
+      var normPayload = {};
+      for (var key in d)
+        if (Object.prototype.hasOwnProperty.call(d, key))
+          normPayload[normalize_(key)] = d[key];
+      var diaValue = normPayload["ukuran diamter batan (cm)"];
+      if (diaValue === undefined)
+        diaValue = normPayload["ukuran diameter batang (cm)"];
+      if (diaValue === undefined) diaValue = normPayload["diameter batang (cm)"];
+      var tindak = normPayload["tindak lanjut"] || "";
+      var out = x.row.slice();
+      for (var c = 0; c < x.headers.length; c++) {
+        var n = normalize_(x.headers[c]);
+        if (WO_ROW_MUTABLE_HEADERS.indexOf(n) < 0) continue;
+        if (n === "jenis tebangan" && diaValue !== undefined && tindak !== "") {
+          var derived = jenisTebanganFromDiameter_(diaValue);
+          if (derived) out[c] = safeCell_(derived);
+          continue;
+        }
+        var value = normPayload[n];
+        if (value !== undefined) out[c] = value === null ? "" : safeCell_(value);
+      }
+      var fotoB64 = normPayload["foto sesudah base64"];
+      if (fotoB64) {
+        try {
+          var prepared = preparePhoto_(fotoB64, "Foto Sesudah");
+          var fp =
+            normPayload["folder path"] ||
+            (x.index["folder path"] !== undefined
+              ? x.row[x.index["folder path"]]
+              : "");
+          var folder = fp ? folderPath_(fp) : null;
+          if (folder) {
+            var stored = putPhotoIdempotent_(
+              folder,
+              String(x.row[x.index["kode wo"]] || ""),
+              prepared,
+            );
+            if (x.index["foto sesudah"] !== undefined)
+              out[x.index["foto sesudah"]] = stored.name;
+            if (x.index["link foto sesudah"] !== undefined)
+              out[x.index["link foto sesudah"]] = stored.url;
+          }
+        } catch (_) {
+          return fail_("PHOTO_INVALID", "File Foto Sesudah tidak valid.");
+        }
+      }
+      var st = normalize_(out[x.index["status wo"]]);
+      if (["penugasan tim", "progress pekerjaan", "selesai"].indexOf(st) < 0)
+        return fail_("STATUS_INVALID", "Status ROW tidak valid.");
+      x.sheet.getRange(x.rowNumber, 1, 1, x.headers.length).setValues([out]);
+      done++;
+    }
+    SpreadsheetApp.flush();
+    return { success: true, diproses: done, diperbarui: done, ditambahkan: 0 };
+  } finally {
+    l.releaseLock();
+  }
+}
+
 function temuanSheet_() {
   var s = SpreadsheetApp.openById(CONFIG.TEMUAN_SPREADSHEET_ID).getSheetByName(
     CONFIG.TEMUAN_SHEET,
@@ -610,14 +805,24 @@ function syncTemuanInspeksi_(t, incoming) {
       target = r + 1;
       break;
     }
+  var normalizedRow = {};
+  for (var key in row)
+    if (Object.prototype.hasOwnProperty.call(row, key))
+      normalizedRow[normalize_(key)] = row[key];
   var out = heads.map(function (h) {
-    return row[h] === undefined || row[h] === null ? "" : safeCell_(row[h]);
+    var value = normalizedRow[normalize_(h)];
+    return value === undefined || value === null ? "" : safeCell_(value);
   });
+  var firstHeader = normalize_(heads[0] || ""),
+    numberColumn =
+      firstHeader === "no" ||
+      firstHeader === "no." ||
+      firstHeader === "nomor";
   if (target) {
-    out[0] = vals[target - 1][0];
+    if (numberColumn) out[0] = vals[target - 1][0];
     sh.getRange(target, 1, 1, heads.length).setValues([out]);
   } else {
-    out[0] = sh.getLastRow();
+    if (numberColumn) out[0] = sh.getLastRow();
     sh.appendRow(out);
   }
   return {

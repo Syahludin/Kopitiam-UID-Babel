@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/login_screen.dart';
-import 'screens/settings_session_section.dart';
 import 'screens/startup_screen.dart';
 import 'services/api_service.dart';
 import 'services/device_session_service.dart';
@@ -47,26 +46,9 @@ class _SessionGuard extends StatefulWidget {
 
 class _SessionGuardState extends State<_SessionGuard>
     with WidgetsBindingObserver {
-  static const _sessionKeys = [
-    'token',
-    'deviceToken',
-    'username',
-    'role',
-    'kodeUiw',
-    'kodeUp3',
-    'kodeUlp',
-    'ulp',
-    'bidang',
-    'tim',
-    'subTim',
-    'aksesMenu',
-  ];
-
   Timer? _timer;
   bool _checking = false;
   bool _mockLocationBlocked = false;
-  bool _settingsSelected = false;
-  Map<String, dynamic> _session = const {};
 
   @override
   void initState() {
@@ -110,11 +92,7 @@ class _SessionGuardState extends State<_SessionGuard>
     await LocalAuthService.clear();
     await prefs.clear();
     if (!mounted) return;
-    setState(() {
-      _mockLocationBlocked = true;
-      _settingsSelected = false;
-      _session = const {};
-    });
+    setState(() => _mockLocationBlocked = true);
     appNavigatorKey.currentState?.pushAndRemoveUntil(
       MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
       (_) => false,
@@ -148,44 +126,6 @@ class _SessionGuardState extends State<_SessionGuard>
     );
   }
 
-  Future<void> _selectBottomMenu(PointerUpEvent event) async {
-    if (_mockLocationBlocked) return;
-    if (appNavigatorKey.currentState?.canPop() ?? false) {
-      if (_settingsSelected && mounted) {
-        setState(() {
-          _settingsSelected = false;
-          _session = const {};
-        });
-      }
-      return;
-    }
-
-    final size = MediaQuery.sizeOf(context);
-    if (event.position.dy < size.height - 170) return;
-    final index = (event.position.dx / (size.width / 3)).floor().clamp(0, 2);
-    if (index != 2) {
-      if (_settingsSelected && mounted) {
-        setState(() {
-          _settingsSelected = false;
-          _session = const {};
-        });
-      }
-      return;
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    final session = <String, dynamic>{
-      for (final key in _sessionKeys) key: prefs.getString(key) ?? '',
-      'offlineLogin': prefs.getBool('offlineLogin') ?? false,
-      'offlineExpiresAt': prefs.getString('offlineExpiresAt') ?? '',
-    };
-    if (!mounted || session['username'].toString().isEmpty) return;
-    setState(() {
-      _settingsSelected = true;
-      _session = session;
-    });
-  }
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -194,36 +134,20 @@ class _SessionGuardState extends State<_SessionGuard>
   }
 
   @override
-  Widget build(BuildContext context) => Listener(
-    behavior: HitTestBehavior.translucent,
-    onPointerUp: _selectBottomMenu,
-    child: Stack(
-      children: [
-        AbsorbPointer(
-          absorbing: _mockLocationBlocked,
-          child: widget.child,
+  Widget build(BuildContext context) => Stack(
+    children: [
+      AbsorbPointer(
+        absorbing: _mockLocationBlocked,
+        child: widget.child,
+      ),
+      if (_mockLocationBlocked)
+        Positioned(
+          left: 20,
+          right: 20,
+          top: MediaQuery.paddingOf(context).top + 72,
+          child: _MockLocationWarning(onRetry: _securityCheck),
         ),
-        if (_settingsSelected &&
-            !_mockLocationBlocked &&
-            !(appNavigatorKey.currentState?.canPop() ?? false))
-          Positioned(
-            left: 18,
-            right: 18,
-            bottom: 88,
-            child: Material(
-              color: Colors.transparent,
-              child: SettingsSessionSection(session: _session),
-            ),
-          ),
-        if (_mockLocationBlocked)
-          Positioned(
-            left: 20,
-            right: 20,
-            top: MediaQuery.paddingOf(context).top + 72,
-            child: _MockLocationWarning(onRetry: _securityCheck),
-          ),
-      ],
-    ),
+    ],
   );
 }
 

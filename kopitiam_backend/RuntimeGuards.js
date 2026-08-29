@@ -64,6 +64,24 @@ function accountStatus_(username) {
   return { exists: false, active: false };
 }
 
+var VEGETASI_TEMUAN_ = [
+  "Rabas / Pangkas",
+  "Tebang Sedang",
+  "Tebang Besar",
+];
+
+/**
+ * Prioritas vegetasi dihitung dari formula IFS (jarak & tinggi) oleh aplikasi,
+ * bukan dibaca dari master. Pastikan nilai prioritas vegetasi tidak
+ * bertentangan dengan baris master yang bisa saja terisi.
+ */
+function isVegetasiFinding_(finding) {
+  var text = String(finding || "").trim().toLowerCase();
+  return VEGETASI_TEMUAN_.some(function (v) {
+    return String(v).trim().toLowerCase() === text;
+  });
+}
+
 function validateFindingMaster_(object, tier, finding, priority) {
   var sheet = getSpreadsheet_().getSheetByName("List_Temuan");
   if (!sheet)
@@ -101,6 +119,7 @@ function validateFindingMaster_(object, tier, finding, priority) {
         : String(values[row][priorityIndex] || "").trim();
     if (
       expectedPriority &&
+      !isVegetasiFinding_(finding) &&
       normalize_(expectedPriority) !== normalize_(priority)
     ) {
       return fail_("PRIORITY_MISMATCH", "Prioritas tidak sesuai master.");

@@ -28,7 +28,9 @@ class _SettingsSessionSectionState extends State<SettingsSessionSection> {
       const Duration(minutes: 1),
       (_) => _enforceOfflineExpiry(),
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => _enforceOfflineExpiry());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _enforceOfflineExpiry(),
+    );
   }
 
   @override
@@ -48,7 +50,11 @@ class _SettingsSessionSectionState extends State<SettingsSessionSection> {
       (_) => false,
     );
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Login offline berakhir setelah 24 jam. Silakan login online.')),
+      const SnackBar(
+        content: Text(
+          'Login offline berakhir setelah 24 jam. Silakan login online.',
+        ),
+      ),
     );
   }
 
@@ -56,7 +62,7 @@ class _SettingsSessionSectionState extends State<SettingsSessionSection> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Keluar dari SiManDist?'),
+        title: const Text('Keluar dari Kopitiam?'),
         content: const Text('Sesi perangkat dan akses offline akan dihapus.'),
         actions: [
           TextButton(

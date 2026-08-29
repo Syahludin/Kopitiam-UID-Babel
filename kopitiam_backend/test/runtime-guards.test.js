@@ -84,3 +84,19 @@ test("unknown actions do not consume a quota bucket", () => {
   const api = load();
   assert.equal(api.consumeActionQuota_("health", "x").success, true);
 });
+
+test("vegetasi finding skips master priority comparison", () => {
+  const api = load();
+  assert.equal(api.isVegetasiFinding_("Rabas / Pangkas"), true);
+  assert.equal(api.isVegetasiFinding_("Tebang Sedang"), true);
+  assert.equal(api.isVegetasiFinding_("Tebang Besar"), true);
+  assert.equal(api.isVegetasiFinding_("Kabel Geser"), false);
+  const src = fs.readFileSync(
+    path.resolve(__dirname, "..", "RuntimeGuards.js"),
+    "utf8",
+  );
+  assert.match(
+    src,
+    /!isVegetasiFinding_\(finding\) &&[\s\S]*normalize_\(expectedPriority\) !== normalize_\(priority\)/,
+  );
+});

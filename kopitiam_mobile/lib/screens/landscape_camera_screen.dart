@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -45,6 +46,7 @@ class _LandscapeCameraScreenState extends State<LandscapeCameraScreen> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
@@ -72,32 +74,34 @@ class _LandscapeCameraScreenState extends State<LandscapeCameraScreen> {
     }
   }
 
-  Future<String> _normalizeLandscape(String sourcePath) async {
-    final source = File(sourcePath);
-    final decoded = img.decodeImage(await source.readAsBytes());
-    if (decoded == null) {
-      throw StateError('Format foto kamera tidak dapat dibaca.');
-    }
-    var normalized = img.bakeOrientation(decoded);
-    if (normalized.height > normalized.width) {
-      normalized = img.copyRotate(normalized, angle: 90);
-    }
-    final resized = img.copyResize(
-      normalized,
-      width: outputWidth,
-      interpolation: img.Interpolation.cubic,
-    );
-    final target = File(
-      p.join(
-        p.dirname(sourcePath),
-        '${p.basenameWithoutExtension(sourcePath)}_2048.jpg',
-      ),
-    );
-    await target.writeAsBytes(img.encodeJpg(resized, quality: 80), flush: true);
-    if (await target.length() == 0) {
-      throw StateError('Foto landscape gagal diproses.');
-    }
-    return target.path;
+  Future<String> _normalizeLandscape(String sourcePath) {
+    return Isolate.run(() {
+      final source = File(sourcePath);
+      final decoded = img.decodeImage(source.readAsBytesSync());
+      if (decoded == null) {
+        throw StateError('Format foto kamera tidak dapat dibaca.');
+      }
+      var normalized = img.bakeOrientation(decoded);
+      if (normalized.height > normalized.width) {
+        normalized = img.copyRotate(normalized, angle: 90);
+      }
+      final resized = img.copyResize(
+        normalized,
+        width: outputWidth,
+        interpolation: img.Interpolation.linear,
+      );
+      final target = File(
+        p.join(
+          p.dirname(sourcePath),
+          '${p.basenameWithoutExtension(sourcePath)}_2048.jpg',
+        ),
+      );
+      target.writeAsBytesSync(img.encodeJpg(resized, quality: 85), flush: true);
+      if (target.lengthSync() == 0) {
+        throw StateError('Foto landscape gagal diproses.');
+      }
+      return target.path;
+    });
   }
 
   Future<void> _capture() async {
@@ -127,6 +131,7 @@ class _LandscapeCameraScreenState extends State<LandscapeCameraScreen> {
   @override
   void dispose() {
     _controller?.dispose();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations(const [
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -134,118 +139,137 @@ class _LandscapeCameraScreenState extends State<LandscapeCameraScreen> {
     super.dispose();
   }
 
+  Size _previewBox(CameraController controller) {
+    final preview = controller.value.previewSize ?? const Size(1280, 720);
+    final landscape = MediaQuery.orientationOf(context) == Orientation.landscape;
+    return landscape
+        ? Size(preview.height, preview.width)
+        : Size(preview.width, preview.height);
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = _controller;
     return Scaffold(
       backgroundColor: const Color(0xFF071B30),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: controller == null || !controller.value.isInitialized
-                  ? Center(
-                      child: _error == null
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Text(
-                                _error!,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                            ),
-                    )
-                  : Center(
-                      child: AspectRatio(
-                        aspectRatio: controller.value.aspectRatio,
-                        child: CameraPreview(controller),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (controller == null || !controller.value.isInitialized)
+            Center(
+              child: _error == null
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white),
                       ),
                     ),
-            ),
-            Positioned(
-              left: 18,
-              top: 14,
-              child: IconButton.filledTonal(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close_rounded),
-              ),
-            ),
-            Positioned(
-              left: 76,
-              top: 19,
-              child: Text(
-                widget.title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
+            )
+          else
+            ClipRect(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                clipBehavior: Clip.hardEdge,
+                child: SizedBox.fromSize(
+                  size: _previewBox(controller),
+                  child: CameraPreview(controller),
                 ),
               ),
             ),
-            const Positioned(
-              left: 18,
-              bottom: 20,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Color(0xCC071B30),
-                  borderRadius: BorderRadius.all(Radius.circular(10)),
+          SafeArea(
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 18,
+                  top: 14,
+                  child: IconButton.filledTonal(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
                 ),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                Positioned(
+                  left: 76,
+                  top: 19,
                   child: Text(
-                    'Landscape wajib • Output 2048 px',
-                    style: TextStyle(
+                    widget.title,
+                    style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      shadows: [
+                        Shadow(color: Color(0xCC000000), blurRadius: 6),
+                      ],
                     ),
                   ),
                 ),
-              ),
-            ),
-            Positioned(
-              right: 28,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: Semantics(
-                  button: true,
-                  label: 'Ambil foto landscape',
-                  child: InkWell(
-                    onTap: _capturing ? null : _capture,
-                    customBorder: const CircleBorder(),
-                    child: Container(
-                      width: 76,
-                      height: 76,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                        border: Border.all(
-                          color: const Color(0xFFFFB800),
-                          width: 5,
+                const Positioned(
+                  left: 18,
+                  bottom: 20,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Color(0xCC071B30),
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      child: Text(
+                        'Landscape wajib • Output 2048 px',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      child: _capturing
-                          ? const Padding(
-                              padding: EdgeInsets.all(22),
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3,
-                                color: Color(0xFF004D8C),
-                              ),
-                            )
-                          : const Icon(
-                              Icons.camera_alt_rounded,
-                              size: 32,
-                              color: Color(0xFF004D8C),
-                            ),
                     ),
                   ),
                 ),
-              ),
+                Positioned(
+                  right: 28,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: Semantics(
+                      button: true,
+                      label: 'Ambil foto landscape',
+                      child: InkWell(
+                        onTap: _capturing ? null : _capture,
+                        customBorder: const CircleBorder(),
+                        child: Container(
+                          width: 76,
+                          height: 76,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
+                            border: Border.all(
+                              color: const Color(0xFFFFB800),
+                              width: 5,
+                            ),
+                          ),
+                          child: _capturing
+                              ? const Padding(
+                                  padding: EdgeInsets.all(22),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 3,
+                                    color: Color(0xFF004D8C),
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.camera_alt_rounded,
+                                  size: 32,
+                                  color: Color(0xFF004D8C),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

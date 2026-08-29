@@ -38,6 +38,12 @@ function setupBackend() {
     "Kode ULP",
     "Status WO",
   ]);
+  requireSheet_(wo, CONFIG.WO_ROW_SHEET, [
+    "Kode WO",
+    "Kode ULP",
+    "Status WO",
+    "Tim Eksekusi",
+  ]);
   requireSheet_(temuan, CONFIG.TEMUAN_SHEET, [
     "Kode WO",
     "Kode Temuan",

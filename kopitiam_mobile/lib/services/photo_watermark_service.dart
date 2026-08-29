@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
@@ -14,9 +15,23 @@ class PhotoWatermarkService {
     required String sourcePath,
     required TemuanInspeksi item,
     required String photoLabel,
-  }) async {
+  }) {
+    return Isolate.run(
+      () => _renderSync(
+        sourcePath: sourcePath,
+        item: item,
+        photoLabel: photoLabel,
+      ),
+    );
+  }
+
+  static String _renderSync({
+    required String sourcePath,
+    required TemuanInspeksi item,
+    required String photoLabel,
+  }) {
     final source = File(sourcePath);
-    final decoded = img.decodeImage(await source.readAsBytes());
+    final decoded = img.decodeImage(source.readAsBytesSync());
     if (decoded == null) {
       throw StateError('Foto tidak dapat dibaca untuk proses watermark.');
     }
@@ -175,8 +190,8 @@ class PhotoWatermarkService {
         '${p.basenameWithoutExtension(source.path)}_wm.jpg',
       ),
     );
-    await target.writeAsBytes(img.encodeJpg(image, quality: 82), flush: true);
-    if (await target.length() == 0) {
+    target.writeAsBytesSync(img.encodeJpg(image, quality: 85), flush: true);
+    if (target.lengthSync() == 0) {
       throw StateError('Watermark foto gagal disimpan.');
     }
     return target.path;

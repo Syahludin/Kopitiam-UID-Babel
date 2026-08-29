@@ -35,6 +35,7 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
   bool _gettingAwal = false;
   bool _gettingAkhir = false;
   bool _saving = false;
+  bool _readyToComplete = false;
   double? _awalSearchAccuracy;
   double? _akhirSearchAccuracy;
 
@@ -95,7 +96,6 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
         _akhirSearchAccuracy = null;
       }
     });
-    var completed = false;
     try {
       final fix = await HighAccuracyLocationService.acquire(
         onSample: (_, bestAccuracy) {
@@ -126,16 +126,14 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
                 _akhir!.longitude,
               ) /
               1000;
-          _status = WoInsjar.statusSelesai;
-          completed = true;
+          _readyToComplete = true;
         } else if (_awal != null) {
           _status = WoInsjar.statusDalam;
         }
       });
 
-      // Koordinat akhir adalah aksi penyelesaian. Simpan langsung agar status,
-      // waktu, durasi, jarak, dan kedua koordinat tidak sempat hilang.
-      if (completed) await _save(allowCompleted: true);
+      // Status tidak langsung Selesai. Petugas tetap di detail lalu menyimpan
+      // secara eksplisit melalui tombol Simpan WO.
     } catch (error) {
       if (mounted) _message('$error', error: true);
     } finally {
@@ -151,8 +149,9 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
     }
   }
 
-  Future<void> _save({bool allowCompleted = false}) async {
-    if ((_readOnly && !allowCompleted) || _wo == null || _saving) return;
+  Future<void> _save() async {
+    if (_readOnly || _wo == null || _saving) return;
+    final status = _readyToComplete ? WoInsjar.statusSelesai : _status;
     setState(() => _saving = true);
     try {
       await _repo.simpan(
@@ -164,7 +163,7 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
           waktuSelesai:
               _selesai == null ? null : WoInsjar.stampLengkap(_selesai!),
           durasiPekerjaan: _duration == '-' ? null : _duration,
-          statusWo: _status,
+          statusWo: status,
           isDirty: true,
         ),
       );
@@ -362,9 +361,11 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
                         ),
                       ],
                     )
-                  : const Text(
-                      'Simpan WO ke Server Lokal',
-                      style: TextStyle(fontWeight: FontWeight.w800),
+                  : Text(
+                      _readyToComplete
+                          ? 'Simpan & Selesaikan WO'
+                          : 'Simpan WO ke Server Lokal',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
             ),
           ),

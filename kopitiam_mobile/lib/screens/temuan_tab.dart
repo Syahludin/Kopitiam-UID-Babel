@@ -5,9 +5,13 @@ import 'package:path/path.dart' as p;
 
 import '../models/temuan_inspeksi.dart';
 import '../models/wo_insjar.dart';
+import '../services/device_session_service.dart';
 import '../services/high_accuracy_location_service.dart';
+import '../services/local_auth_service.dart';
+import '../services/photo_watermark_service.dart';
 import '../services/temuan_repository.dart';
 import 'landscape_camera_screen.dart';
+import 'login_screen.dart';
 
 class TemuanTab extends StatefulWidget {
   final WoInsjar wo;
@@ -19,7 +23,8 @@ class TemuanTab extends StatefulWidget {
   State<TemuanTab> createState() => _TemuanTabState();
 }
 
-class _TemuanTabState extends State<TemuanTab> {
+class _TemuanTabState extends State<TemuanTab>
+    with AutomaticKeepAliveClientMixin {
   static const blue = Color(0xFF004D8C);
   static const navy = Color(0xFF071B30);
   static const amber = Color(0xFFFFB800);
@@ -31,15 +36,22 @@ class _TemuanTabState extends State<TemuanTab> {
   bool busy = false;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
+    _load();
     _load(remote: true);
   }
 
   Future<void> _load({bool remote = false}) async {
-    if (remote) {
-      await repo.unduh('${widget.sesi['token'] ?? ''}', widget.wo.kodeWo);
+    if (!remote) {
+      items = await repo.untukWo(widget.wo.kodeWo);
+      if (mounted) setState(() {});
+      return;
     }
+    await repo.unduh('${widget.sesi['token'] ?? ''}', widget.wo.kodeWo);
     items = await repo.untukWo(widget.wo.kodeWo);
     if (mounted) setState(() {});
   }
@@ -64,13 +76,43 @@ class _TemuanTabState extends State<TemuanTab> {
           const SnackBar(content: Text('Temuan berhasil disinkronkan.')),
         );
       }
+    } catch (error) {
+      if (!mounted) return;
+      final text = error.toString().replaceFirst('StateError: ', '');
+      final isSessionInvalid = text.toLowerCase().contains('sesi tidak valid') ||
+          text.toLowerCase().contains('sudah berakhir') ||
+          text.contains('[SESSION_');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(text),
+          backgroundColor: const Color(0xFFDC2626),
+          action: isSessionInvalid
+              ? SnackBarAction(
+                  label: 'Login Ulang',
+                  textColor: Colors.white,
+                  onPressed: _logoutKarenaSesiInvalid,
+                )
+              : null,
+        ),
+      );
     } finally {
       if (mounted) setState(() => busy = false);
     }
   }
 
+  Future<void> _logoutKarenaSesiInvalid() async {
+    await DeviceSessionService.clear();
+    await LocalAuthService.clear();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+      (_) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Stack(
       children: [
         ListView(
@@ -172,22 +214,126 @@ class _TemuanTabState extends State<TemuanTab> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            item.temuan,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: navy,
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _thumb(item.fotoTemuan),
+              const SizedBox(width: 8),
+              _thumb(item.fotoLingkungan),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.temuan,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: navy,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${item.tier} • ${item.segmen}',
+                      style: const TextStyle(color: muted, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (item.dirty) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                const Icon(Icons.cloud_upload_outlined, size: 12, color: amber),
+                const SizedBox(width: 4),
+                const Text(
+                  'Belum sinkron',
+                  style: TextStyle(fontSize: 10, color: amber),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${item.tier} • ${item.segmen}',
-            style: const TextStyle(color: muted, fontSize: 12),
-          ),
+          ],
         ],
       ),
+    );
+  }
+
+  void _showImage(String path) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        child: Dialog.fullscreen(
+          backgroundColor: Colors.black.withOpacity(0.9),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4,
+                child: Center(
+                  child: Hero(
+                    tag: path,
+                    child: Image.file(
+                      File(path),
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+              const Positioned(
+                top: 48,
+                right: 16,
+                child: Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _thumb(String path) {
+    final exists = path.isNotEmpty && File(path).existsSync();
+    final image = exists
+        ? ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(
+              File(path),
+              width: 72,
+              height: 72,
+              fit: BoxFit.cover,
+            ),
+          )
+        : Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: line),
+            ),
+            child: const Icon(
+              Icons.photo_camera_back_rounded,
+              color: blue,
+              size: 24,
+            ),
+          );
+    if (!exists) return image;
+    return GestureDetector(
+      onTap: () => _showImage(path),
+      child: Hero(tag: path, child: image),
     );
   }
 }
@@ -207,6 +353,8 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
   static const amber = Color(0xFFFFAE00);
   static const navy = Color(0xFF071B30);
   static const line = Color(0xFFE2E8F0);
+  static const muted = Color(0xFF64748B);
+  static const green = Color(0xFF16A34A);
 
   final repo = TemuanRepository();
   final segmenCtrl = TextEditingController();
@@ -233,6 +381,10 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
         value.contains('tebang');
   }
 
+  bool get objectLocked => repo.jenisObject(widget.sesi).isNotEmpty;
+
+  List<String> get objectOptions => const ['Jaringan', 'Gardu'];
+
   String _cleanKey(String key) =>
       key.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
 
@@ -255,13 +407,16 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
     if (tier == null || tier!.isEmpty) return [];
     final options = listMaster
         .where((row) {
-          final rowObject = _findValue(
-            row,
-            const ['Objek Inspeksi', 'Jenis Object', 'Object'],
-          );
+          final rowObject = _findValue(row, const [
+            'Objek Inspeksi',
+            'Jenis Object',
+            'Object',
+          ]);
           final rowTier = _findValue(row, const ['Tier']);
-          final matchObject = rowObject.isEmpty ||
-              rowObject.toLowerCase().contains(object.toLowerCase());
+          final rowNorm = rowObject.toLowerCase().trim();
+          final objNorm = object.toLowerCase().trim();
+          final matchObject =
+              rowNorm.isEmpty || rowNorm == objNorm;
           final matchTier =
               rowTier.isEmpty || rowTier.toLowerCase() == tier!.toLowerCase();
           return matchObject && matchTier;
@@ -330,7 +485,28 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
     String two(int value) => value.toString().padLeft(2, '0');
     final name =
         '$kode.$label.${two(now.hour)}${two(now.minute)}${two(now.second)}.jpg';
-    return (await source.copy(p.join(p.dirname(source.path), name))).path;
+    final copied = await source.copy(p.join(p.dirname(source.path), name));
+    final item = TemuanInspeksi(
+      kodeTemuan: kode,
+      kodeWo: widget.wo.kodeWo,
+      temuan: temuan ?? '',
+      jenisObject: object,
+      koordinat: gps?.coordinate ?? '',
+      ulp: widget.wo.ulp,
+      penyulang: widget.wo.penyulang,
+      section: widget.wo.section,
+      segmen: segmenCtrl.text.trim(),
+      hari: WoInsjar.hariIndonesia[now.weekday - 1],
+      tanggal: WoInsjar.formatTanggal(now),
+      waktuInput: WoInsjar.stampLengkap(now),
+    );
+    // Watermark dibuat saat pengambilan foto, bukan saat simpan, agar
+    // foto tampil menampilkan tanda air langsung.
+    return PhotoWatermarkService.render(
+      sourcePath: copied.path,
+      item: item,
+      photoLabel: label,
+    );
   }
 
   String _pick(Map<String, dynamic> row, List<String> keys) =>
@@ -403,12 +579,7 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
         fotoLingkungan: lingkungan,
         waktuInput: WoInsjar.stampLengkap(now),
         userInput: '${widget.sesi['username'] ?? ''}',
-        folderPath: TemuanRepository.folder(
-          widget.wo,
-          object,
-          kode,
-          now,
-        ),
+        folderPath: TemuanRepository.folder(widget.wo, object, kode, now),
       );
       await repo.simpan(item);
       if (mounted) Navigator.pop(context, true);
@@ -418,9 +589,7 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
   }
 
   void _message(String text) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(text)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
   @override
@@ -439,6 +608,8 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
         ),
         backgroundColor: blue,
         foregroundColor: Colors.white,
+        elevation: 0,
+        titleSpacing: 16,
       ),
       body: Column(
         children: [
@@ -459,22 +630,69 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
             ),
           ),
           Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(14),
-            child: SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: saving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: amber,
-                  foregroundColor: navy,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x1A0F172A),
+                  blurRadius: 10,
+                  offset: Offset(0, -2),
                 ),
-                child: Text(
-                  saving ? 'Menyimpan...' : 'Simpan Temuan ke Server Lokal',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+              ],
+            ),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              12,
+              16,
+              12 + MediaQuery.paddingOf(context).bottom,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Temuan disimpan di server lokal, lalu disinkronkan.',
+                  style: TextStyle(fontSize: 11, color: muted),
                 ),
-              ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: saving ? null : _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: amber,
+                      foregroundColor: navy,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: saving
+                        ? const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: navy,
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                'Menyimpan...',
+                                style: TextStyle(fontWeight: FontWeight.w800),
+                              ),
+                            ],
+                          )
+                        : const Text(
+                            'Simpan Temuan ke Server Lokal',
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -483,298 +701,486 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
   }
 
   BoxDecoration _box() => BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: line),
-      );
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(color: line),
+  );
+
+  InputDecoration _inputDecoration(String label) => InputDecoration(
+    labelText: label,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: line),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: line),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: blue, width: 1.5),
+    ),
+  );
+
+  Widget _sectionCard(
+    String badge,
+    IconData icon,
+    String title,
+    List<Widget> children,
+  ) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(16),
+    decoration: _box(),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                color: blue,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  badge,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Icon(icon, size: 18, color: blue),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: blue,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        ...children,
+      ],
+    ),
+  );
 
   Widget _header() => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: blue,
-          borderRadius: BorderRadius.circular(16),
+    width: double.infinity,
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [Color(0xFF004D8C), Color(0xFF071B30)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(18),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x26004D8C),
+          blurRadius: 14,
+          offset: Offset(0, 6),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            const Text(
-              'Konteks Work Order',
-              style: TextStyle(color: Colors.white70, fontSize: 11),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              widget.wo.kodeWo,
-              style: const TextStyle(
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .14),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: const Icon(
+                Icons.assignment_turned_in_rounded,
                 color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
+                size: 20,
               ),
             ),
-            const SizedBox(height: 4),
-            Text(widget.wo.ulp, style: const TextStyle(color: Colors.white70)),
-          ],
-        ),
-      );
-
-  Widget _identity() => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: _box(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '📌 Identitas Temuan',
-              style: TextStyle(color: blue, fontWeight: FontWeight.w800),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Work Order',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: _read('Kode Temuan', kode)),
-                const SizedBox(width: 10),
-                Expanded(child: _read('Jenis Object', object)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: _read('Penyulang', widget.wo.penyulang)),
-                const SizedBox(width: 10),
-                Expanded(child: _read('Section', widget.wo.section)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: segmenCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Segmen *',
-                border: OutlineInputBorder(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: amber,
+                borderRadius: BorderRadius.circular(100),
+              ),
+              child: const Text(
+                'Temuan',
+                style: TextStyle(
+                  color: navy,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ],
         ),
-      );
-
-  Widget _classification(List<String> trees) => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: _box(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        const SizedBox(height: 12),
+        Text(
+          widget.wo.kodeWo,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
           children: [
-            const Text(
-              '🔍 Klasifikasi Temuan',
-              style: TextStyle(color: blue, fontWeight: FontWeight.w800),
+            const Icon(
+              Icons.location_city_rounded,
+              size: 15,
+              color: Colors.white70,
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: tier,
-                    hint: const Text('--Pilih Tier--'),
-                    items: const [
-                      DropdownMenuItem(value: 'Tier 1', child: Text('Tier 1')),
-                      DropdownMenuItem(value: 'Tier 2', child: Text('Tier 2')),
-                    ],
-                    onChanged: (value) => setState(() {
-                      tier = value;
-                      temuan = null;
-                    }),
-                    decoration: const InputDecoration(
-                      labelText: 'Tier *',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(child: _read('Prioritas', calculatedPriority)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              isExpanded: true,
-              initialValue: temuanOptions.contains(temuan) ? temuan : null,
-              hint: Text(tier == null ? 'Pilih Tier dahulu' : 'Pilih Temuan'),
-              items: temuanOptions
-                  .map(
-                    (value) => DropdownMenuItem(
-                      value: value,
-                      child: Text(value),
-                    ),
-                  )
-                  .toList(),
-              onChanged:
-                  tier == null ? null : (value) => setState(() => temuan = value),
-              decoration: const InputDecoration(
-                labelText: 'Nama Temuan *',
-                border: OutlineInputBorder(),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                widget.wo.ulp,
+                style: const TextStyle(color: Colors.white70, fontSize: 13),
               ),
             ),
-            if (isVegetasi) ...[
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: jarakCtrl,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                        labelText: 'Jarak (m) *',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextField(
-                      controller: tinggiCtrl,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                        labelText: 'Tinggi (m) *',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                isExpanded: true,
-                initialValue: trees.contains(pohon) ? pohon : null,
-                items: trees
-                    .map(
-                      (value) => DropdownMenuItem(
-                        value: value,
-                        child: Text(value),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) => setState(() => pohon = value),
-                decoration: const InputDecoration(
-                  labelText: 'Jenis Pohon *',
-                  border: OutlineInputBorder(),
-                ),
-              ),
+          ],
+        ),
+      ],
+    ),
+  );
+
+  Widget _identity() =>
+      _sectionCard('1', Icons.tag_rounded, 'Identitas Temuan', [
+        Row(
+          children: [
+            Expanded(child: _read('Kode Temuan', kode)),
+            const SizedBox(width: 10),
+            Expanded(child: _objectField()),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: _read('Penyulang', widget.wo.penyulang)),
+            const SizedBox(width: 10),
+            Expanded(child: _read('Section', widget.wo.section)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: segmenCtrl,
+          decoration: _inputDecoration('Segmen *'),
+        ),
+      ]);
+
+  Widget _objectField() {
+    if (objectLocked) {
+      return _read('Jenis Object', object);
+    }
+    return DropdownButtonFormField<String>(
+      value: objectOptions.contains(object) ? object : null,
+      hint: const Text('--Pilih Object--'),
+      items: objectOptions
+          .map(
+            (value) => DropdownMenuItem(value: value, child: Text(value)),
+          )
+          .toList(),
+      onChanged: (value) {
+        if (value == null) return;
+        setState(() {
+          object = value;
+          temuan = null;
+        });
+      },
+      decoration: _inputDecoration('Jenis Object *'),
+    );
+  }
+
+  Widget _classification(
+    List<String> trees,
+  ) => _sectionCard('2', Icons.tune_rounded, 'Klasifikasi Temuan', [
+    Row(
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            initialValue: tier,
+            hint: const Text('--Pilih Tier--'),
+            items: const [
+              DropdownMenuItem(value: 'Tier 1', child: Text('Tier 1')),
+              DropdownMenuItem(value: 'Tier 2', child: Text('Tier 2')),
             ],
+            onChanged: (value) => setState(() {
+              tier = value;
+              temuan = null;
+            }),
+            decoration: _inputDecoration('Tier *'),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: _read('Prioritas', calculatedPriority)),
+      ],
+    ),
+    const SizedBox(height: 12),
+    DropdownButtonFormField<String>(
+      isExpanded: true,
+      initialValue: temuanOptions.contains(temuan) ? temuan : null,
+      hint: Text(tier == null ? 'Pilih Tier dahulu' : 'Pilih Temuan'),
+      items: temuanOptions
+          .map((value) => DropdownMenuItem(value: value, child: Text(value)))
+          .toList(),
+      onChanged: tier == null
+          ? null
+          : (value) => setState(() => temuan = value),
+      decoration: _inputDecoration('Nama Temuan *'),
+    ),
+    if (isVegetasi) ...[
+      const SizedBox(height: 12),
+      Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: jarakCtrl,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              onChanged: (_) => setState(() {}),
+              decoration: _inputDecoration('Jarak Terhadap Jaringan(m) *'),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: tinggiCtrl,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              onChanged: (_) => setState(() {}),
+              decoration: _inputDecoration('Tinggi Batang(m) *'),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
+      DropdownButtonFormField<String>(
+        isExpanded: true,
+        initialValue: trees.contains(pohon) ? pohon : null,
+        items: trees
+            .map((value) => DropdownMenuItem(value: value, child: Text(value)))
+            .toList(),
+        onChanged: (value) => setState(() => pohon = value),
+        decoration: _inputDecoration('Jenis Pohon *'),
+      ),
+    ],
+  ]);
+
+  Widget _gpsCard() => _sectionCard(
+    '3',
+    Icons.my_location_rounded,
+    'Koordinat Temuan',
+    [
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.place_rounded,
+              size: 20,
+              color: gps == null ? muted : green,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                gps?.coordinate ?? 'Belum diambil',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: gps == null ? muted : navy,
+                ),
+              ),
+            ),
+            if (gps != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDCFCE7),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  'Akurasi ${gps!.accuracyLabel}',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: green,
+                  ),
+                ),
+              ),
           ],
         ),
-      );
+      ),
+      const SizedBox(height: 12),
+      SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: mengambilGps ? null : _ambilGps,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: blue,
+            side: const BorderSide(color: blue),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          icon: const Icon(Icons.my_location),
+          label: Text(
+            mengambilGps ? 'Mencari akurasi...' : 'Ambil Koordinat Temuan',
+          ),
+        ),
+      ),
+    ],
+  );
 
-  Widget _gpsCard() => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: _box(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _photos() =>
+      _sectionCard('4', Icons.photo_camera_back_rounded, 'Foto Dokumentasi', [
+        Row(
           children: [
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    '📍 Koordinat Temuan',
-                    style: TextStyle(color: blue, fontWeight: FontWeight.w800),
-                  ),
-                ),
-                if (gps != null)
-                  Text(
-                    'Akurasi ${gps!.accuracyLabel}',
-                    style: const TextStyle(
-                      color: Colors.green,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-              ],
+            Expanded(
+              child: _photo('Foto Temuan *', foto, () async {
+                try {
+                  final value = await _ambilFoto('Foto Temuan');
+                  if (mounted) setState(() => foto = value);
+                } catch (error) {
+                  _message('$error');
+                }
+              }),
             ),
-            const SizedBox(height: 8),
-            Text(
-              gps?.coordinate ?? '-',
-              style: const TextStyle(color: blue, fontWeight: FontWeight.w700),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _photo('Foto Sekitar Tiang *', lingkungan, () async {
+                try {
+                  final value = await _ambilFoto('Foto Lingkungan');
+                  if (mounted) setState(() => lingkungan = value);
+                } catch (error) {
+                  _message('$error');
+                }
+              }),
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: mengambilGps ? null : _ambilGps,
-                icon: const Icon(Icons.my_location),
-                label: Text(
-                  mengambilGps
-                      ? 'Mencari akurasi...'
-                      : 'Ambil Koordinat Temuan',
-                ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        const Row(
+          children: [
+            Icon(Icons.gpp_good_rounded, size: 14, color: green),
+            SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'Foto diambil landscape',
+                style: TextStyle(fontSize: 11, color: muted),
               ),
             ),
           ],
         ),
-      );
-
-  Widget _photos() => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: _box(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '📷 Foto Temuan',
-              style: TextStyle(color: blue, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _photo('Foto Temuan *', foto, () async {
-                    try {
-                      final value = await _ambilFoto('Foto Temuan');
-                      if (mounted) setState(() => foto = value);
-                    } catch (error) {
-                      _message('$error');
-                    }
-                  }),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _photo('Foto Sekitar Tiang *', lingkungan, () async {
-                    try {
-                      final value = await _ambilFoto('Foto Lingkungan');
-                      if (mounted) setState(() => lingkungan = value);
-                    } catch (error) {
-                      _message('$error');
-                    }
-                  }),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
+      ]);
 
   Widget _photo(String label, String path, VoidCallback onTap) {
     final exists = path.isNotEmpty && File(path).existsSync();
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
       child: Container(
-        height: 130,
+        height: 150,
         decoration: BoxDecoration(
           color: const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: exists ? blue : line),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: exists ? blue : line,
+            width: exists ? 1.4 : 1,
+          ),
         ),
         child: exists
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(11),
-                child: Image.file(File(path), fit: BoxFit.cover),
+            ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(13),
+                    child: Image.file(File(path), fit: BoxFit.cover),
+                  ),
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xCC071B30),
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Text(
+                        label.replaceAll(' *', ''),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               )
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.screen_rotation_rounded, color: blue),
-                  const SizedBox(height: 7),
-                  Text(label, textAlign: TextAlign.center),
-                  const SizedBox(height: 4),
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE8F1FA),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.screen_rotation_rounded,
+                      color: blue,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF334155),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
                   const Text(
                     'Landscape wajib',
-                    style: TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                    style: TextStyle(fontSize: 10, color: muted),
                   ),
                 ],
               ),
@@ -783,25 +1189,36 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
   }
 
   Widget _read(String label, String value) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: const TextStyle(
+          fontSize: 10,
+          color: muted,
+          fontWeight: FontWeight.w600,
+          letterSpacing: .3,
+        ),
+      ),
+      const SizedBox(height: 5),
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(11),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          value.isEmpty ? '-' : value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF0F172A),
           ),
-          const SizedBox(height: 4),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(11),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              value.isEmpty ? '-' : value,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
 }

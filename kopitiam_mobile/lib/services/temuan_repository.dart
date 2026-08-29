@@ -82,16 +82,20 @@ class TemuanRepository {
     if (item.fotoTemuan.isEmpty || item.fotoLingkungan.isEmpty) {
       throw StateError('Foto Temuan dan Foto Sekitar Tiang wajib diambil.');
     }
-    final watermarkedPrimary = await PhotoWatermarkService.render(
-      sourcePath: item.fotoTemuan,
-      item: item,
-      photoLabel: 'Foto Temuan',
-    );
-    final watermarkedEnvironment = await PhotoWatermarkService.render(
-      sourcePath: item.fotoLingkungan,
-      item: item,
-      photoLabel: 'Foto Lingkungan',
-    );
+    final watermarkedPrimary = _sudahWatermark(item.fotoTemuan)
+        ? item.fotoTemuan
+        : await PhotoWatermarkService.render(
+            sourcePath: item.fotoTemuan,
+            item: item,
+            photoLabel: 'Foto Temuan',
+          );
+    final watermarkedEnvironment = _sudahWatermark(item.fotoLingkungan)
+        ? item.fotoLingkungan
+        : await PhotoWatermarkService.render(
+            sourcePath: item.fotoLingkungan,
+            item: item,
+            photoLabel: 'Foto Lingkungan',
+          );
     final primary = await _persistPhoto(
       watermarkedPrimary,
       item.kodeTemuan,
@@ -163,6 +167,8 @@ class TemuanRepository {
         RegExp(r'[^A-Za-z0-9._-]'),
         '_',
       );
+
+  bool _sudahWatermark(String path) => path.endsWith('_wm.jpg');
 
   TemuanInspeksi _withPhotos(
     TemuanInspeksi item,
@@ -254,9 +260,15 @@ class TemuanRepository {
           whereArgs: [item.kodeTemuan],
         );
       } else {
-        throw StateError(
-          (response['message'] ?? 'Sinkronisasi foto gagal.').toString(),
-        );
+        final kode = '${response['kode'] ?? ''}';
+        final message =
+            (response['message'] ?? 'Sinkronisasi foto gagal.').toString();
+        if (kode.startsWith('SESSION_')) {
+          throw StateError(
+            'Sesi tidak valid atau sudah berakhir. Silakan login ulang. [$kode]',
+          );
+        }
+        throw StateError(message);
       }
     }
   }
@@ -289,28 +301,61 @@ class TemuanRepository {
     return '';
   }
 
+  static final _vegetasiPatterns = [
+    RegExp(r'^(Rabas|Pangkas).*?\s*\/\s*(Rabas|Pangkas)$', caseSensitive: false),
+    RegExp(r'^Tebang\s+Sedang$', caseSensitive: false),
+    RegExp(r'^Tebang\s+Besar$', caseSensitive: false),
+  ];
+
+  bool _isVegetasi(String temuan) => _vegetasiPatterns
+      .any((pattern) => pattern.hasMatch(temuan.trim()));
+
   String prioritas(
     String temuan,
     double? jarak,
     double? tinggi,
     List<Map<String, dynamic>> master,
   ) {
-    if ({'Rabas / Pangkas', 'Tebang Sedang', 'Tebang Besar'}
-        .contains(temuan)) {
+    if (_isVegetasi(temuan)) {
       final distance = jarak ?? 0;
       final height = tinggi ?? 0;
+      // IFS asli hanya mencakup 3 kombinasi; rangkaian total di bawah menutup
+      // celah kombinasi lain agar prioritas selalu muncul:
+      //   h<9 : d>5 -> Minor, d<=5 -> Mayor
+      //   h>=9: d<3 -> Mayor, d<6 -> Sedang, d>=6 -> Minor
       if (height < 9) return distance > 5 ? 'Minor' : 'Mayor';
       if (distance < 3) return 'Mayor';
       if (distance < 6) return 'Sedang';
       return 'Minor';
     }
     for (final row in master) {
-      if ('${row['Temuan'] ?? ''}'.trim() == temuan) {
-        return '${row['Prioritas'] ?? ''}';
+      final nama = _cari(row, const ['Temuan', 'Nama Temuan']);
+      if (nama.isNotEmpty && _sama(nama, temuan)) {
+        return _cari(row, const ['Prioritas']);
       }
     }
     return '';
   }
+
+  static String _cari(Map<String, dynamic> row, List<String> keys) {
+    for (final key in keys) {
+      final value = '${row[key] ?? ''}'.trim();
+      if (value.isNotEmpty) return value;
+    }
+    String normal(String key) =>
+        key.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    final normalized = keys.map(normal).toSet();
+    for (final entry in row.entries) {
+      if (normalized.contains(normal(entry.key)) &&
+          '${entry.value ?? ''}'.trim().isNotEmpty) {
+        return '${entry.value ?? ''}'.trim();
+      }
+    }
+    return '';
+  }
+
+  static bool _sama(String a, String b) =>
+      a.trim().toLowerCase() == b.trim().toLowerCase();
 
   static String folder(
     WoInsjar wo,

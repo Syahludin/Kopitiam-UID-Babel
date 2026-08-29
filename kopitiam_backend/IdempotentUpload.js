@@ -224,22 +224,35 @@ function syncTemuanInspeksiIdempotent_(token, incoming) {
       .getDisplayValues()[0];
     var headerIndex = headerIndex_(headers),
       target = 0;
+    if (headerIndex["kode temuan"] === undefined)
+      return fail_(
+        "SHEET_HEADERS_INVALID",
+        "Header sheet Inp_Temuan belum valid. Pastikan kolom Kode Temuan tersedia.",
+      );
     for (var r = 1; r < values.length; r++) {
       if (String(values[r][headerIndex["kode temuan"]] || "") === code) {
         target = r + 1;
         break;
       }
     }
+    var normalizedRow = {};
+    for (var key in row)
+      if (Object.prototype.hasOwnProperty.call(row, key))
+        normalizedRow[normalize_(key)] = row[key];
     var output = headers.map(function (header) {
-      return row[header] === undefined || row[header] === null
-        ? ""
-        : safeCell_(row[header]);
+      var value = normalizedRow[normalize_(header)];
+      return value === undefined || value === null ? "" : safeCell_(value);
     });
+    var firstHeader = normalize_(headers[0] || ""),
+      numberColumn =
+        firstHeader === "no" ||
+        firstHeader === "no." ||
+        firstHeader === "nomor";
     if (target) {
-      output[0] = values[target - 1][0];
+      if (numberColumn) output[0] = values[target - 1][0];
       sheet.getRange(target, 1, 1, headers.length).setValues([output]);
     } else {
-      output[0] = sheet.getLastRow();
+      if (numberColumn) output[0] = sheet.getLastRow();
       sheet.appendRow(output);
     }
     SpreadsheetApp.flush();
