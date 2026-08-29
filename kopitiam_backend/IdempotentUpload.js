@@ -266,7 +266,11 @@ function syncTemuanInspeksiIdempotent_(token, incoming) {
       idempotencyKey: photoIdempotencyKey_(code, primary, environment),
       reused: !primary.created && !environment.created,
     };
-  } catch (_) {
+  } catch (err) {
+    console.error(
+      "syncTemuanInspeksi idempotent gagal:",
+      err && err.stack ? err.stack : err,
+    );
     rollbackCreatedPhotos_(created);
     return fail_(
       "SYNC_TRANSACTION_FAILED",

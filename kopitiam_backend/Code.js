@@ -557,6 +557,7 @@ var WO_ROW_MUTABLE_HEADERS = [
   "tindak lanjut",
   "ukuran diamter batan (cm)",
   "jenis tebangan",
+  "jenis pekerjaan",
   "foto sesudah",
   "link foto sesudah",
   "waktu realisasi",
@@ -598,7 +599,11 @@ function syncWoRow_(t, rows) {
       for (var c = 0; c < x.headers.length; c++) {
         var n = normalize_(x.headers[c]);
         if (WO_ROW_MUTABLE_HEADERS.indexOf(n) < 0) continue;
-        if (n === "jenis tebangan" && diaValue !== undefined && tindak !== "") {
+        if (
+          (n === "jenis tebangan" || n === "jenis pekerjaan") &&
+          diaValue !== undefined &&
+          tindak !== ""
+        ) {
           var derived = jenisTebanganFromDiameter_(diaValue);
           if (derived) out[c] = safeCell_(derived);
           continue;
@@ -606,7 +611,8 @@ function syncWoRow_(t, rows) {
         var value = normPayload[n];
         if (value !== undefined) out[c] = value === null ? "" : safeCell_(value);
       }
-      var fotoB64 = normPayload["foto sesudah base64"];
+      var fotoB64 =
+        normPayload["foto sesudah base64"] || normPayload["fotosesudahbase64"];
       if (fotoB64) {
         try {
           var prepared = preparePhoto_(fotoB64, "Foto Sesudah");
@@ -615,18 +621,37 @@ function syncWoRow_(t, rows) {
             (x.index["folder path"] !== undefined
               ? x.row[x.index["folder path"]]
               : "");
-          var folder = fp ? folderPath_(fp) : null;
-          if (folder) {
-            var stored = putPhotoIdempotent_(
-              folder,
-              String(x.row[x.index["kode wo"]] || ""),
-              prepared,
+          if (!fp) {
+            var kodeWoCell = String(x.row[x.index["kode wo"]] || "");
+            var kodeTemuanCell =
+              x.index["kode temuan"] !== undefined
+                ? String(x.row[x.index["kode temuan"]] || "")
+                : "";
+            fp = buildFindingPath_(
+              x.kodeUlp,
+              "Jaringan",
+              kodeWoCell,
+              kodeTemuanCell,
+              new Date(),
             );
-            if (x.index["foto sesudah"] !== undefined)
-              out[x.index["foto sesudah"]] = stored.name;
-            if (x.index["link foto sesudah"] !== undefined)
-              out[x.index["link foto sesudah"]] = stored.url;
+            if (
+              kodeTemuanCell &&
+              x.index["folder path"] !== undefined &&
+              !String(x.row[x.index["folder path"]] || "").trim()
+            )
+              out[x.index["folder path"]] = fp;
           }
+          var folder = folderPath_(fp);
+          var stored = putPhotoIdempotent_(
+            folder,
+            String(x.row[x.index["kode wo"]] || ""),
+            prepared,
+          );
+          if (x.index["foto sesudah"] !== undefined)
+            out[x.index["foto sesudah"]] =
+              fp.replace(/\/+$/, "") + "/" + stored.name;
+          if (x.index["link foto sesudah"] !== undefined)
+            out[x.index["link foto sesudah"]] = stored.url;
         } catch (_) {
           return fail_("PHOTO_INVALID", "File Foto Sesudah tidak valid.");
         }

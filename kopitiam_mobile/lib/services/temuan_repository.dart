@@ -268,7 +268,11 @@ class TemuanRepository {
             'Sesi tidak valid atau sudah berakhir. Silakan login ulang. [$kode]',
           );
         }
-        throw StateError(message);
+        throw StateError(
+          message.isEmpty
+              ? 'Sinkronisasi foto gagal. [$kode]'
+              : '$message [$kode]',
+        );
       }
     }
   }

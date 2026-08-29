@@ -30,6 +30,7 @@ class _TemuanTabState extends State<TemuanTab>
   static const amber = Color(0xFFFFB800);
   static const muted = Color(0xFF64748B);
   static const line = Color(0xFFE2E8F0);
+  static const green = Color(0xFF16A34A);
 
   final repo = TemuanRepository();
   List<TemuanInspeksi> items = [];
@@ -246,20 +247,27 @@ class _TemuanTabState extends State<TemuanTab>
               ),
             ],
           ),
-          if (item.dirty) ...[
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                const Icon(Icons.cloud_upload_outlined, size: 12, color: amber),
-                const SizedBox(width: 4),
-                const Text(
-                  'Belum sinkron',
-                  style: TextStyle(fontSize: 10, color: amber),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Icon(
+                item.dirty
+                    ? Icons.cloud_upload_outlined
+                    : Icons.cloud_done_outlined,
+                size: 13,
+                color: item.dirty ? amber : green,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                item.dirty ? 'Belum sinkron' : 'Tersinkron',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: item.dirty ? amber : green,
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -405,6 +413,26 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
 
   List<String> get temuanOptions {
     if (tier == null || tier!.isEmpty) return [];
+    // Jika TIDAK ADA baris master yang memberi label objek, jangan menyaring
+    // (master lama tanpa kolom "Objek Inspeksi"). Begitu ada label, baris tanpa
+    // label atau label yang tidak cocok tidak lagi bocor antar objek.
+    final hasObject = listMaster.any(
+      (row) => _findValue(row, const [
+        'Objek Inspeksi',
+        'Jenis Object',
+        'Object',
+      ]).trim().isNotEmpty,
+    );
+    final targetObject = object.toLowerCase().trim();
+    bool matchObject(String rowObject) {
+      if (!hasObject) return true;
+      return rowObject
+          .split(RegExp(r'[/,;]'))
+          .map((e) => e.trim().toLowerCase())
+          .where((e) => e.isNotEmpty)
+          .any((e) => e == targetObject);
+    }
+
     final options = listMaster
         .where((row) {
           final rowObject = _findValue(row, const [
@@ -413,13 +441,10 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
             'Object',
           ]);
           final rowTier = _findValue(row, const ['Tier']);
-          final rowNorm = rowObject.toLowerCase().trim();
-          final objNorm = object.toLowerCase().trim();
-          final matchObject =
-              rowNorm.isEmpty || rowNorm == objNorm;
           final matchTier =
-              rowTier.isEmpty || rowTier.toLowerCase() == tier!.toLowerCase();
-          return matchObject && matchTier;
+              rowTier.trim().isEmpty ||
+              rowTier.trim().toLowerCase() == tier!.toLowerCase();
+          return matchObject(rowObject) && matchTier;
         })
         .map((row) => _findValue(row, const ['Temuan', 'Nama Temuan']))
         .where((value) => value.isNotEmpty)

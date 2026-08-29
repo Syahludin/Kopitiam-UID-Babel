@@ -45,6 +45,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   final _woRepo = WoInsjarRepository();
   final _rowRepo = WoRowRepository();
   late final AnimationController _bubbleController;
+  late final AnimationController _masterSpin;
 
   int _selectedIndex = 1;
   int _previousIndex = 1;
@@ -73,6 +74,10 @@ class _DashboardScreenState extends State<DashboardScreen>
   void initState() {
     super.initState();
     _bubbleController = AnimationController(vsync: this, value: 1);
+    _masterSpin = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
     _loadLocalStatus();
     _loadWo();
   }
@@ -81,6 +86,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   void dispose() {
     _progressTimer?.cancel();
     _bubbleController.dispose();
+    _masterSpin.dispose();
     super.dispose();
   }
 
@@ -242,6 +248,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   Future<void> _syncMaster() async {
     if (_syncing) return;
     setState(() => _syncing = true);
+    _masterSpin.repeat();
     _startProgress(master: true, label: '');
     try {
       final result = await ApiService.getMasterData(_token);
@@ -270,11 +277,14 @@ class _DashboardScreenState extends State<DashboardScreen>
       if (mounted) _message(error.toString(), error: true);
     } finally {
       _progressTimer?.cancel();
-      if (mounted)
+      if (mounted) {
+        _masterSpin.stop();
+        _masterSpin.value = 0;
         setState(() {
           _syncing = false;
           _progress = 0;
         });
+      }
     }
   }
 
@@ -367,7 +377,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       foregroundColor: Colors.white,
       title: Row(
         children: [
-          SvgPicture.asset('assets/icons/logo_app.svg', width: 38, height: 38),
+          _menuTopIcon(_selectedIndex),
           const SizedBox(width: 10),
           Text(
             _labels[_selectedIndex],
@@ -1273,10 +1283,13 @@ class _DashboardScreenState extends State<DashboardScreen>
               children: [
                 Row(
                   children: [
-                    SvgPicture.asset(
-                      'assets/icons/pengaturan.svg',
-                      width: 44,
-                      height: 44,
+                    RotationTransition(
+                      turns: _masterSpin,
+                      child: SvgPicture.asset(
+                        'assets/icons/pengaturan.svg',
+                        width: 44,
+                        height: 44,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -1416,6 +1429,20 @@ class _DashboardScreenState extends State<DashboardScreen>
       'assets/icons/pengaturan.svg',
       width: size,
       height: size,
+    );
+  }
+
+  Widget _menuTopIcon(int index) {
+    final file = index == 0
+        ? 'work_order.svg'
+        : index == 1
+            ? 'beranda.svg'
+            : 'pengaturan.svg';
+    return SvgPicture.asset(
+      'assets/icons/$file',
+      width: 26,
+      height: 26,
+      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
     );
   }
 }

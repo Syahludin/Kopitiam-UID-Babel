@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../models/temuan_inspeksi.dart';
+import '../models/wo_insjar.dart';
 import '../models/wo_row.dart';
 import 'api_service.dart';
 import 'photo_watermark_service.dart';
@@ -96,7 +97,11 @@ class WoRowRepository {
     final db = await _database();
     await db.update(
       'wo_row',
-      {'status_wo': WoRow.statusProgress, 'is_dirty': 0},
+      {
+        'status_wo': WoRow.statusProgress,
+        'is_dirty': 0,
+        'waktu_input': WoInsjar.stampLengkap(DateTime.now()),
+      },
       where: 'kode_wo = ?',
       whereArgs: [kodeWo],
     );

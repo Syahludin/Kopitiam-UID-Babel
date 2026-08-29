@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/temuan_inspeksi.dart';
@@ -38,6 +39,7 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
   late String _status;
   String? _tindakLanjut;
   String _fotoSesudah = '';
+  DateTime? _waktuMulai;
   bool _saving = false;
   bool _takingPhoto = false;
 
@@ -51,9 +53,17 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
   int? get _diameterValue =>
       double.tryParse(_diameterCtrl.text.replaceAll(',', '.'))?.round();
 
-  String get _jenisTebangan => _isTebang
-      ? WoRow.jenisTebanganDariDiameter(_diameterValue)
-      : _row.jenisTebangan;
+  String get _jenisPekerjaan {
+    if (_isTebang) return WoRow.jenisTebanganDariDiameter(_diameterValue);
+    return (_tindakLanjut ?? '').trim();
+  }
+
+  String get _lokasiSesudah {
+    final nama = p.basename(_fotoSesudah);
+    if (nama.isEmpty) return '-';
+    if (_row.folderPath.isEmpty) return nama;
+    return '${_row.folderPath.replaceAll(RegExp(r'/+$'), '')}/$nama';
+  }
 
   @override
   void initState() {
@@ -75,7 +85,12 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
   Future<void> _mulai() async {
     if (_readOnly || _saving) return;
     await _repo.mulaiPekerjaan(_row.kodeWo);
-    if (mounted) setState(() => _status = WoRow.statusProgress);
+    if (mounted) {
+      setState(() {
+        _status = WoRow.statusProgress;
+        _waktuMulai ??= DateTime.now();
+      });
+    }
   }
 
   Future<void> _ambilFoto() async {
@@ -141,11 +156,15 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
       final updated = _row.copyWith(
         tindakLanjut: _tindakLanjut,
         ukuranDiameterBatang: _isTebang ? _diameterValue : null,
-        jenisTebangan: _isTebang ? _jenisTebangan : _row.jenisTebangan,
+        jenisTebangan: _jenisPekerjaan,
         fotoSesudah: _fotoSesudah,
         statusWo: WoRow.statusSelesai,
         userInput: '${widget.sesi['username'] ?? ''}',
-        waktuInput: WoInsjar.stampLengkap(now),
+        waktuInput: _waktuMulai != null
+            ? WoInsjar.stampLengkap(_waktuMulai!)
+            : _row.waktuInput.isNotEmpty
+                ? _row.waktuInput
+                : WoInsjar.stampLengkap(now),
         waktuRealisasi: WoInsjar.stampLengkap(now),
         isDirty: true,
       );
@@ -484,33 +503,33 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
               onChanged: (_) => setState(() {}),
               decoration: _inputDecoration('Ukuran Diamter Batan (cm) *'),
             ),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF8E1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  const Text(
-                    'Jenis Tebangan',
-                    style: TextStyle(fontSize: 12, color: muted),
-                  ),
-                  const Spacer(),
-                  Text(
-                    _jenisTebangan,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: navy,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF8E1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                const Text(
+                  'Jenis Pekerjaan',
+                  style: TextStyle(fontSize: 12, color: muted),
+                ),
+                const Spacer(),
+                Text(
+                  _jenisPekerjaan.isEmpty ? '-' : _jenisPekerjaan,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: navy,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       );
 
@@ -596,6 +615,22 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
             ),
           ),
           const SizedBox(height: 8),
+          if (_fotoSesudah.isNotEmpty) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.folder_open_rounded, size: 14, color: blue),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Lokasi file: $_lokasiSesudah',
+                    style: const TextStyle(fontSize: 11, color: muted),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
           const Row(
             children: [
               Icon(Icons.gpp_good_rounded, size: 14, color: green),

@@ -40,6 +40,14 @@ test("syncWoRow_ validates ROW statuses and mutates only ROW headers", () => {
   assert.match(code, /putPhotoIdempotent_\(/);
 });
 
+test("syncWoRow_ accepts the mobile camelCase photo key", () => {
+  assert.match(
+    code,
+    /normPayload\["foto sesudah base64"\] \|\| normPayload\["fotosesudahbase64"\]/,
+  );
+  assert.match(code, /fp\.replace\(\/\\\/\+\$\/, ""\) \+ "\/" \+ stored\.name/);
+});
+
 test("jenis tebangan mengikuti formula IFS diameter batang", () => {
   const sandbox = { console };
   vm.createContext(sandbox);
