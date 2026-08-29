@@ -1,0 +1,33 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "copilotku": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Copilotku",
+      "options": {
+        "baseURL": "https://anthropic.platfrom-claude.com/v1",
+        "apiKey": "{env:COPILOTKU_API_KEY}"
+      },
+      "models": {
+        "Sonnet-5": {
+          "name": "Copilotku Sonnet 5",
+          "limit": { "context": 200000, "output": 8192 }
+        },
+        "opus[1m]": {
+          "name": "Copilotku Opus 1M",
+          "limit": { "context": 200000, "output": 8192 }
+        },
+        "fable-5": {
+          "name": "Copilotku Fable 5",
+          "limit": { "context": 200000, "output": 8192 }
+        },
+        "Haiku-4.5": {
+          "name": "Copilotku Haiku 4.5",
+          "limit": { "context": 200000, "output": 8192 }
+        }
+      }
+    }
+  },
+  "model": "copilotku/Sonnet-5",
+  "small_model": "copilotku/Haiku-4.5"
+}
