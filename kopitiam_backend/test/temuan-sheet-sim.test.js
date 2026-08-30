@@ -52,6 +52,7 @@ function fakeSheet(headers) {
     appendRow(values) {
       data.push(values.slice());
     },
+    setFrozenRows() {},
   };
 }
 
@@ -72,6 +73,9 @@ function driveTree() {
       },
       getFiles() {
         return iterator(files.filter((f) => !f.trashed));
+      },
+      getFolders() {
+        return iterator([...children.values()]);
       },
       createFile(blob) {
         const file = {
@@ -102,10 +106,19 @@ function jpegBytes() {
   return Buffer.concat([head, body, tail]);
 }
 
-function makeBackend(headers) {
+function makeBackend(headers, opts = {}) {
   const sheet = fakeSheet(headers);
-  const openSheet = { getSheetByName: (name) => (name === "Inp_Temuan" ? sheet : null) };
   const driveRoot = driveTree();
+  let createdSheet = null;
+  const openSheet = {
+    getSheetByName: (name) =>
+      name === "Inp_Temuan" ? (opts.missingSheet ? null : sheet) : null,
+    insertSheet: (name) => {
+      if (name !== "Inp_Temuan") throw new Error("insertSheet unexpected: " + name);
+      createdSheet = fakeSheet([]);
+      return createdSheet;
+    },
+  };
   const sandbox = {
     console,
     Date,
@@ -166,7 +179,7 @@ function makeBackend(headers) {
     ].join("\n"),
     sandbox,
   );
-  return { sandbox, sheet };
+  return { sandbox, sheet, driveRoot, get createdSheet() { return createdSheet; } };
 }
 
 function crypto_findHash(algorithm, value, charset) {
@@ -308,4 +321,40 @@ test("retrying the same finding updates the same row instead of duplicating", ()
   assert.equal(retry.reused, true);
   assert.equal(sheet.data.length, 2, "no new row appended on retry");
   assert.equal(cellByHeader(sheet, 1, "Kode Temuan"), "PLG-2026-003.TO-001");
+});
+
+test("auto-creates Inp_Temuan with headers when the sheet is missing", () => {
+  const backend = makeBackend([], { missingSheet: true });
+  const result = backend.sandbox.syncTemuanInspeksiIdempotent_(
+    "tok",
+    payload({ wo: "PLG-2026-004", finding: "PLG-2026-004.TO-001" }),
+  );
+  assert.equal(result.success, true);
+  const createdSheet = backend.createdSheet;
+  assert.ok(createdSheet, "Inp_Temuan sheet should have been created");
+  assert.ok(createdSheet.data[0].includes("Kode Temuan"));
+  assert.ok(createdSheet.data[0].includes("Kode WO"));
+  assert.ok(createdSheet.data[0].includes("Folder Path"));
+  assert.equal(
+    cellByHeader(createdSheet, 1, "Kode Temuan"),
+    "PLG-2026-004.TO-001",
+  );
+});
+
+test("invalid headers fail before any Drive photo is created", () => {
+  const { sandbox, sheet, driveRoot } = makeBackend(["Kode WO", "Temuan"]);
+  const result = sandbox.syncTemuanInspeksiIdempotent_(
+    "tok",
+    payload({ wo: "PLG-2026-005", finding: "PLG-2026-005.TO-001" }),
+  );
+  assert.equal(result.success, false);
+  assert.equal(result.kode, "SHEET_HEADERS_INVALID");
+  assert.equal(sheet.data.length, 1, "no row should be written");
+  const files = [];
+  (function collect(folder) {
+    for (const it = folder.getFiles(); it.hasNext(); ) files.push(it.next());
+    for (const it = folder.getFolders(); it.hasNext(); )
+      collect(it.next());
+  })(driveRoot);
+  assert.equal(files.length, 0, "no Drive photos should exist after header failure");
 });

@@ -207,16 +207,6 @@ function syncTemuanInspeksiIdempotent_(token, incoming) {
       now,
     );
 
-    var folder = folderPath_(row["Folder Path"]);
-    var primary = putPhotoIdempotent_(folder, code, primaryPrepared);
-    created.push(primary);
-    var environment = putPhotoIdempotent_(folder, code, environmentPrepared);
-    created.push(environment);
-    row["Foto Temuan"] = primary.name;
-    row["Link Foto"] = primary.url;
-    row["Foto Lingkungan Sekitaran Tiang"] = environment.name;
-    row["Link Foto Sekitaran Tiang"] = environment.url;
-
     var sheet = temuanSheet_();
     var values = sheet.getDataRange().getValues();
     var headers = sheet
@@ -235,6 +225,17 @@ function syncTemuanInspeksiIdempotent_(token, incoming) {
         break;
       }
     }
+
+    var folder = folderPath_(row["Folder Path"]);
+    var primary = putPhotoIdempotent_(folder, code, primaryPrepared);
+    created.push(primary);
+    var environment = putPhotoIdempotent_(folder, code, environmentPrepared);
+    created.push(environment);
+    row["Foto Temuan"] = primary.name;
+    row["Link Foto"] = primary.url;
+    row["Foto Lingkungan Sekitaran Tiang"] = environment.name;
+    row["Link Foto Sekitaran Tiang"] = environment.url;
+
     var normalizedRow = {};
     for (var key in row)
       if (Object.prototype.hasOwnProperty.call(row, key))

@@ -44,19 +44,7 @@ function setupBackend() {
     "Status WO",
     "Tim Eksekusi",
   ]);
-  requireSheet_(temuan, CONFIG.TEMUAN_SHEET, [
-    "Kode WO",
-    "Kode Temuan",
-    "Kode ULP",
-    "Jenis Object",
-    "Tier",
-    "Temuan",
-    "Koordinat Temuan",
-    "Foto Temuan",
-    "Link Foto",
-    "Foto Lingkungan Sekitaran Tiang",
-    "Link Foto Sekitaran Tiang",
-  ]);
+  ensureSheet_(temuan, CONFIG.TEMUAN_SHEET, TEMUAN_SHEET_HEADERS);
 
   pasangTriggerPembersihanToken_();
   var cleanup = bersihkanTokenPerangkatKedaluwarsa();

@@ -669,11 +669,52 @@ function syncWoRow_(t, rows) {
   }
 }
 
+var TEMUAN_SHEET_HEADERS = [
+  "No",
+  "Kode WO",
+  "Kode Temuan",
+  "Kode UIW",
+  "Kode UP3",
+  "Kode ULP",
+  "ULP",
+  "Hari",
+  "Tanggal",
+  "Penyulang",
+  "Section Awal",
+  "Section Akhir",
+  "Section",
+  "Segmen",
+  "Koordinat Temuan",
+  "Lat Temuan",
+  "Long Temuan",
+  "Jenis Object",
+  "Tier",
+  "Temuan",
+  "Jarak Terhadap Jaringan",
+  "Jenis Pohon",
+  "Tinggi Pohon",
+  "Prioritas",
+  "Pekerjaan (Padam / Tanpa Padam)",
+  "Jenis WO",
+  "Waktu Input",
+  "User Input",
+  "Folder Path",
+  "Foto Temuan",
+  "Link Foto",
+  "Foto Lingkungan Sekitaran Tiang",
+  "Link Foto Sekitaran Tiang",
+];
 function temuanSheet_() {
-  var s = SpreadsheetApp.openById(CONFIG.TEMUAN_SPREADSHEET_ID).getSheetByName(
-    CONFIG.TEMUAN_SHEET,
-  );
-  if (!s) throw new Error("Findings sheet missing");
+  var ss = SpreadsheetApp.openById(CONFIG.TEMUAN_SPREADSHEET_ID);
+  var s = ss.getSheetByName(CONFIG.TEMUAN_SHEET);
+  if (!s) {
+    s = ss.insertSheet(CONFIG.TEMUAN_SHEET);
+    s.getRange(1, 1, 1, TEMUAN_SHEET_HEADERS.length).setValues([
+      TEMUAN_SHEET_HEADERS,
+    ]);
+    s.setFrozenRows(1);
+    SpreadsheetApp.flush();
+  }
   return s;
 }
 function getTemuanInspeksi_(t, k) {
