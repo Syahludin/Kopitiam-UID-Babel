@@ -15,22 +15,19 @@ const manifest = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, "..", "appsscript.json"), "utf8"),
 );
 
-test("manifest explicitly authorizes Drive and Spreadsheet scopes", () => {
-  const scopes = manifest.oauthScopes || [];
-  assert.ok(
-    scopes.includes("https://www.googleapis.com/auth/drive"),
-    "oauthScopes must include Drive for folderPath_/folder uploads",
-  );
-  assert.ok(
-    scopes.includes("https://www.googleapis.com/auth/spreadsheets"),
-    "oauthScopes must include Spreadsheets for sheet writes",
-  );
-  assert.ok(
-    scopes.indexOf("https://www.googleapis.com/auth/drive.file") === -1 &&
-      scopes.indexOf("https://www.googleapis.com/auth/drive.readonly") === -1,
-    "full Drive scope required for create-folder flow",
-  );
-});
+test(
+  "manifest relies on the Apps Script auto-inferred scopes (no oauthScopes)",
+  () => {
+    // Menyebut scopes secara eksplisit (mis. Drive + Spreadsheets tanpa
+    // script.scriptapp) menyebabkan setup dari editor gagal dengan
+    // "Specified permissions are not sufficient to call ...".
+    const scopes = manifest.oauthScopes;
+    assert.ok(
+      scopes === undefined || scopes === null,
+      "oauthScopes must not be manually declared; let Apps Script infer them",
+    );
+  },
+);
 
 function loadSetup(records = {}, now = Date.now()) {
   const properties = new Map(Object.entries(records));
