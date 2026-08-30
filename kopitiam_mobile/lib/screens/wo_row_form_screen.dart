@@ -62,7 +62,7 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
     final nama = p.basename(_fotoSesudah);
     if (nama.isEmpty) return '-';
     if (_row.folderPath.isEmpty) return nama;
-    return '${_row.folderPath.replaceAll(RegExp(r'/+$'), '')}/$nama';
+    return '${_row.folderPath.replaceAll(RegExp(r'/+\$'), '')}/$nama';
   }
 
   @override
@@ -91,6 +91,36 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
         _waktuMulai ??= DateTime.now();
       });
     }
+  }
+
+  void _lihatFoto() {
+    if (_fotoSesudah.isEmpty || !File(_fotoSesudah).existsSync()) return;
+    showDialog<void>(
+      context: context,
+      builder: (_) => GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        child: Dialog.fullscreen(
+          backgroundColor: Colors.black.withOpacity(0.9),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4,
+                child: Center(
+                  child: Image.file(File(_fotoSesudah), fit: BoxFit.contain),
+                ),
+              ),
+              const Positioned(
+                top: 48,
+                right: 16,
+                child: Icon(Icons.close, color: Colors.white, size: 28),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _ambilFoto() async {
@@ -288,9 +318,7 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
                             ],
                           )
                         : Text(
-                            _readOnly
-                                ? 'ROW Selesai'
-                                : 'Simpan Realisasi',
+                            _readOnly ? 'ROW Selesai' : 'Simpan Realisasi',
                             style: const TextStyle(fontWeight: FontWeight.w800),
                           ),
                   ),
@@ -360,8 +388,9 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    '${row.ulp} • ${row.kodeUlp}',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    '${row.ulp} \u2022 ${row.kodeUlp}',
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                 ),
                 if (!_readOnly && _status == WoRow.statusPenugasan)
@@ -395,8 +424,8 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
         ),
         child: Text(
           value,
-          style: TextStyle(
-            color: _readOnly ? Colors.white : Colors.white,
+          style: const TextStyle(
+            color: Colors.white,
             fontSize: 11,
             fontWeight: FontWeight.w800,
           ),
@@ -430,10 +459,13 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
           const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(child: Column(children: [_readRow('Section', row.section)])),
+              Expanded(
+                  child:
+                      Column(children: [_readRow('Section', row.section)])),
               const SizedBox(width: 8),
               Expanded(
-                child: Column(children: [_readRow('Penyulang', row.penyulang)]),
+                child: Column(
+                    children: [_readRow('Penyulang', row.penyulang)]),
               ),
             ],
           ),
@@ -457,7 +489,9 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      row.koordinat.isEmpty ? 'Koordinat belum tersedia' : row.koordinat,
+                      row.koordinat.isEmpty
+                          ? 'Koordinat belum tersedia'
+                          : row.koordinat,
                       style: const TextStyle(
                         color: blue,
                         fontWeight: FontWeight.w700,
@@ -465,7 +499,8 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
                       ),
                     ),
                   ),
-                  const Icon(Icons.arrow_forward_rounded, size: 18, color: blue),
+                  const Icon(Icons.arrow_forward_rounded,
+                      size: 18, color: blue),
                 ],
               ),
             ),
@@ -477,7 +512,7 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
         'Tindak Lanjut & Realisasi',
         [
           DropdownButtonFormField<String>(
-            initialValue: WoRow.tindakLanjutOptions.contains(_tindakLanjut)
+            value: WoRow.tindakLanjutOptions.contains(_tindakLanjut)
                 ? _tindakLanjut
                 : null,
             hint: const Text('--Pilih Tindak Lanjut--'),
@@ -489,8 +524,9 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
                   ),
                 )
                 .toList(),
-            onChanged:
-                _editable ? (value) => setState(() => _tindakLanjut = value) : null,
+            onChanged: _editable
+                ? (value) => setState(() => _tindakLanjut = value)
+                : null,
             decoration: _inputDecoration('Tindak Lanjut *'),
           ),
           if (_isTebang) ...[
@@ -501,7 +537,7 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               onChanged: (_) => setState(() {}),
-              decoration: _inputDecoration('Ukuran Diamter Batan (cm) *'),
+              decoration: _inputDecoration('Ukuran Diameter Batang (cm) *'),
             ),
           ],
           const SizedBox(height: 12),
@@ -536,9 +572,11 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
   Widget _fotoCard() => _card(
         'Foto Sesudah',
         [
-          InkWell(
-            onTap: _editable ? _ambilFoto : null,
-            borderRadius: BorderRadius.circular(14),
+          GestureDetector(
+            onTap: _fotoSesudah.isNotEmpty &&
+                    File(_fotoSesudah).existsSync()
+                ? _lihatFoto
+                : (_editable ? _ambilFoto : null),
             child: Container(
               height: 160,
               decoration: BoxDecoration(
@@ -549,7 +587,8 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
                   width: _fotoSesudah.isNotEmpty ? 1.4 : 1,
                 ),
               ),
-              child: _fotoSesudah.isNotEmpty && File(_fotoSesudah).existsSync()
+              child: _fotoSesudah.isNotEmpty &&
+                      File(_fotoSesudah).existsSync()
                   ? Stack(
                       fit: StackFit.expand,
                       children: [
@@ -582,6 +621,36 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
                             ),
                           ),
                         ),
+                        Positioned(
+                          left: 8,
+                          bottom: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xCC071B30),
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.zoom_in, size: 14,
+                                    color: Colors.white),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Ketuk untuk lihat',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ],
                     )
                   : Column(
@@ -607,13 +676,31 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
                               ),
                         const SizedBox(height: 4),
                         const Text(
-                          'Landscape wajib • Di-zoom otomatis',
+                          'Landscape wajib \u2022 Pinch to zoom',
                           style: TextStyle(fontSize: 11, color: muted),
                         ),
                       ],
                     ),
             ),
           ),
+          if (_fotoSesudah.isNotEmpty && _editable) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _ambilFoto,
+                icon: const Icon(Icons.camera_alt_rounded, size: 16),
+                label: const Text('Ambil Ulang Foto'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: blue,
+                  side: const BorderSide(color: line),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           if (_fotoSesudah.isNotEmpty) ...[
             Row(
