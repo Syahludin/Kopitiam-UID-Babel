@@ -244,7 +244,11 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
                 _workOrder(wo),
                 Stack(
                   children: [
-                    TemuanTab(wo: wo, sesi: widget.sesi),
+                    TemuanTab(
+                      wo: wo,
+                      sesi: widget.sesi,
+                      canAddTemuan: _awal != null,
+                    ),
                     if (_readOnly)
                       Positioned(
                         right: 8,

@@ -16,8 +16,14 @@ import 'login_screen.dart';
 class TemuanTab extends StatefulWidget {
   final WoInsjar wo;
   final Map<String, dynamic> sesi;
+  final bool canAddTemuan;
 
-  const TemuanTab({super.key, required this.wo, required this.sesi});
+  const TemuanTab({
+    super.key,
+    required this.wo,
+    required this.sesi,
+    this.canAddTemuan = true,
+  });
 
   @override
   State<TemuanTab> createState() => _TemuanTabState();
@@ -58,6 +64,16 @@ class _TemuanTabState extends State<TemuanTab>
   }
 
   Future<void> _add() async {
+    if (!widget.canAddTemuan) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Ambil Koordinat Awal WO terlebih dahulu sebelum menambah temuan.',
+          ),
+        ),
+      );
+      return;
+    }
     final changed = await Navigator.push<bool>(
       context,
       MaterialPageRoute(

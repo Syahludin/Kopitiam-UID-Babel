@@ -273,9 +273,17 @@ function syncTemuanInspeksiIdempotent_(token, incoming) {
       err && err.stack ? err.stack : err,
     );
     rollbackCreatedPhotos_(created);
+    var detail = String(
+      (err && err.message) || err || "",
+    )
+      .replace(/\s+/g, " ")
+      .trim()
+      .substring(0, 280);
     return fail_(
       "SYNC_TRANSACTION_FAILED",
-      "Sinkronisasi gagal dan file baru dibatalkan.",
+      detail
+        ? "Sinkronisasi gagal: " + detail
+        : "Sinkronisasi gagal dan file baru dibatalkan.",
     );
   } finally {
     lock.releaseLock();
