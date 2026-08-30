@@ -5,6 +5,9 @@ var DEVICE_CLEANUP_HANDLER = "bersihkanTokenPerangkatKedaluwarsa";
 /**
  * Menyiapkan dan memvalidasi backend tanpa mengubah data pengguna yang ada.
  * Jalankan sekali dari editor Apps Script setelah deployment baru.
+ * PENTING: pemanggil dari editor dipaksa mengotorisasi ulang Drive +
+ * Spreadsheets saat oauthScopes manifest berubah; tanpa mencicipi DriveApp
+ * di sini, otorisasi ulang tidak pernah terpicu dan upload foto ditolak.
  */
 function setupBackend() {
   var props = PropertiesService.getScriptProperties();
@@ -14,6 +17,9 @@ function setupBackend() {
       Utilities.getUuid() + Utilities.getUuid() + Utilities.getUuid(),
     );
   }
+
+  // Menyentil Drive agar editor memicu ulang otorisasi saat manifest berubah.
+  DriveApp.getRootFolder();
 
   var master = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
   var wo = SpreadsheetApp.openById(CONFIG.WO_SPREADSHEET_ID);

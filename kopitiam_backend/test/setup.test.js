@@ -120,6 +120,13 @@ test("server cleanup removes expired, idle, future, and corrupt device tokens", 
   assert.deepEqual(lockCounts(), [1, 1]);
 });
 
+test(
+  "setup touches DriveApp so the editor re-authorizes Drive after manifest scope changes",
+  () => {
+    assert.match(source, /DriveApp\.getRootFolder\(\)/);
+  },
+);
+
 test("cleanup ignores unrelated Script Properties", () => {
   const now = Date.UTC(2026, 7, 28, 3, 0, 0);
   const { backend, properties } = loadSetup({ OTHER_CONFIG: "value" }, now);
