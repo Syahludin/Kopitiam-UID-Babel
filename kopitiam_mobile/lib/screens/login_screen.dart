@@ -152,14 +152,14 @@ class LoginScreen extends StatelessWidget {
                 ),
               ),
             ),
-            Positioned(
+            const Positioned(
               bottom: 18,
               left: 16,
               right: 16,
               child: Text(
                 'Kopitiam \u00A9 2026 \u2022 PLN UID Babel',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   color: AppColors.neutral500,
                 ),
@@ -385,7 +385,8 @@ class _LoginSheetState extends State<_LoginSheet> {
                       ],
                     ),
                     const SizedBox(height: 22),
-                    if (_error != null) ...[n                      Container(
+                    if (_error != null) ...[
+                      Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: AppColors.red100,
