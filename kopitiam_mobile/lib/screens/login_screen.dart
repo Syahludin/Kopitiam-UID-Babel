@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api_service.dart';
@@ -50,24 +51,36 @@ class LoginScreen extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const _AppLogo(size: 148),
+                    SvgPicture.asset(
+                      'assets/icons/logo_app.svg',
+                      width: 132,
+                      height: 132,
+                    ),
                     const SizedBox(height: 18),
-                    const Text(
-                      'KOPITIAM',
+                    const Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Kopi',
+                            style: TextStyle(color: AppColors.navy900),
+                          ),
+                          TextSpan(
+                            text: 'tiam',
+                            style: TextStyle(color: AppColors.amber600),
+                          ),
+                        ],
+                      ),
                       style: TextStyle(
                         fontSize: 40,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 2,
-                        color: AppColors.navy900,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     const Text(
-                      'Kontrol Operasional, Pemantauan Integritas,\n& Teknologi Informasi Aset Manajemen',
+                      'Kontrol Pemeliharaan dan Inspeksi Aset Mandiri',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
-                        height: 1.45,
                         color: AppColors.neutral500,
                       ),
                     ),
@@ -139,14 +152,14 @@ class LoginScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const Positioned(
+            Positioned(
               bottom: 18,
               left: 16,
               right: 16,
               child: Text(
-                'KOPITIAM © 2026 · PLN UID Babel',
+                'Kopitiam \u00A9 2026 \u2022 PLN UID Babel',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 11,
                   color: AppColors.neutral500,
                 ),
@@ -157,35 +170,6 @@ class LoginScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Logo KOPITIAM dengan cadangan aman bila berkas gambar gagal dimuat.
-class _AppLogo extends StatelessWidget {
-  final double size;
-
-  const _AppLogo({required this.size});
-
-  @override
-  Widget build(BuildContext context) => Image.asset(
-    'assets/icons/logo_app.png',
-    width: size,
-    height: size,
-    filterQuality: FilterQuality.high,
-    errorBuilder: (context, error, stackTrace) => Container(
-      width: size,
-      height: size,
-      decoration: const BoxDecoration(
-        color: AppColors.navy700,
-        shape: BoxShape.circle,
-      ),
-      alignment: Alignment.center,
-      child: Icon(
-        Icons.bolt_rounded,
-        size: size * .5,
-        color: AppColors.amber600,
-      ),
-    ),
-  );
 }
 
 class _PlnBadge extends StatelessWidget {
@@ -338,20 +322,16 @@ class _LoginSheetState extends State<_LoginSheet> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+                padding: const EdgeInsets.fromLTRB(22, 22, 22, 24),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFFF7FCFF), Colors.white],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.navy100),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.navy700.withValues(alpha: .07),
-                      blurRadius: 18,
-                      offset: const Offset(0, 6),
+                      color: AppColors.navy700.withValues(alpha: .06),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
@@ -361,27 +341,40 @@ class _LoginSheetState extends State<_LoginSheet> {
                     Row(
                       children: [
                         Container(
-                          width: 42,
-                          height: 42,
+                          width: 44,
+                          height: 44,
                           decoration: BoxDecoration(
                             color: AppColors.navy700,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(13),
                           ),
                           child: const Icon(
                             Icons.lock_open_rounded,
                             color: Colors.white,
-                            size: 21,
+                            size: 22,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 14),
                         const Expanded(
-                          child: Text(
-                            'Masuk ke akun',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.neutral900,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Masuk ke akun',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.neutral900,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Format: KodeULP.Tim',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.neutral500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         IconButton(
@@ -391,18 +384,8 @@ class _LoginSheetState extends State<_LoginSheet> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Masukkan akun terdaftar dengan format <Kode ULP>.<Tim>.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        height: 1.45,
-                        color: AppColors.neutral500,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    if (_error != null) ...[
-                      Container(
+                    const SizedBox(height: 22),
+                    if (_error != null) ...[n                      Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: AppColors.red100,
@@ -434,10 +417,10 @@ class _LoginSheetState extends State<_LoginSheet> {
                     const SizedBox(height: 7),
                     _field(
                       controller: _usernameController,
-                      hint: 'Contoh: 16130.InsJar',
+                      hint: '16130.InsJar',
                       icon: Icons.person_outline,
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     _fieldLabel('Kata sandi'),
                     const SizedBox(height: 7),
                     _field(
@@ -456,7 +439,7 @@ class _LoginSheetState extends State<_LoginSheet> {
                             setState(() => _obscure = !_obscure),
                       ),
                     ),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 24),
                     SizedBox(
                       height: 52,
                       child: ElevatedButton(
@@ -503,9 +486,9 @@ class _LoginSheetState extends State<_LoginSheet> {
                               ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
                     const Text(
-                      'Data kamu terenkripsi dan hanya dapat diakses oleh tim berwenang.',
+                      'Data terenkripsi dan hanya dapat diakses tim berwenang.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 11,
@@ -528,7 +511,7 @@ class _LoginSheetState extends State<_LoginSheet> {
       text,
       style: const TextStyle(
         fontSize: 12,
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w700,
         color: AppColors.navy900,
       ),
     );
@@ -556,16 +539,16 @@ class _LoginSheetState extends State<_LoginSheet> {
           prefixIcon: Icon(icon, size: 19, color: AppColors.neutral500),
           suffixIcon: suffix,
           filled: true,
-          fillColor: const Color(0xFFF1F7FC),
+          fillColor: const Color(0xFFF8FAFC),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(13),
-            borderSide: const BorderSide(color: Color(0xFFD7E6F2)),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(13),
             borderSide: const BorderSide(
-              color: Color(0xFFD7E6F2),
-              width: 1.4,
+              color: Color(0xFFE2E8F0),
+              width: 1.2,
             ),
           ),
           focusedBorder: OutlineInputBorder(

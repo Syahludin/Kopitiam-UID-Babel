@@ -34,6 +34,10 @@ class _LandscapeCameraScreenState extends State<LandscapeCameraScreen> {
   CameraController? _controller;
   String? _error;
   bool _capturing = false;
+  double _minZoom = 1.0;
+  double _maxZoom = 1.0;
+  double _currentZoom = 1.0;
+  double _baseZoom = 1.0;
 
   @override
   void initState() {
@@ -64,14 +68,33 @@ class _LandscapeCameraScreenState extends State<LandscapeCameraScreen> {
       );
       await controller.initialize();
       await controller.lockCaptureOrientation(DeviceOrientation.landscapeLeft);
+      final minZ = await controller.getMinZoomLevel();
+      final maxZ = await controller.getMaxZoomLevel();
       if (!mounted) {
         await controller.dispose();
         return;
       }
-      setState(() => _controller = controller);
+      setState(() {
+        _controller = controller;
+        _minZoom = minZ;
+        _maxZoom = maxZ;
+        _currentZoom = minZ;
+      });
     } catch (error) {
       if (mounted) setState(() => _error = '$error');
     }
+  }
+
+  void _onScaleStart(ScaleStartDetails details) {
+    _baseZoom = _currentZoom;
+  }
+
+  void _onScaleUpdate(ScaleUpdateDetails details) {
+    final controller = _controller;
+    if (controller == null) return;
+    final newZoom = (_baseZoom * details.scale).clamp(_minZoom, _maxZoom);
+    controller.setZoomLevel(newZoom);
+    setState(() => _currentZoom = newZoom);
   }
 
   Future<String> _normalizeLandscape(String sourcePath) {
@@ -147,6 +170,8 @@ class _LandscapeCameraScreenState extends State<LandscapeCameraScreen> {
         : Size(preview.width, preview.height);
   }
 
+  String get _zoomLabel => '${_currentZoom.toStringAsFixed(1)}x';
+
   @override
   Widget build(BuildContext context) {
     final controller = _controller;
@@ -169,13 +194,17 @@ class _LandscapeCameraScreenState extends State<LandscapeCameraScreen> {
                     ),
             )
           else
-            ClipRect(
-              child: FittedBox(
-                fit: BoxFit.cover,
-                clipBehavior: Clip.hardEdge,
-                child: SizedBox.fromSize(
-                  size: _previewBox(controller),
-                  child: CameraPreview(controller),
+            GestureDetector(
+              onScaleStart: _onScaleStart,
+              onScaleUpdate: _onScaleUpdate,
+              child: ClipRect(
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  clipBehavior: Clip.hardEdge,
+                  child: SizedBox.fromSize(
+                    size: _previewBox(controller),
+                    child: CameraPreview(controller),
+                  ),
                 ),
               ),
             ),
@@ -205,19 +234,22 @@ class _LandscapeCameraScreenState extends State<LandscapeCameraScreen> {
                     ),
                   ),
                 ),
-                const Positioned(
+                Positioned(
                   left: 18,
                   bottom: 20,
                   child: DecoratedBox(
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Color(0xCC071B30),
                       borderRadius: BorderRadius.all(Radius.circular(10)),
                     ),
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       child: Text(
-                        'Landscape wajib • Output 2048 px',
-                        style: TextStyle(
+                        'Landscape \u2022 $_zoomLabel \u2022 Pinch to zoom',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
