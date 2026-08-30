@@ -11,6 +11,27 @@ const source = fs.readFileSync(
   "utf8",
 );
 
+const manifest = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, "..", "appsscript.json"), "utf8"),
+);
+
+test("manifest explicitly authorizes Drive and Spreadsheet scopes", () => {
+  const scopes = manifest.oauthScopes || [];
+  assert.ok(
+    scopes.includes("https://www.googleapis.com/auth/drive"),
+    "oauthScopes must include Drive for folderPath_/folder uploads",
+  );
+  assert.ok(
+    scopes.includes("https://www.googleapis.com/auth/spreadsheets"),
+    "oauthScopes must include Spreadsheets for sheet writes",
+  );
+  assert.ok(
+    scopes.indexOf("https://www.googleapis.com/auth/drive.file") === -1 &&
+      scopes.indexOf("https://www.googleapis.com/auth/drive.readonly") === -1,
+    "full Drive scope required for create-folder flow",
+  );
+});
+
 function loadSetup(records = {}, now = Date.now()) {
   const properties = new Map(Object.entries(records));
   let locks = 0;
