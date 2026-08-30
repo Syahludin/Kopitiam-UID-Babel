@@ -306,7 +306,7 @@ class TemuanRepository {
   }
 
   static final _vegetasiPatterns = [
-    RegExp(r'^(Rabas|Pangkas).*?\s*\/\s*(Rabas|Pangkas)$', caseSensitive: false),
+    RegExp(r'^(Rabas|Pangkas).*?\s*/\s*(Rabas|Pangkas)$', caseSensitive: false),
     RegExp(r'^Tebang\s+Sedang$', caseSensitive: false),
     RegExp(r'^Tebang\s+Besar$', caseSensitive: false),
   ];
@@ -323,10 +323,6 @@ class TemuanRepository {
     if (_isVegetasi(temuan)) {
       final distance = jarak ?? 0;
       final height = tinggi ?? 0;
-      // IFS asli hanya mencakup 3 kombinasi; rangkaian total di bawah menutup
-      // celah kombinasi lain agar prioritas selalu muncul:
-      //   h<9 : d>5 -> Minor, d<=5 -> Mayor
-      //   h>=9: d<3 -> Mayor, d<6 -> Sedang, d>=6 -> Minor
       if (height < 9) return distance > 5 ? 'Minor' : 'Mayor';
       if (distance < 3) return 'Mayor';
       if (distance < 6) return 'Sedang';
@@ -381,7 +377,7 @@ class TemuanRepository {
       'November',
       'Desember',
     ];
-    return 'SiManDist/Rekap Temuan Inspeksi/${wo.kodeUlp}/$object/'
+    return 'Kopitiam/Rekap Temuan Inspeksi/${wo.kodeUlp}/$object/'
         '${now.year}/${now.month.toString().padLeft(2, '0')}. '
         '${months[now.month - 1]}/${now.day.toString().padLeft(2, '0')}/'
         '${wo.kodeWo}/$code/';

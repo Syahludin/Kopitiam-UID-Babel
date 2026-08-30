@@ -88,11 +88,7 @@ class _TemuanTabState extends State<TemuanTab>
     try {
       await repo.sinkron('${widget.sesi['token'] ?? ''}');
       await _load();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Temuan berhasil disinkronkan.')),
-        );
-      }
+      if (mounted) _showSyncSuccess();
     } catch (error) {
       if (!mounted) return;
       final text = error.toString().replaceFirst('StateError: ', '');
@@ -115,6 +111,55 @@ class _TemuanTabState extends State<TemuanTab>
     } finally {
       if (mounted) setState(() => busy = false);
     }
+  }
+
+  void _showSyncSuccess() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black26,
+      builder: (context) {
+        Future.delayed(const Duration(seconds: 1), () {
+          if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+        });
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.cloud_done_rounded,
+                  color: green,
+                  size: 48,
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Sinkronisasi Selesai',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Seluruh temuan berhasil dikirim ke server.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _logoutKarenaSesiInvalid() async {
@@ -255,7 +300,7 @@ class _TemuanTabState extends State<TemuanTab>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${item.tier} • ${item.segmen}',
+                      '${item.tier} \u2022 ${item.segmen}',
                       style: const TextStyle(color: muted, fontSize: 12),
                     ),
                   ],
@@ -429,38 +474,32 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
 
   List<String> get temuanOptions {
     if (tier == null || tier!.isEmpty) return [];
-    // Jika TIDAK ADA baris master yang memberi label objek, jangan menyaring
-    // (master lama tanpa kolom "Objek Inspeksi"). Begitu ada label, baris tanpa
-    // label atau label yang tidak cocok tidak lagi bocor antar objek.
-    final hasObject = listMaster.any(
-      (row) => _findValue(row, const [
-        'Objek Inspeksi',
-        'Jenis Object',
-        'Object',
-      ]).trim().isNotEmpty,
-    );
     final targetObject = object.toLowerCase().trim();
-    bool matchObject(String rowObject) {
-      if (!hasObject) return true;
-      return rowObject
-          .split(RegExp(r'[/,;]'))
-          .map((e) => e.trim().toLowerCase())
-          .where((e) => e.isNotEmpty)
-          .any((e) => e == targetObject);
-    }
 
     final options = listMaster
         .where((row) {
+          // Filter berdasarkan Objek Inspeksi: harus cocok dengan object saat ini.
+          // Baris tanpa kolom object dianggap TIDAK cocok agar temuan Gardu
+          // tidak bocor ke tim Inspeksi Jaringan.
           final rowObject = _findValue(row, const [
             'Objek Inspeksi',
             'Jenis Object',
             'Object',
-          ]);
+          ]).trim().toLowerCase();
+          if (rowObject.isEmpty) return false;
+          final matchObject = rowObject
+              .split(RegExp(r'[/,;]'))
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .any((e) => e == targetObject);
+          if (!matchObject) return false;
+
+          // Filter berdasarkan Tier
           final rowTier = _findValue(row, const ['Tier']);
           final matchTier =
               rowTier.trim().isEmpty ||
               rowTier.trim().toLowerCase() == tier!.toLowerCase();
-          return matchObject(rowObject) && matchTier;
+          return matchTier;
         })
         .map((row) => _findValue(row, const ['Temuan', 'Nama Temuan']))
         .where((value) => value.isNotEmpty)
@@ -541,8 +580,6 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
       tanggal: WoInsjar.formatTanggal(now),
       waktuInput: WoInsjar.stampLengkap(now),
     );
-    // Watermark dibuat saat pengambilan foto, bukan saat simpan, agar
-    // foto tampil menampilkan tanda air langsung.
     return PhotoWatermarkService.render(
       sourcePath: copied.path,
       item: item,
@@ -964,7 +1001,7 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
       children: [
         Expanded(
           child: DropdownButtonFormField<String>(
-            initialValue: tier,
+            value: tier,
             hint: const Text('--Pilih Tier--'),
             items: const [
               DropdownMenuItem(value: 'Tier 1', child: Text('Tier 1')),
@@ -984,7 +1021,7 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
     const SizedBox(height: 12),
     DropdownButtonFormField<String>(
       isExpanded: true,
-      initialValue: temuanOptions.contains(temuan) ? temuan : null,
+      value: temuanOptions.contains(temuan) ? temuan : null,
       hint: Text(tier == null ? 'Pilih Tier dahulu' : 'Pilih Temuan'),
       items: temuanOptions
           .map((value) => DropdownMenuItem(value: value, child: Text(value)))
@@ -1024,7 +1061,7 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
       const SizedBox(height: 12),
       DropdownButtonFormField<String>(
         isExpanded: true,
-        initialValue: trees.contains(pohon) ? pohon : null,
+        value: trees.contains(pohon) ? pohon : null,
         items: trees
             .map((value) => DropdownMenuItem(value: value, child: Text(value)))
             .toList(),
