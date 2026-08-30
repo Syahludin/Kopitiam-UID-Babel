@@ -9,6 +9,7 @@ var CONFIG = {
   SESSION_TTL_SEC: 900,
   MAX_LOGIN_FAILURES: 5,
   MAX_IMAGE_BYTES: 5 * 1024 * 1024,
+  DRIVE_ROOT_FOLDER: "Kopitiam",
   MASTER_SHEETS: [
     "User_App_Mobile",
     "Master_Penyulang",
@@ -118,7 +119,7 @@ var WO_MUTABLE_HEADERS = [
 function doGet(e) {
   var a = String((e && e.parameter && e.parameter.action) || "health").trim();
   return a === "health"
-    ? json_({ success: true, service: "SiManDist API", version: "2.5.5" })
+    ? json_({ success: true, service: "Kopitiam API", version: "3.0.0" })
     : json_({
         success: false,
         kode: "POST_REQUIRED",
@@ -464,7 +465,6 @@ function woRowAccess_(s) {
     ? { success: true, kodeUlp: k, subTim: sub }
     : fail_("ULP_MISSING", "Kode ULP akun belum terisi.");
 }
-
 function woRowSheet_() {
   var s = SpreadsheetApp.openById(CONFIG.WO_SPREADSHEET_ID).getSheetByName(
     CONFIG.WO_ROW_SHEET,
@@ -472,7 +472,6 @@ function woRowSheet_() {
   if (!s) throw new Error("WO_ROW sheet missing");
   return s;
 }
-
 function woRowContext_(s, k, editable) {
   var a = woRowAccess_(s);
   if (!a.success) return a;
@@ -517,7 +516,6 @@ function woRowContext_(s, k, editable) {
   }
   return fail_("WO_NOT_FOUND", "WO tidak ditemukan.");
 }
-
 function getWoRow_(t) {
   var a = cekSesi_(t);
   if (!a.success) return a;
@@ -551,7 +549,6 @@ function getWoRow_(t) {
     rows: rows,
   };
 }
-
 var WO_ROW_MUTABLE_HEADERS = [
   "status wo",
   "tindak lanjut",
@@ -564,7 +561,6 @@ var WO_ROW_MUTABLE_HEADERS = [
   "user input",
   "waktu input",
 ];
-
 function jenisTebanganFromDiameter_(v) {
   if (v === "" || v === null || v === undefined) return "";
   var n = Number(String(v).replace(",", "."));
@@ -572,7 +568,6 @@ function jenisTebanganFromDiameter_(v) {
   if (n === 0) return "Rabas / Pangkas";
   return n <= 50 ? "Tebang Sedang" : "Tebang Besar";
 }
-
 function syncWoRow_(t, rows) {
   var a = cekSesi_(t);
   if (!a.success) return a;
@@ -668,7 +663,6 @@ function syncWoRow_(t, rows) {
     l.releaseLock();
   }
 }
-
 var TEMUAN_SHEET_HEADERS = [
   "No",
   "Kode WO",
@@ -934,7 +928,7 @@ function buildFindingPath_(u, o, k, c, d) {
     ];
   return (
     [
-      "SiManDist",
+      CONFIG.DRIVE_ROOT_FOLDER,
       "Rekap Temuan Inspeksi",
       safePath_(u),
       safePath_(o),
@@ -952,11 +946,11 @@ function folderPath_(path) {
     .filter(String);
   if (
     a.length < 2 ||
-    a[0] !== "SiManDist" ||
+    a[0] !== CONFIG.DRIVE_ROOT_FOLDER ||
     a[1] !== "Rekap Temuan Inspeksi" ||
     a.length > 10
   )
-    throw new Error("Invalid folder path");
+    throw new Error("Invalid folder path: expected " + CONFIG.DRIVE_ROOT_FOLDER + "/Rekap Temuan Inspeksi/...");
   var f = DriveApp.getRootFolder();
   for (var i = 0; i < a.length; i++) {
     var n = safePath_(a[i]),
