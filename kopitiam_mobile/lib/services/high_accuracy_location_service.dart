@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:geolocator/geolocator.dart';
 
@@ -27,6 +28,8 @@ class LocationFix {
 
 class HighAccuracyLocationService {
   static const double lockAccuracy = 5;
+  static const double stabilityRadius = 8;
+  static const int minimumStableSamples = 4;
   static const int maxSamples = 30;
   static const Duration maxDuration = Duration(seconds: 45);
   static const Duration maxPositionAge = Duration(seconds: 30);
@@ -77,30 +80,106 @@ class HighAccuracyLocationService {
     }
   }
 
+  /// Menguatkan titik GPS dari beberapa sampel, bukan mempercayai satu bacaan.
+  ///
+  /// Sampel yang jauh dari titik terbaik dibuang sebagai outlier. Sampel yang
+  /// tersisa dirata-ratakan dengan bobot 1/accuracy², sehingga bacaan dengan
+  /// akurasi lebih baik memberi pengaruh lebih besar. Titik baru dianggap
+  /// terkunci hanya jika sedikitnya empat sampel konsisten dan estimasi
+  /// akurasinya mencapai lima meter atau lebih baik.
+  static LocationFix? strengthen(List<Position> positions) {
+    if (positions.isEmpty) return null;
+
+    final best = positions.reduce(
+      (left, right) => left.accuracy <= right.accuracy ? left : right,
+    );
+    final allowedDistance = math.max(
+      stabilityRadius,
+      best.accuracy * 2,
+    );
+    final allowedAccuracy = math.max(20.0, best.accuracy * 3);
+    final candidates = positions.where((position) {
+      final distance = Geolocator.distanceBetween(
+        best.latitude,
+        best.longitude,
+        position.latitude,
+        position.longitude,
+      );
+      return position.accuracy <= allowedAccuracy &&
+          distance <= allowedDistance;
+    }).toList(growable: false);
+
+    if (candidates.isEmpty) return null;
+
+    var totalWeight = 0.0;
+    var weightedLatitude = 0.0;
+    var weightedLongitude = 0.0;
+    var weightedAccuracy = 0.0;
+    for (final position in candidates) {
+      final accuracy = math.max(position.accuracy, 1.0);
+      final weight = 1 / (accuracy * accuracy);
+      totalWeight += weight;
+      weightedLatitude += position.latitude * weight;
+      weightedLongitude += position.longitude * weight;
+      weightedAccuracy += position.accuracy * weight;
+    }
+
+    final latitude = weightedLatitude / totalWeight;
+    final longitude = weightedLongitude / totalWeight;
+    var spread = 0.0;
+    for (final position in candidates) {
+      spread = math.max(
+        spread,
+        Geolocator.distanceBetween(
+          latitude,
+          longitude,
+          position.latitude,
+          position.longitude,
+        ),
+      );
+    }
+
+    final estimatedAccuracy = math.max(
+      weightedAccuracy / totalWeight,
+      spread,
+    );
+    final locked = candidates.length >= minimumStableSamples &&
+        best.accuracy <= lockAccuracy &&
+        estimatedAccuracy <= lockAccuracy &&
+        spread <= stabilityRadius;
+
+    return LocationFix(
+      latitude: latitude,
+      longitude: longitude,
+      accuracy: estimatedAccuracy,
+      capturedAt: DateTime.now(),
+      samples: candidates.length,
+      locked: locked,
+    );
+  }
+
   static Future<LocationFix> acquire({
     void Function(int sample, double bestAccuracy)? onSample,
   }) async {
     await _ensureReady();
 
-    Position? best;
+    final positions = <Position>[];
     var samples = 0;
     Object? securityError;
 
-    void consider(Position position) {
+    bool consider(Position position) {
       try {
         _assertTrusted(position);
       } catch (error) {
         securityError = error;
         rethrow;
       }
+      positions.add(position);
       samples++;
-      if (best == null || position.accuracy < best!.accuracy) {
-        best = position;
-      }
-      final currentBest = best;
-      if (currentBest != null) {
-        onSample?.call(samples, currentBest.accuracy);
-      }
+      final strengthened = strengthen(positions);
+      final displayedAccuracy = strengthened?.accuracy ?? position.accuracy;
+      onSample?.call(samples, displayedAccuracy);
+      return strengthened?.locked ?? false;
     }
 
     try {
@@ -119,11 +198,6 @@ class HighAccuracyLocationService {
       // Provider awal bisa belum siap; stream berikutnya tetap dicoba.
     }
 
-    final initialBest = best;
-    if (initialBest != null && initialBest.accuracy <= lockAccuracy) {
-      return _toFix(initialBest, samples, true);
-    }
-
     final completer = Completer<void>();
     late final StreamSubscription<Position> subscription;
     late final Timer deadline;
@@ -140,10 +214,8 @@ class HighAccuracyLocationService {
     ).listen(
       (position) {
         try {
-          consider(position);
-          if (position.accuracy <= lockAccuracy || samples >= maxSamples) {
-            finish();
-          }
+          final locked = consider(position);
+          if (locked || samples >= maxSamples) finish();
         } catch (_) {
           finish();
         }
@@ -161,24 +233,11 @@ class HighAccuracyLocationService {
     }
 
     if (securityError != null) throw securityError!;
-    final result = best;
+    final result = strengthen(positions);
     if (result == null) {
       throw StateError('Koordinat tidak terbaca. Coba lagi di area terbuka.');
     }
-    _assertTrusted(result);
-    return _toFix(result, samples, result.accuracy <= lockAccuracy);
-  }
-
-  static LocationFix _toFix(Position position, int samples, bool locked) {
-    _assertTrusted(position);
-    return LocationFix(
-      latitude: position.latitude,
-      longitude: position.longitude,
-      accuracy: position.accuracy,
-      capturedAt: DateTime.now(),
-      samples: samples,
-      locked: locked,
-    );
+    return result;
   }
 
   static double distanceKm(LocationFix start, LocationFix end) {
