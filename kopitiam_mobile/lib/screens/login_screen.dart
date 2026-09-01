@@ -1,11 +1,8 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
-import '../services/api_service.dart';
-import '../services/local_auth_service.dart';
-import 'dashboard_screen.dart';
+import 'widgets/login_sheet.dart';
+import 'widgets/safety_welcome_dialog.dart';
 
 class AppColors {
   static const navy950 = Color(0xFF071B30);
@@ -32,7 +29,7 @@ class LoginScreen extends StatelessWidget {
       context: context,
       barrierDismissible: false,
       barrierColor: AppColors.navy950.withValues(alpha: .72),
-      builder: (_) => _SafetyWelcomeDialog(session: session),
+      builder: (_) => SafetyWelcomeDialog(session: session),
     );
   }
 
@@ -50,89 +47,38 @@ class LoginScreen extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const _AppLogo(size: 148),
+                    SvgPicture.asset('assets/icons/logo_app.svg', width: 132, height: 132),
                     const SizedBox(height: 18),
-                    const Text(
-                      'KOPITIAM',
-                      style: TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 2,
-                        color: AppColors.navy900,
-                      ),
+                    const Text.rich(
+                      TextSpan(children: [
+                        TextSpan(text: 'Kopi', style: TextStyle(color: AppColors.navy900)),
+                        TextSpan(text: 'tiam', style: TextStyle(color: AppColors.amber600)),
+                      ]),
+                      style: TextStyle(fontSize: 40, fontWeight: FontWeight.w800),
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Kontrol Operasional, Pemantauan Integritas,\n& Teknologi Informasi Aset Manajemen',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        height: 1.45,
-                        color: AppColors.neutral500,
-                      ),
-                    ),
+                    const SizedBox(height: 4),
+                    const Text('Kontrol Pemeliharaan dan Inspeksi Aset Mandiri', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: AppColors.neutral500)),
                     const SizedBox(height: 18),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.navy100,
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.location_on,
-                            size: 13,
-                            color: AppColors.amber600,
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            'PLN UID BABEL',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: .5,
-                              color: AppColors.navy700,
-                            ),
-                          ),
-                        ],
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(color: AppColors.navy100, borderRadius: BorderRadius.circular(100)),
+                      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.location_on, size: 13, color: AppColors.amber600),
+                        SizedBox(width: 6),
+                        Text('PLN UID BABEL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: .5, color: AppColors.navy700)),
+                      ]),
                     ),
                     const SizedBox(height: 36),
                     SizedBox(
-                      width: 260,
-                      height: 54,
+                      width: 260, height: 54,
                       child: ElevatedButton.icon(
                         onPressed: () => showModalBottomSheet<void>(
-                          context: context,
-                          isScrollControlled: true,
-                          useSafeArea: true,
-                          backgroundColor: Colors.transparent,
-                          builder: (_) => _LoginSheet(
-                            onVerified: (session) =>
-                                _showSafetyWelcome(context, session),
-                          ),
+                          context: context, isScrollControlled: true, useSafeArea: true, backgroundColor: Colors.transparent,
+                          builder: (_) => LoginSheet(onVerified: (session) => _showSafetyWelcome(context, session)),
                         ),
                         icon: const Icon(Icons.login, size: 18),
-                        label: const Text(
-                          'Login',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.navy700,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          elevation: 3,
-                        ),
+                        label: const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.navy700, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), elevation: 3),
                       ),
                     ),
                   ],
@@ -140,17 +86,8 @@ class LoginScreen extends StatelessWidget {
               ),
             ),
             const Positioned(
-              bottom: 18,
-              left: 16,
-              right: 16,
-              child: Text(
-                'KOPITIAM © 2026 · PLN UID Babel',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.neutral500,
-                ),
-              ),
+              bottom: 18, left: 16, right: 16,
+              child: Text('Kopitiam \u00A9 2026 \u2022 PLN UID Babel', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: AppColors.neutral500)),
             ),
           ],
         ),
@@ -159,58 +96,18 @@ class LoginScreen extends StatelessWidget {
   }
 }
 
-/// Logo KOPITIAM dengan cadangan aman bila berkas gambar gagal dimuat.
-class _AppLogo extends StatelessWidget {
-  final double size;
-
-  const _AppLogo({required this.size});
-
-  @override
-  Widget build(BuildContext context) => Image.asset(
-    'assets/icons/logo_app.png',
-    width: size,
-    height: size,
-    filterQuality: FilterQuality.high,
-    errorBuilder: (context, error, stackTrace) => Container(
-      width: size,
-      height: size,
-      decoration: const BoxDecoration(
-        color: AppColors.navy700,
-        shape: BoxShape.circle,
-      ),
-      alignment: Alignment.center,
-      child: Icon(
-        Icons.bolt_rounded,
-        size: size * .5,
-        color: AppColors.amber600,
-      ),
-    ),
-  );
-}
-
 class _PlnBadge extends StatelessWidget {
   const _PlnBadge();
-
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        color: AppColors.plnYellow,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .15),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
+      width: 42, height: 42,
+      decoration: BoxDecoration(color: AppColors.plnYellow, borderRadius: BorderRadius.circular(10), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .15), blurRadius: 8, offset: const Offset(0, 3))]),
       child: const Icon(Icons.bolt, color: AppColors.plnRed, size: 28),
     );
   }
 }
+<<<<<<< HEAD
 
 class _LoginSheet extends StatefulWidget {
   final ValueChanged<Map<String, dynamic>> onVerified;
@@ -765,3 +662,5 @@ class _SafetyWelcomeDialogState extends State<_SafetyWelcomeDialog> {
     );
   }
 }
+=======
+>>>>>>> a1ffec0c6f32f93e9b06474d08e566d13e247def
