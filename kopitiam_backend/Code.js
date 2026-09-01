@@ -1,7 +1,7 @@
 var CONFIG = {
-  SPREADSHEET_ID: "18mVJgfMaPjs8ppmlhf5JVYvHhysHYy9L77bwfRPI5O0",
+  SPREADSHEET_ID: "1PuHONGQ8ZOBQRutk9RR5-ZjFcrqW3hWfBYllQu4RUMo",
   WO_SPREADSHEET_ID: "15T21iCLPb8vwzFNtUbWjZ_T3RGGDZ-Y9UX5-4UV1Zgk",
-  TEMUAN_SPREADSHEET_ID: "1qFBQq3hMTA98ZV6UWg-Pj5sz-J41pm0r13TLYP2LF0I",
+  TEMUAN_SPREADSHEET_ID: "1D_WOPB75A4IJUAESrTsk5MShGmRAWlGWROqoNE-y9mw",
   USERS_SHEET: "User_App_Mobile",
   WO_INSJAR_SHEET: "WO_Ins_Jar",
   WO_ROW_SHEET: "WO_ROW",
@@ -19,6 +19,7 @@ var CONFIG = {
     "List_Temuan",
     "Jenis Pohon",
     "Master_Material",
+    "Master_Pekerjaan_Har",
   ],
 };
 function runtimeIdentity_(body) {
@@ -311,7 +312,7 @@ function getMasterData_(t) {
     var n = CONFIG.MASTER_SHEETS[i],
       sh = ss.getSheetByName(n);
     if (!sh)
-      return fail_("MASTER_SHEET_MISSING", "Data master belum tersedia.");
+      return fail_("MASTER_SHEET_MISSING", "Data master belum tersedia: " + n);
     var v = sh.getDataRange().getDisplayValues(),
       h = v.length
         ? v[0].map(function (x) {

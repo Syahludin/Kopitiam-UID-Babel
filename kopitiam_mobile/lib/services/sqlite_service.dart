@@ -18,6 +18,7 @@ class SqliteService {
     'List_Temuan',
     'Jenis Pohon',
     'Master_Material',
+    'Master_Pekerjaan_Har',
   ];
   Database? _database;
 
