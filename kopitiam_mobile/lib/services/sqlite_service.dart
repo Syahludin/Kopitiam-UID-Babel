@@ -4,18 +4,20 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
 import '../models/local_user.dart';
+import 'database_helper.dart';
 
 class SqliteService {
   SqliteService._();
   static final SqliteService instance = SqliteService._();
   static const _databaseName = 'simandist_local.db';
-  static const _databaseVersion = 5;
+  static const _databaseVersion = 6;
   static const masterDatasets = [
     'User_App_Mobile',
     'Master_Penyulang',
     'Master_Keypoint',
     'List_Temuan',
     'Jenis Pohon',
+    'Master_Material',
   ];
   Database? _database;
 
@@ -32,6 +34,7 @@ class SqliteService {
         if (oldVersion < 3) await _createWoSchema(db);
         if (oldVersion < 4) await _createWoRowSchema(db);
         if (oldVersion < 5) await _migrateWoRowV5(db);
+        if (oldVersion < 6) await DatabaseHelper.createHarJarSchema(db);
       },
     );
     return _database!;
@@ -47,6 +50,7 @@ class SqliteService {
     await _createMasterSchema(db);
     await _createWoSchema(db);
     await _createWoRowSchema(db);
+    await DatabaseHelper.createHarJarSchema(db);
   }
 
   Future<void> _createMasterSchema(Database db) async {

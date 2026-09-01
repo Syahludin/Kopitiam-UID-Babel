@@ -393,7 +393,8 @@ class _LoginSheetState extends State<_LoginSheet> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'Masukkan akun terdaftar dengan format <Kode ULP>.<Tim>.',
+                      'Masukkan akun terdaftar dengan format 
+                      <Kode ULP>.<Tim>.',
                       style: TextStyle(
                         fontSize: 13,
                         height: 1.45,

@@ -137,6 +137,14 @@ class ApiService {
     List<Map<String, dynamic>> rows,
   ) => _postMap({'action': 'syncWoRow', 'token': token, 'rows': rows});
 
+  static Future<Map<String, dynamic>> getWoHarJar(String token) =>
+      _postMap({'action': 'getWoHarJar', 'token': token});
+
+  static Future<Map<String, dynamic>> syncWoHarJar(
+    String token,
+    List<Map<String, dynamic>> rows,
+  ) => _postMap({'action': 'syncWoHarJar', 'token': token, 'rows': rows});
+
   static Future<Map<String, dynamic>> logoutPerangkat({
     String token = '',
   }) async {

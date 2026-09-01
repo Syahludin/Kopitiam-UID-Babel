@@ -6,12 +6,16 @@ import 'package:flutter/physics.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../models/wo_har_jar.dart';
 import '../models/wo_insjar.dart';
 import '../models/wo_row.dart';
 import '../services/api_service.dart';
 import '../services/sqlite_service.dart';
+import '../services/wo_har_jar_repository.dart';
 import '../services/wo_insjar_repository.dart';
 import '../services/wo_row_repository.dart';
+import '../widgets/wo_har_jar_card.dart';
+import 'form_tindak_lanjut_har_jar_screen.dart';
 import 'settings_session_section.dart';
 import 'wo_insjar_form_screen.dart';
 import 'wo_row_form_screen.dart';
@@ -44,6 +48,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   final _labels = const ['Work Order', 'Beranda', 'Pengaturan'];
   final _woRepo = WoInsjarRepository();
   final _rowRepo = WoRowRepository();
+  final _harJarRepo = WoHarJarRepository();
   late final AnimationController _bubbleController;
   late final AnimationController _masterSpin;
 
@@ -59,15 +64,20 @@ class _DashboardScreenState extends State<DashboardScreen>
   DateTime? _lastSync;
   List<WoInsjar> _woList = const [];
   List<WoRow> _rowList = const [];
+  List<WoHarJar> _harJarList = const [];
 
   String get _token => (widget.sesi['token'] ?? '').toString();
-  bool get _rowTeam {
-    final sub =
-        '${widget.sesi['subTim'] ?? widget.sesi['tim'] ?? ''}'.toLowerCase();
-    return sub.contains('row');
-  }
 
-  String get _rowLabel => _rowTeam ? 'ROW' : 'WO';
+  String get _subTimLower =>
+      '${widget.sesi['subTim'] ?? widget.sesi['tim'] ?? ''}'.toLowerCase();
+
+  bool get _harJarTeam =>
+      _subTimLower.contains('har jar') || _subTimLower.contains('harjar');
+
+  bool get _rowTeam => !_harJarTeam && _subTimLower.contains('row');
+
+  String get _teamLabel =>
+      _harJarTeam ? 'Har Jar' : (_rowTeam ? 'ROW' : 'WO');
   int _percent(double value) => (value.clamp(0, 1) * 100).round();
 
   @override
@@ -136,7 +146,10 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Future<void> _loadWo() async {
-    if (_rowTeam) {
+    if (_harJarTeam) {
+      final list = await _harJarRepo.semua();
+      if (mounted) setState(() => _harJarList = list);
+    } else if (_rowTeam) {
       final list = await _rowRepo.semua();
       if (mounted) setState(() => _rowList = list);
     } else {
@@ -171,12 +184,14 @@ class _DashboardScreenState extends State<DashboardScreen>
     setState(() => _woBusy = true);
     _startProgress(
       master: false,
-      label: _rowTeam ? 'Mengunduh ROW' : 'Mengunduh WO',
+      label: 'Mengunduh $_teamLabel',
     );
     try {
-      final hasil = _rowTeam
-          ? await _rowRepo.download(_token)
-          : await _woRepo.download(_token);
+      final hasil = _harJarTeam
+          ? await _harJarRepo.download(_token)
+          : _rowTeam
+              ? await _rowRepo.download(_token)
+              : await _woRepo.download(_token);
       await _loadWo();
       await _completeProgress(master: false);
       if (!mounted) return;
@@ -184,10 +199,10 @@ class _DashboardScreenState extends State<DashboardScreen>
         _message(hasil.pesan!, error: true);
       } else {
         await _resultDialog(
-          title: _rowTeam ? 'Download ROW Selesai' : 'Download WO Selesai',
+          title: 'Download $_teamLabel Selesai',
           count: hasil.diproses,
-          label: _rowTeam ? 'ROW baru Sudah ditambahkan' : 'WO baru Sudah ditambahkan',
-          note: '${hasil.total} Total $_rowLabel.',
+          label: '$_teamLabel baru sudah ditambahkan',
+          note: '${hasil.total} Total $_teamLabel.',
           icon: Icons.cloud_download_rounded,
         );
       }
@@ -210,12 +225,14 @@ class _DashboardScreenState extends State<DashboardScreen>
     setState(() => _woBusy = true);
     _startProgress(
       master: false,
-      label: _rowTeam ? 'Menyinkronkan ROW' : 'Menyinkronkan WO',
+      label: 'Menyinkronkan $_teamLabel',
     );
     try {
-      final hasil = _rowTeam
-          ? await _rowRepo.sinkron(_token)
-          : await _woRepo.sinkron(_token);
+      final hasil = _harJarTeam
+          ? await _harJarRepo.sinkron(_token)
+          : _rowTeam
+              ? await _rowRepo.sinkron(_token)
+              : await _woRepo.sinkron(_token);
       await _loadWo();
       await _completeProgress(master: false);
       if (!mounted) return;
@@ -223,12 +240,12 @@ class _DashboardScreenState extends State<DashboardScreen>
         _message(hasil.pesan!, error: true);
       } else {
         await _resultDialog(
-          title: 'Sinkronisasi $_rowLabel Selesai',
+          title: 'Sinkronisasi $_teamLabel Selesai',
           count: hasil.diproses,
-          label: '$_rowLabel Sudah diSinkronkan',
+          label: '$_teamLabel sudah disinkronkan',
           note: hasil.total == 0
-              ? 'Tidak ada Yang Perlu diSinkronkan.'
-              : '${hasil.total} $_rowLabel Sedang di Kerjakan.',
+              ? 'Tidak ada yang perlu disinkronkan.'
+              : '${hasil.total} $_teamLabel sedang dikerjakan.',
           icon: Icons.cloud_upload_rounded,
         );
       }
@@ -419,6 +436,41 @@ class _DashboardScreenState extends State<DashboardScreen>
   );
 
   Widget _home() {
+    if (_harJarTeam) {
+      final total = _harJarList.length;
+      final menunggu = _harJarList
+          .where(
+            (wo) =>
+                WoHarJar.normalisasiStatus(wo.statusWo) ==
+                WoHarJar.statusMenunggu,
+          )
+          .length;
+      final sedang = _harJarList
+          .where(
+            (wo) =>
+                WoHarJar.normalisasiStatus(wo.statusWo) ==
+                WoHarJar.statusSedang,
+          )
+          .length;
+      final selesai = _harJarList
+          .where(
+            (wo) =>
+                WoHarJar.normalisasiStatus(wo.statusWo) ==
+                WoHarJar.statusSelesai,
+          )
+          .length;
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+        children: [
+          _welcomeCard(),
+          const SizedBox(height: 16),
+          _woDataCard(),
+          const SizedBox(height: 16),
+          _harJarSummaryCard(total, menunggu, sedang, selesai),
+        ],
+      );
+    }
+
     final isRow = _rowTeam;
     final total = isRow ? _rowList.length : _woList.length;
     final menunggu = isRow
@@ -597,10 +649,21 @@ class _DashboardScreenState extends State<DashboardScreen>
   );
 
   Widget _woDataCard() {
-    final isRow = _rowTeam;
-    final dirty = isRow
-        ? _rowList.where((row) => row.isDirty).length
-        : _woList.where((wo) => wo.isDirty).length;
+    final dirty = _harJarTeam
+        ? _harJarList
+            .where(
+              (wo) =>
+                  !wo.isSynced &&
+                  WoHarJar.normalisasiStatus(wo.statusWo) ==
+                      WoHarJar.statusSelesai,
+            )
+            .length
+        : _rowTeam
+            ? _rowList.where((row) => row.isDirty).length
+            : _woList.where((wo) => wo.isDirty).length;
+    final dataTitle = _harJarTeam
+        ? 'Data WO Har Jar'
+        : (_rowTeam ? 'Data ROW Penugasan' : 'Data Work Order');
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -627,7 +690,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  isRow ? 'Data ROW Penugasan' : 'Data Work Order',
+                  dataTitle,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -671,7 +734,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       child: Text(
                         dirty > 0
                             ? 'Sinkron ($dirty)'
-                            : 'Sinkron ${_rowTeam ? 'ROW' : 'WO'}',
+                            : 'Sinkron $_teamLabel',
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
@@ -830,6 +893,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   );
 
   Widget _workOrders() {
+    if (_harJarTeam) return _harJarWorkOrders();
     if (_rowTeam) return _rowWorkOrders();
     return RefreshIndicator(
       onRefresh: _loadWo,
@@ -908,6 +972,156 @@ class _DashboardScreenState extends State<DashboardScreen>
     await _rowRepo.mulaiPekerjaan(row.kodeWo);
     await _loadWo();
   }
+
+  Future<void> _openHarJar(WoHarJar wo, {bool mulai = false}) async {
+    if (mulai &&
+        WoHarJar.normalisasiStatus(wo.statusWo) == WoHarJar.statusMenunggu) {
+      await _harJarRepo.mulaiPekerjaan(wo.kodeWo);
+      await _loadWo();
+      final refreshed = await _harJarRepo.cari(wo.kodeWo);
+      if (refreshed != null) wo = refreshed;
+    }
+    if (!mounted) return;
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FormTindakLanjutHarJarScreen(
+          sesi: widget.sesi,
+          existing: wo,
+        ),
+      ),
+    );
+    if (changed == true) await _loadWo();
+  }
+
+  Widget _harJarWorkOrders() => RefreshIndicator(
+        onRefresh: _loadWo,
+        child: ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
+            if (_harJarList.isEmpty)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 34, horizontal: 22),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: neutral200),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(Icons.engineering_rounded, size: 42, color: navy700),
+                    SizedBox(height: 12),
+                    Text(
+                      'Belum ada WO Har Jar yang diunduh',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      'Gunakan Download WO pada menu Beranda.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: neutral500),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ..._harJarList.map(
+                (wo) => WoHarJarCard(
+                  wo: wo,
+                  onKerjakan: () => _openHarJar(wo, mulai: true),
+                  onLanjut: () => _openHarJar(wo, mulai: true),
+                ),
+              ),
+          ],
+        ),
+      );
+
+  Widget _harJarSummaryCard(
+    int total,
+    int menunggu,
+    int sedang,
+    int selesai,
+  ) =>
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: _cardDecoration(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: blueSoft,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.insights_rounded,
+                    size: 18,
+                    color: navy700,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Ringkasan WO Har Jar',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: navy950,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(height: 1, color: neutral200),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Total WO',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: neutral500,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$total',
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: navy700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Container(height: 1, color: neutral200),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _statItem('Menunggu', menunggu, amber600)),
+                _statDivider(),
+                Expanded(
+                  child: _statItem('Sedang Dikerjakan', sedang, cyan600),
+                ),
+                _statDivider(),
+                Expanded(child: _statItem('Selesai', selesai, green600)),
+              ],
+            ),
+          ],
+        ),
+      );
 
   Future<void> _openRow(WoRow row) async {
     final changed = await Navigator.push<bool>(

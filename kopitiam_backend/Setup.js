@@ -50,6 +50,17 @@ function setupBackend() {
     "Status WO",
     "Tim Eksekusi",
   ]);
+  requireSheet_(wo, CONFIG.WO_HAR_JAR_SHEET, [
+    "Kode WO",
+    "Kode ULP",
+    "Status WO",
+    "Tim Eksekusi",
+  ]);
+  requireSheet_(wo, CONFIG.MATERIAL_HAR_JAR_SHEET, [
+    "Kode Penggunaan Material",
+    "Kode WO",
+    "Material",
+  ]);
   ensureSheet_(temuan, CONFIG.TEMUAN_SHEET, TEMUAN_SHEET_HEADERS);
 
   pasangTriggerPembersihanToken_();
