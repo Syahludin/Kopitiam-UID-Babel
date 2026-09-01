@@ -294,7 +294,7 @@ class WoRow {
         'Tindak Lanjut': tindakLanjut,
         'Ukuran Diamter Batan (cm)': ukuranDiameterBatang,
         'Jenis Tebangan': jenisTebangan,
-        'Jenis Pekerjaan': jenisTebangan,
+        'Jenis Pekerjaan': pekerjaan,
         'Foto Sesudah': fotoSesudah,
         'Link Foto Sesudah': linkFotoSesudah,
         'Status WO': normalisasiStatus(statusWo),

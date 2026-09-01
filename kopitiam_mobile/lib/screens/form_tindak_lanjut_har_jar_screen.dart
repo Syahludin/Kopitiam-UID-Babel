@@ -131,6 +131,86 @@ class _FormTindakLanjutHarJarScreenState
     }
   }
 
+  void _lihatFoto() {
+    if (_fotoSesudah.isEmpty || !File(_fotoSesudah).existsSync()) return;
+    showDialog<void>(
+      context: context,
+      builder: (_) => GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        child: Dialog.fullscreen(
+          backgroundColor: Colors.black.withValues(alpha: 0.9),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4,
+                child: Center(
+                  child: Image.file(File(_fotoSesudah), fit: BoxFit.contain),
+                ),
+              ),
+              const Positioned(
+                top: 48,
+                right: 16,
+                child: Icon(Icons.close, color: Colors.white, size: 28),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Menangani ketukan pada kolom kamera untuk verifikasi foto.
+  /// - Jika foto belum ada: langsung membuka kamera.
+  /// - Jika foto sudah ada: menampilkan 2 pilihan (Lihat Hasil / Ambil Ulang)
+  ///   agar petugas dapat memverifikasi apakah foto sudah sesuai.
+  void _onFotoTap() {
+    final hasFoto = _fotoSesudah.isNotEmpty &&
+        File(_fotoSesudah).existsSync();
+    if (!hasFoto) {
+      if (_editable && !_takingPhoto) _ambilFoto();
+      return;
+    }
+    if (!_editable) {
+      _lihatFoto();
+      return;
+    }
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Foto Sesudah'),
+        content: const Text(
+          'Foto telah tersimpan. Verifikasi apakah foto sudah sesuai.',
+          textAlign: TextAlign.center,
+        ),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              _lihatFoto();
+            },
+            icon: const Icon(Icons.visibility_rounded),
+            label: const Text('Lihat Hasil Foto'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              _ambilFoto();
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: amber,
+              foregroundColor: navy,
+            ),
+            icon: const Icon(Icons.camera_alt_rounded),
+            label: const Text('Ambil Ulang Foto'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _ambilGps() async {
     if (!_editable || _locating) return;
     setState(() {
@@ -496,7 +576,7 @@ class _FormTindakLanjutHarJarScreenState
 
   Widget _fotoSesudahCard() => _card('Foto Sesudah', [
     InkWell(
-      onTap: _editable ? _ambilFoto : null,
+      onTap: _onFotoTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
         height: 160,

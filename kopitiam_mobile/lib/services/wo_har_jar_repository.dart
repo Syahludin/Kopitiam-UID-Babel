@@ -220,6 +220,8 @@ class WoHarJarRepository {
         kodeWo: item.kodeWo,
         temuan: item.temuan,
         jenisObject: item.jenisObject,
+        tier: item.tier,
+        prioritas: item.prioritas,
         koordinat: item.koordinat,
         ulp: item.ulp,
         penyulang: item.penyulang,

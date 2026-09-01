@@ -245,6 +245,7 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
                 Stack(
                   children: [
                     TemuanTab(
+                      key: ValueKey('temuan-${wo.kodeWo}'),
                       wo: wo,
                       sesi: widget.sesi,
                       canAddTemuan: _awal != null,

@@ -258,9 +258,83 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
     const Row(children: [Icon(Icons.gpp_good_rounded, size: 14, color: green), SizedBox(width: 6), Expanded(child: Text('Foto diambil landscape', style: TextStyle(fontSize: 11, color: muted)))]),
   ]);
 
-  Widget _photo(String label, String path, VoidCallback onTap) {
+  /// Menangani ketukan pada kolom kamera untuk verifikasi foto.
+  /// - Jika foto belum ada: langsung membuka kamera.
+  /// - Jika foto sudah ada: menampilkan 2 pilihan (Lihat Hasil / Ambil Ulang)
+  ///   agar petugas dapat memverifikasi apakah foto sudah sesuai.
+  void _onPhotoTap(String label, String path, VoidCallback onCapture) {
+    if (path.isEmpty || !File(path).existsSync()) {
+      onCapture();
+      return;
+    }
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text(label.replaceAll(' *', '')),
+        content: const Text(
+          'Foto telah tersimpan. Verifikasi apakah foto sudah sesuai.',
+          textAlign: TextAlign.center,
+        ),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              _lihatFoto(path);
+            },
+            icon: const Icon(Icons.visibility_rounded),
+            label: const Text('Lihat Hasil Foto'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              onCapture();
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: amber,
+              foregroundColor: navy,
+            ),
+            icon: const Icon(Icons.camera_alt_rounded),
+            label: const Text('Ambil Ulang Foto'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _lihatFoto(String path) {
+    if (path.isEmpty || !File(path).existsSync()) return;
+    showDialog<void>(
+      context: context,
+      builder: (_) => GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        child: Dialog.fullscreen(
+          backgroundColor: Colors.black.withValues(alpha: 0.9),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4,
+                child: Center(
+                  child: Image.file(File(path), fit: BoxFit.contain),
+                ),
+              ),
+              const Positioned(
+                top: 48,
+                right: 16,
+                child: Icon(Icons.close, color: Colors.white, size: 28),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _photo(String label, String path, VoidCallback onCapture) {
     final exists = path.isNotEmpty && File(path).existsSync();
-    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(14), child: Container(
+    return InkWell(onTap: () => _onPhotoTap(label, path, onCapture), borderRadius: BorderRadius.circular(14), child: Container(
       height: 150,
       decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(14), border: Border.all(color: exists ? blue : line, width: exists ? 1.4 : 1)),
       child: exists

@@ -100,7 +100,7 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
       builder: (_) => GestureDetector(
         onTap: () => Navigator.of(context).pop(),
         child: Dialog.fullscreen(
-          backgroundColor: Colors.black.withOpacity(0.9),
+          backgroundColor: Colors.black.withValues(alpha: 0.9),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -119,6 +119,56 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// Menangani ketukan pada kolom kamera untuk verifikasi foto.
+  /// - Jika foto belum ada: langsung membuka kamera.
+  /// - Jika foto sudah ada: menampilkan 2 pilihan (Lihat Hasil / Ambil Ulang)
+  ///   agar petugas dapat memverifikasi apakah foto sudah sesuai.
+  void _onFotoTap() {
+    final hasFoto = _fotoSesudah.isNotEmpty &&
+        File(_fotoSesudah).existsSync();
+    if (!hasFoto) {
+      if (_editable && !_takingPhoto) _ambilFoto();
+      return;
+    }
+    if (!_editable) {
+      _lihatFoto();
+      return;
+    }
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Foto Sesudah'),
+        content: const Text(
+          'Foto telah tersimpan. Verifikasi apakah foto sudah sesuai.',
+          textAlign: TextAlign.center,
+        ),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              _lihatFoto();
+            },
+            icon: const Icon(Icons.visibility_rounded),
+            label: const Text('Lihat Hasil Foto'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              _ambilFoto();
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: amber,
+              foregroundColor: navy,
+            ),
+            icon: const Icon(Icons.camera_alt_rounded),
+            label: const Text('Ambil Ulang Foto'),
+          ),
+        ],
       ),
     );
   }
@@ -573,10 +623,7 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
         'Foto Sesudah',
         [
           GestureDetector(
-            onTap: _fotoSesudah.isNotEmpty &&
-                    File(_fotoSesudah).existsSync()
-                ? _lihatFoto
-                : (_editable ? _ambilFoto : null),
+            onTap: _onFotoTap,
             child: Container(
               height: 160,
               decoration: BoxDecoration(
@@ -683,24 +730,6 @@ class _WoRowFormScreenState extends State<WoRowFormScreen> {
                     ),
             ),
           ),
-          if (_fotoSesudah.isNotEmpty && _editable) ...[
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _ambilFoto,
-                icon: const Icon(Icons.camera_alt_rounded, size: 16),
-                label: const Text('Ambil Ulang Foto'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: blue,
-                  side: const BorderSide(color: line),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-          ],
           const SizedBox(height: 8),
           if (_fotoSesudah.isNotEmpty) ...[
             Row(

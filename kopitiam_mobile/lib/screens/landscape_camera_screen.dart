@@ -23,6 +23,38 @@ class LandscapeCameraScreen extends StatefulWidget {
       ),
     );
   }
+/// Menyusun [image] menjadi rasio standar 4:3 (4/3) dengan memotong bagian
+  /// tengah secara simetris bila diperlukan. Mengembalikan citra 4:3 sehingga
+  /// foto landscape selalu memiliki dimensi "seperti foto pada umumnya".
+  static img.Image cropToStandardAspect(img.Image image) {
+    const target = 4.0 / 3.0;
+    final aspect = image.width / image.height;
+    if ((aspect - target).abs() <= 0.001) {
+      return image;
+    }
+    if (aspect > target) {
+      // Terlalu lebar (mis. 16:9): potong tepi kiri-kanan di tengah.
+      final newWidth = (image.height * target).round();
+      final left = ((image.width - newWidth) / 2).round();
+      return img.copyCrop(
+        image,
+        x: left,
+        y: 0,
+        width: newWidth,
+        height: image.height,
+      );
+    }
+    // Terlalu tinggi: potong tepi atas-bawah di tengah.
+    final newHeight = (image.width / target).round();
+    final top = ((image.height - newHeight) / 2).round();
+    return img.copyCrop(
+      image,
+      x: 0,
+      y: top,
+      width: image.width,
+      height: newHeight,
+    );
+  }
 
   @override
   State<LandscapeCameraScreen> createState() =>
@@ -108,6 +140,11 @@ class _LandscapeCameraScreenState extends State<LandscapeCameraScreen> {
       if (normalized.height > normalized.width) {
         normalized = img.copyRotate(normalized, angle: 90);
       }
+      // Buat rasio foto selalu standar 4:3 (ukuran foto konvensional) agar hasil
+      // tidak tampak "aneh/terpotong". Pada sensor 4:3 normal ini adalah no-op
+      // (tidak ada konten yang hilang); pada sensor non-4:3 (mis. 16:9) hanya
+      // memotong bagian tepi secara simetris dari tengah.
+      normalized = LandscapeCameraScreen.cropToStandardAspect(normalized);
       final resized = img.copyResize(
         normalized,
         width: outputWidth,

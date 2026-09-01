@@ -39,6 +39,18 @@ class _TemuanTabState extends State<TemuanTab> with AutomaticKeepAliveClientMixi
   @override
   void initState() { super.initState(); _load(); _load(remote: true); }
 
+  @override
+  void didUpdateWidget(covariant TemuanTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Pastikan tab lanjutan selalu mengikuti kode WO yang sedang dibuka,
+    // sehingga saat kartu WO lain dibuka tidak menampilkan data WO sebelumnya.
+    if (oldWidget.wo.kodeWo != widget.wo.kodeWo) {
+      items = [];
+      _load();
+      _load(remote: true);
+    }
+  }
+
   Future<void> _load({bool remote = false}) async {
     if (!remote) { items = await repo.untukWo(widget.wo.kodeWo); if (mounted) setState(() {}); return; }
     await repo.unduh('${widget.sesi['token'] ?? ''}', widget.wo.kodeWo);
@@ -126,7 +138,7 @@ class _TemuanTabState extends State<TemuanTab> with AutomaticKeepAliveClientMixi
 
   void _showImage(String path) {
     showDialog<void>(context: context, builder: (_) => GestureDetector(onTap: () => Navigator.of(context).pop(), child: Dialog.fullscreen(
-      backgroundColor: Colors.black.withOpacity(0.9),
+      backgroundColor: Colors.black.withValues(alpha: 0.9),
       child: Stack(fit: StackFit.expand, children: [
         InteractiveViewer(minScale: 0.5, maxScale: 4, child: Center(child: Hero(tag: path, child: Image.file(File(path), fit: BoxFit.contain)))),
         const Positioned(top: 48, right: 16, child: Icon(Icons.close, color: Colors.white, size: 28)),
