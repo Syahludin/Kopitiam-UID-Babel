@@ -73,10 +73,16 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
     if (tier == null || tier!.isEmpty) return [];
     final targetObject = object.toLowerCase().trim();
     return listMaster.where((row) {
-      final rowObject = _findValue(row, const ['Objek Inspeksi', 'Jenis Object', 'Object']).trim().toLowerCase();
-      if (rowObject.isEmpty) return false;
-      final matchObject = rowObject.split(RegExp(r'[/,;]')).map((e) => e.trim()).where((e) => e.isNotEmpty).any((e) => e == targetObject);
-      if (!matchObject) return false;
+      final rowObject = _findValue(row, const ['Objek Inspeksi', 'Jenis Object', 'Jenis Objek', 'Objektif', 'Object'])
+          .trim()
+          .toLowerCase();
+      // Selaraskan dengan backend (RuntimeGuards validateFindingMaster_):
+      // - Matching object secara substring (case-insensitive), bukan persis,
+      //   mis. kolom "Objek Inspeksi" berisi "JARINGAN", "Jaringan SUTT", dsb.
+      // - Jika baris tidak memiliki nilai object (kolom kosong / tidak ada),
+      //   tetap perbolehkan (backend juga berlaku demikian). Ini mencegah
+      //   dropdown Nama Temuan tampak terkunci (items kosong).
+      if (rowObject.isNotEmpty && !rowObject.contains(targetObject)) return false;
       final rowTier = _findValue(row, const ['Tier']);
       return rowTier.trim().isEmpty || rowTier.trim().toLowerCase() == tier!.toLowerCase();
     }).map((row) => _findValue(row, const ['Temuan', 'Nama Temuan'])).where((v) => v.isNotEmpty).toSet().toList();
