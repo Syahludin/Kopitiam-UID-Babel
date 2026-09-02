@@ -214,16 +214,54 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
 
   Widget _objectField() {
     if (objectLocked) return _read('Jenis Object', object);
-    return DropdownButtonFormField<String>(value: objectOptions.contains(object) ? object : null, hint: const Text('--Pilih Object--'), items: objectOptions.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(), onChanged: (v) { if (v == null) return; setState(() { object = v; temuan = null; }); }, decoration: _inputDecoration('Jenis Object *'));
+    return DropdownButtonFormField<String>(value: objectOptions.contains(object) ? object : null, hint: const Text('--Pilih Object--'), items: objectOptions.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(), onChanged: (v) {
+      if (v == null || v == object) return;
+      // Ganti Object: reset tier, temuan, dan seluruh state vegetasi karena
+      // Tier/Temuan sebelumnya mungkin tidak relevan untuk object yang baru.
+      setState(() {
+        object = v;
+        tier = null;
+        temuan = null;
+        pohon = null;
+        jarakCtrl.clear();
+        tinggiCtrl.clear();
+      });
+    }, decoration: _inputDecoration('Jenis Object *'));
   }
 
   Widget _classification(List<String> trees) => _sectionCard('2', Icons.tune_rounded, 'Klasifikasi Temuan', [
     Row(children: [
-      Expanded(child: DropdownButtonFormField<String>(value: tier, hint: const Text('--Pilih Tier--'), items: const [DropdownMenuItem(value: 'Tier 1', child: Text('Tier 1')), DropdownMenuItem(value: 'Tier 2', child: Text('Tier 2'))], onChanged: (v) => setState(() { tier = v; temuan = null; }), decoration: _inputDecoration('Tier *'))),
+      Expanded(child: DropdownButtonFormField<String>(value: tier, hint: const Text('--Pilih Tier--'), items: const [DropdownMenuItem(value: 'Tier 1', child: Text('Tier 1')), DropdownMenuItem(value: 'Tier 2', child: Text('Tier 2'))], onChanged: (v) {
+        if (v == null || v == tier) return;
+        // Ganti Tier: reset temuan dan seluruh state vegetasi karena
+        // Temuan lama mungkin tidak tersedia di Tier baru, dan field
+        // vegetasi lama (jarak/tinggi/pohon) bisa tertinggal.
+        setState(() {
+          tier = v;
+          temuan = null;
+          pohon = null;
+          jarakCtrl.clear();
+          tinggiCtrl.clear();
+        });
+      }, decoration: _inputDecoration('Tier *'))),
       const SizedBox(width: 10), Expanded(child: _read('Prioritas', calculatedPriority)),
     ]),
     const SizedBox(height: 12),
-    DropdownButtonFormField<String>(isExpanded: true, value: temuanOptions.contains(temuan) ? temuan : null, hint: Text(tier == null ? 'Pilih Tier dahulu' : 'Pilih Temuan'), items: temuanOptions.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(), onChanged: tier == null ? null : (v) => setState(() => temuan = v), decoration: _inputDecoration('Nama Temuan *')),
+    DropdownButtonFormField<String>(isExpanded: true, value: temuanOptions.contains(temuan) ? temuan : null, hint: Text(tier == null ? 'Pilih Tier dahulu' : 'Pilih Temuan'), items: temuanOptions.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(), onChanged: tier == null ? null : (v) {
+      if (v == temuan) return;
+      // Ganti Temuan: jika temuan lama vegetasi dan temuan baru bukan
+      // vegetasi (atau sebaliknya), bersihkan field vegetasi agar data
+      // tidak tertinggal/tidak valid.
+      final wasVegetasi = isVegetasi;
+      setState(() {
+        temuan = v;
+        if (wasVegetasi) {
+          pohon = null;
+          jarakCtrl.clear();
+          tinggiCtrl.clear();
+        }
+      });
+    }, decoration: _inputDecoration('Nama Temuan *')),
     if (isVegetasi) ...[
       const SizedBox(height: 12),
       Row(children: [
