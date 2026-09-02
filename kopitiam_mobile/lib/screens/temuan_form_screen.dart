@@ -98,7 +98,7 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
     kode = await repo.kodeBaru(widget.wo.kodeWo);
     final determined = repo.jenisObject(widget.sesi);
     object = determined.isNotEmpty ? determined : 'Jaringan';
-    listMaster = await repo.master('List_Temuan');
+    listMaster = await repo.master('Master_Temuan');
     pohonMaster = await repo.master('Jenis Pohon');
     if (mounted) setState(() {});
   }

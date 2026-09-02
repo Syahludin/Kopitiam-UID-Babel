@@ -15,7 +15,7 @@ class SqliteService {
     'User_App_Mobile',
     'Master_Penyulang',
     'Master_Keypoint',
-    'List_Temuan',
+    'Master_Temuan',
     'Jenis Pohon',
     'Master_Material',
     'Master_Pekerjaan_Har',
