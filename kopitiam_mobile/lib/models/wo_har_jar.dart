@@ -13,6 +13,7 @@ class WoHarJar {
   final int? id;
   final String no;
   final String kodeWo;
+  final String kodeTemuan;
   final String kodeUiw;
   final String kodeUp3;
   final String kodeUlp;
@@ -22,8 +23,6 @@ class WoHarJar {
   final String penyulang;
   final String section;
   final String segmen;
-  final String kodeTemuan;
-  final String kodeWoInspeksi;
   final String jenisObject;
   final String tier;
   final String temuan;
@@ -56,6 +55,7 @@ class WoHarJar {
     this.id,
     this.no = '',
     required this.kodeWo,
+    this.kodeTemuan = '',
     this.kodeUiw = '',
     this.kodeUp3 = '',
     this.kodeUlp = '',
@@ -65,8 +65,6 @@ class WoHarJar {
     this.penyulang = '',
     this.section = '',
     this.segmen = '',
-    this.kodeTemuan = '',
-    this.kodeWoInspeksi = '',
     this.jenisObject = '',
     this.tier = '',
     this.temuan = '',
@@ -117,6 +115,7 @@ class WoHarJar {
         id: m['id'] as int?,
         no: '${m['no'] ?? ''}',
         kodeWo: '${m['kode_wo'] ?? ''}',
+        kodeTemuan: '${m['kode_temuan'] ?? ''}',
         kodeUiw: '${m['kode_uiw'] ?? ''}',
         kodeUp3: '${m['kode_up3'] ?? ''}',
         kodeUlp: '${m['kode_ulp'] ?? ''}',
@@ -126,8 +125,6 @@ class WoHarJar {
         penyulang: '${m['penyulang'] ?? ''}',
         section: '${m['section'] ?? ''}',
         segmen: '${m['segmen'] ?? ''}',
-        kodeTemuan: '${m['kode_temuan'] ?? ''}',
-        kodeWoInspeksi: '${m['kode_wo_inspeksi'] ?? ''}',
         jenisObject: '${m['jenis_object'] ?? ''}',
         tier: '${m['tier'] ?? ''}',
         temuan: '${m['temuan'] ?? ''}',
@@ -151,7 +148,7 @@ class WoHarJar {
         statusWo: normalisasiStatus(m['status_wo']),
         userInput: '${m['user_input'] ?? ''}',
         waktuInput: '${m['waktu_input'] ?? ''}',
-        waktuSelesai: '${m['waktu_selesai'] ?? m['waktu_realisasi'] ?? ''}',
+        waktuSelesai: '${m['waktu_selesai'] ?? ''}',
         durasi: '${m['durasi'] ?? ''}',
         folderPath: '${m['folder_path'] ?? ''}',
         isSynced: m['is_synced'] == 1,
@@ -160,6 +157,7 @@ class WoHarJar {
   factory WoHarJar.fromRemote(Map<String, dynamic> r) => WoHarJar(
         no: '${r['No'] ?? ''}',
         kodeWo: '${r['Kode WO'] ?? ''}',
+        kodeTemuan: '${r['Kode Temuan'] ?? ''}',
         kodeUiw: '${r['Kode UIW'] ?? ''}',
         kodeUp3: '${r['Kode UP3'] ?? ''}',
         kodeUlp: '${r['Kode ULP'] ?? ''}',
@@ -169,8 +167,6 @@ class WoHarJar {
         penyulang: '${r['Penyulang'] ?? ''}',
         section: '${r['Section'] ?? ''}',
         segmen: '${r['Segmen'] ?? ''}',
-        kodeTemuan: '${r['Kode Temuan'] ?? ''}',
-        kodeWoInspeksi: '${r['Kode WO Inspeksi'] ?? ''}',
         jenisObject: '${r['Jenis Object'] ?? ''}',
         tier: '${r['Tier'] ?? ''}',
         temuan: '${r['Temuan'] ?? ''}',
@@ -191,7 +187,7 @@ class WoHarJar {
         statusWo: normalisasiStatus(r['Status WO']),
         userInput: '${r['User Input'] ?? ''}',
         waktuInput: '${r['Waktu Input'] ?? ''}',
-        waktuSelesai: '${r['Waktu Selesai'] ?? r['Waktu Realisasi'] ?? ''}',
+        waktuSelesai: '${r['Waktu Selesai'] ?? ''}',
         durasi: '${r['Durasi'] ?? ''}',
         folderPath: '${r['Folder Path'] ?? ''}',
       );
@@ -200,6 +196,7 @@ class WoHarJar {
         if (id != null) 'id': id,
         'no': no,
         'kode_wo': kodeWo,
+        'kode_temuan': kodeTemuan,
         'kode_uiw': kodeUiw,
         'kode_up3': kodeUp3,
         'kode_ulp': kodeUlp,
@@ -209,8 +206,6 @@ class WoHarJar {
         'penyulang': penyulang,
         'section': section,
         'segmen': segmen,
-        'kode_temuan': kodeTemuan,
-        'kode_wo_inspeksi': kodeWoInspeksi,
         'jenis_object': jenisObject,
         'tier': tier,
         'temuan': temuan,
@@ -243,6 +238,7 @@ class WoHarJar {
   Map<String, dynamic> toRemote() => {
         'No': no,
         'Kode WO': kodeWo,
+        'Kode Temuan': kodeTemuan,
         'Kode UIW': kodeUiw,
         'Kode UP3': kodeUp3,
         'Kode ULP': kodeUlp,
@@ -252,8 +248,6 @@ class WoHarJar {
         'Penyulang': penyulang,
         'Section': section,
         'Segmen': segmen,
-        'Kode Temuan': kodeTemuan,
-        'Kode WO Inspeksi': kodeWoInspeksi,
         'Jenis Object': jenisObject,
         'Tier': tier,
         'Temuan': temuan,
@@ -297,6 +291,7 @@ class WoHarJar {
         id: id,
         no: no,
         kodeWo: kodeWo,
+        kodeTemuan: kodeTemuan,
         kodeUiw: kodeUiw,
         kodeUp3: kodeUp3,
         kodeUlp: kodeUlp,
@@ -306,8 +301,6 @@ class WoHarJar {
         penyulang: penyulang,
         section: section,
         segmen: segmen,
-        kodeTemuan: kodeTemuan,
-        kodeWoInspeksi: kodeWoInspeksi,
         jenisObject: jenisObject,
         tier: tier,
         temuan: temuan,
