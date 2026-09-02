@@ -35,13 +35,14 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
   bool _gettingAwal = false;
   bool _gettingAkhir = false;
   bool _saving = false;
-  bool _readyToComplete = false;
   double? _awalSearchAccuracy;
   double? _akhirSearchAccuracy;
 
   WoInsjar? get _wo => widget.existing;
   bool get _readOnly =>
       WoInsjar.normalisasiStatus(_status) == WoInsjar.statusSelesai;
+  bool get _readyToComplete =>
+      _awal != null && _akhir != null && _selesai != null;
 
   @override
   void initState() {
@@ -126,7 +127,6 @@ class _WoInsjarFormScreenState extends State<WoInsjarFormScreen>
                 _akhir!.longitude,
               ) /
               1000;
-          _readyToComplete = true;
         } else if (_awal != null) {
           _status = WoInsjar.statusDalam;
         }

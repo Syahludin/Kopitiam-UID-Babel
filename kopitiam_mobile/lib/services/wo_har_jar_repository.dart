@@ -155,24 +155,6 @@ class WoHarJarRepository {
     return 'MAT-$kodeWo-$stamp$rand';
   }
 
-  Future<void> simpanMaterial(WoMaterialHarJar item) async {
-    final db = await _database();
-    await db.insert(
-      DatabaseHelper.woMaterialHarJarTable,
-      item.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
-  Future<void> hapusMaterial(String kodePenggunaanMaterial) async {
-    final db = await _database();
-    await db.delete(
-      DatabaseHelper.woMaterialHarJarTable,
-      where: 'kode_penggunaan_material = ?',
-      whereArgs: [kodePenggunaanMaterial],
-    );
-  }
-
   Future<void> simpanSelesai(
     WoHarJar item,
     List<WoMaterialHarJar> materials,

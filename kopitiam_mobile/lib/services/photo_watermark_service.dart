@@ -406,8 +406,30 @@ class PhotoWatermarkService {
   }
 
   static String _extractDay(String stamp) {
-    final days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    return days[DateTime.now().weekday % 7];
+    final days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    final date = _parseStampDate(stamp) ?? DateTime.now();
+    return days[date.weekday - 1];
+  }
+
+  // Mem-parse tanggal "DD Bulan YYYY" yang selalu menjadi prefiks dari format
+  // tanggal/stamp (mis. "25 Maret 2025" atau "25 Maret 2025, 14:22:33").
+  static DateTime? _parseStampDate(String stamp) {
+    final match = RegExp(
+      r'^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})',
+    ).firstMatch(stamp.trim());
+    if (match == null) return null;
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    ];
+    final month = months
+        .indexWhere((m) => m.toLowerCase() == match.group(2)!.toLowerCase());
+    if (month < 0) return null;
+    return DateTime(
+      int.parse(match.group(3)!),
+      month + 1,
+      int.parse(match.group(1)!),
+    );
   }
 
   static String _extractDate(String stamp) {
