@@ -278,6 +278,14 @@ class _FormTindakLanjutHarJarScreenState
     setState(() => _saving = true);
     try {
       final now = DateTime.now();
+      final waktuSelesaiStr = WoInsjar.stampLengkap(now);
+      String durasiStr = _wo.durasi;
+      if (_wo.waktuInput.isNotEmpty) {
+        final start = WoInsjar.parseStamp(_wo.waktuInput);
+        if (start != null) {
+          durasiStr = WoInsjar.hitungDurasi(start, now);
+        }
+      }
       final updated = _wo.copyWith(
         koordinat: _koordinat,
         lat: _lat,
@@ -288,8 +296,9 @@ class _FormTindakLanjutHarJarScreenState
         userInput: '${widget.sesi['username'] ?? ''}',
         waktuInput: _wo.waktuInput.isNotEmpty
             ? _wo.waktuInput
-            : WoInsjar.stampLengkap(now),
-        waktuRealisasi: WoInsjar.stampLengkap(now),
+            : waktuSelesaiStr,
+        waktuSelesai: waktuSelesaiStr,
+        durasi: durasiStr.isNotEmpty ? durasiStr : '-',
         isSynced: false,
       );
       await _repo.simpanSelesai(updated, _materials);
