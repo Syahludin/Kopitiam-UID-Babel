@@ -1,14 +1,8 @@
-class WoHarJar {
+class WoHarDu {
   static const statusMenunggu = 'Menunggu';
   static const statusSedang = 'Sedang Dikerjakan';
   static const statusSelesai = 'Selesai';
   static const statusTersinkron = 'Tersinkron';
-  static const statusValues = [
-    statusMenunggu,
-    statusSedang,
-    statusSelesai,
-    statusTersinkron,
-  ];
 
   final int? id;
   final String no;
@@ -21,7 +15,7 @@ class WoHarJar {
   final String tanggal;
   final String penyulang;
   final String section;
-  final String segmen;
+  final String nomorGardu;
   final String kodeTemuan;
   final String kodeWoInspeksi;
   final String jenisObject;
@@ -52,7 +46,7 @@ class WoHarJar {
   final String folderPath;
   final bool isSynced;
 
-  const WoHarJar({
+  const WoHarDu({
     this.id,
     this.no = '',
     required this.kodeWo,
@@ -64,7 +58,7 @@ class WoHarJar {
     this.tanggal = '',
     this.penyulang = '',
     this.section = '',
-    this.segmen = '',
+    this.nomorGardu = '',
     this.kodeTemuan = '',
     this.kodeWoInspeksi = '',
     this.jenisObject = '',
@@ -113,7 +107,7 @@ class WoHarJar {
     return text.isEmpty ? null : double.tryParse(text);
   }
 
-  factory WoHarJar.fromMap(Map<String, Object?> m) => WoHarJar(
+  factory WoHarDu.fromMap(Map<String, Object?> m) => WoHarDu(
         id: m['id'] as int?,
         no: '${m['no'] ?? ''}',
         kodeWo: '${m['kode_wo'] ?? ''}',
@@ -125,7 +119,7 @@ class WoHarJar {
         tanggal: '${m['tanggal'] ?? ''}',
         penyulang: '${m['penyulang'] ?? ''}',
         section: '${m['section'] ?? ''}',
-        segmen: '${m['segmen'] ?? ''}',
+        nomorGardu: '${m['nomor_gardu'] ?? ''}',
         kodeTemuan: '${m['kode_temuan'] ?? ''}',
         kodeWoInspeksi: '${m['kode_wo_inspeksi'] ?? ''}',
         jenisObject: '${m['jenis_object'] ?? ''}',
@@ -151,13 +145,13 @@ class WoHarJar {
         statusWo: normalisasiStatus(m['status_wo']),
         userInput: '${m['user_input'] ?? ''}',
         waktuInput: '${m['waktu_input'] ?? ''}',
-        waktuSelesai: '${m['waktu_selesai'] ?? m['waktu_realisasi'] ?? ''}',
+        waktuSelesai: '${m['waktu_selesai'] ?? ''}',
         durasi: '${m['durasi'] ?? ''}',
         folderPath: '${m['folder_path'] ?? ''}',
         isSynced: m['is_synced'] == 1,
       );
 
-  factory WoHarJar.fromRemote(Map<String, dynamic> r) => WoHarJar(
+  factory WoHarDu.fromRemote(Map<String, dynamic> r) => WoHarDu(
         no: '${r['No'] ?? ''}',
         kodeWo: '${r['Kode WO'] ?? ''}',
         kodeUiw: '${r['Kode UIW'] ?? ''}',
@@ -168,7 +162,7 @@ class WoHarJar {
         tanggal: '${r['Tanggal'] ?? ''}',
         penyulang: '${r['Penyulang'] ?? ''}',
         section: '${r['Section'] ?? ''}',
-        segmen: '${r['Segmen'] ?? ''}',
+        nomorGardu: '${r['Nomor Gardu'] ?? r['Gardu'] ?? ''}',
         kodeTemuan: '${r['Kode Temuan'] ?? ''}',
         kodeWoInspeksi: '${r['Kode WO Inspeksi'] ?? ''}',
         jenisObject: '${r['Jenis Object'] ?? ''}',
@@ -191,7 +185,7 @@ class WoHarJar {
         statusWo: normalisasiStatus(r['Status WO']),
         userInput: '${r['User Input'] ?? ''}',
         waktuInput: '${r['Waktu Input'] ?? ''}',
-        waktuSelesai: '${r['Waktu Selesai'] ?? r['Waktu Realisasi'] ?? ''}',
+        waktuSelesai: '${r['Waktu Selesai'] ?? ''}',
         durasi: '${r['Durasi'] ?? ''}',
         folderPath: '${r['Folder Path'] ?? ''}',
       );
@@ -208,7 +202,7 @@ class WoHarJar {
         'tanggal': tanggal,
         'penyulang': penyulang,
         'section': section,
-        'segmen': segmen,
+        'nomor_gardu': nomorGardu,
         'kode_temuan': kodeTemuan,
         'kode_wo_inspeksi': kodeWoInspeksi,
         'jenis_object': jenisObject,
@@ -251,7 +245,7 @@ class WoHarJar {
         'Tanggal': tanggal,
         'Penyulang': penyulang,
         'Section': section,
-        'Segmen': segmen,
+        'Nomor Gardu': nomorGardu,
         'Kode Temuan': kodeTemuan,
         'Kode WO Inspeksi': kodeWoInspeksi,
         'Jenis Object': jenisObject,
@@ -277,63 +271,4 @@ class WoHarJar {
         'Durasi': durasi,
         'Folder Path': folderPath,
       };
-
-  WoHarJar copyWith({
-    String? koordinat,
-    double? lat,
-    double? long,
-    String? fotoSesudah,
-    String? linkFotoSesudah,
-    String? catatanPetugas,
-    String? statusWo,
-    String? userInput,
-    String? waktuInput,
-    String? waktuSelesai,
-    String? durasi,
-    String? folderPath,
-    bool? isSynced,
-  }) =>
-      WoHarJar(
-        id: id,
-        no: no,
-        kodeWo: kodeWo,
-        kodeUiw: kodeUiw,
-        kodeUp3: kodeUp3,
-        kodeUlp: kodeUlp,
-        ulp: ulp,
-        hari: hari,
-        tanggal: tanggal,
-        penyulang: penyulang,
-        section: section,
-        segmen: segmen,
-        kodeTemuan: kodeTemuan,
-        kodeWoInspeksi: kodeWoInspeksi,
-        jenisObject: jenisObject,
-        tier: tier,
-        temuan: temuan,
-        prioritas: prioritas,
-        pekerjaan: pekerjaan,
-        jenisWo: jenisWo,
-        koordinat: koordinat ?? this.koordinat,
-        lat: lat ?? this.lat,
-        long: long ?? this.long,
-        fotoTemuan: fotoTemuan,
-        linkFotoTemuan: linkFotoTemuan,
-        fotoTiangSekitar: fotoTiangSekitar,
-        linkFotoTiangSekitar: linkFotoTiangSekitar,
-        fotoSesudah: fotoSesudah ?? this.fotoSesudah,
-        linkFotoSesudah: linkFotoSesudah ?? this.linkFotoSesudah,
-        catatanPetugas: catatanPetugas ?? this.catatanPetugas,
-        timEksekusi: timEksekusi,
-        tanggalPenugasan: tanggalPenugasan,
-        catatanKoordinator: catatanKoordinator,
-        namaKoordinator: namaKoordinator,
-        statusWo: statusWo ?? this.statusWo,
-        userInput: userInput ?? this.userInput,
-        waktuInput: waktuInput ?? this.waktuInput,
-        waktuSelesai: waktuSelesai ?? this.waktuSelesai,
-        durasi: durasi ?? this.durasi,
-        folderPath: folderPath ?? this.folderPath,
-        isSynced: isSynced ?? this.isSynced,
-      );
 }
