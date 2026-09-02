@@ -1,6 +1,5 @@
 import 'dart:io';
-import 'dart:isolate';
-
+import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 
@@ -11,13 +10,21 @@ class PhotoWatermarkService {
     required String sourcePath,
     required TemuanInspeksi item,
     required String photoLabel,
-  }) {
-    return Isolate.run(
-      () => _renderSync(
-        sourcePath: sourcePath,
-        item: item,
-        photoLabel: photoLabel,
-      ),
+  }) async {
+    // Load asset logo PLN jika ada
+    Uint8List? plnLogoBytes;
+    try {
+      final data = await rootBundle.load('assets/branding/logo-pln.png');
+      plnLogoBytes = data.buffer.asUint8List();
+    } catch (_) {
+      // Fallback jika asset belum dimuat
+    }
+
+    return _renderSync(
+      sourcePath: sourcePath,
+      item: item,
+      photoLabel: photoLabel,
+      plnLogoBytes: plnLogoBytes,
     );
   }
 
@@ -25,6 +32,7 @@ class PhotoWatermarkService {
     required String sourcePath,
     required TemuanInspeksi item,
     required String photoLabel,
+    Uint8List? plnLogoBytes,
   }) {
     final source = File(sourcePath);
     final decoded = img.decodeImage(source.readAsBytesSync());
@@ -72,30 +80,52 @@ class PhotoWatermarkService {
     final contentRight = right - padX;
 
     // ==========================================
-    // BARIS 1: Header Kiri Atas (Logo PLN + Kode Pekerjaan + Unit/ULP)
+    // BARIS 1: Header Kiri Atas (Logo PLN Asli + Kode Pekerjaan + Unit/ULP)
     // ==========================================
     final logoSize = (panelHeight * 0.18).round().clamp(24, 64);
     final logoX = contentLeft;
     final logoY = top + padY;
 
-    // Badge Logo PLN Kuning/Biru/Merah
-    img.fillRect(
-      image,
-      x1: logoX,
-      y1: logoY,
-      x2: logoX + logoSize,
-      y2: logoY + logoSize,
-      radius: (logoSize * 0.2).round(),
-      color: img.ColorRgba8(250, 204, 21, 255), // Kuning PLN
-    );
-    _draw(
-      image,
-      'PLN',
-      x: logoX + (logoSize * 0.12).round(),
-      y: logoY + (logoSize * 0.2).round(),
-      font: logoSize > 36 ? img.arial24 : img.arial14,
-      color: img.ColorRgba8(14, 116, 144, 255), // Cyan/Blue PLN
-    );
+    bool drawnLogo = false;
+    if (plnLogoBytes != null) {
+      final decodedLogo = img.decodeImage(plnLogoBytes);
+      if (decodedLogo != null) {
+        final resizedLogo = img.copyResize(
+          decodedLogo,
+          width: logoSize,
+          height: logoSize,
+          interpolation: img.Interpolation.cubic,
+        );
+        img.compositeImage(
+          image,
+          resizedLogo,
+          dstX: logoX,
+          dstY: logoY,
+        );
+        drawnLogo = true;
+      }
+    }
+
+    if (!drawnLogo) {
+      // Fallback visual jika file gambar tidak terbaca
+      img.fillRect(
+        image,
+        x1: logoX,
+        y1: logoY,
+        x2: logoX + logoSize,
+        y2: logoY + logoSize,
+        radius: (logoSize * 0.2).round(),
+        color: img.ColorRgba8(250, 204, 21, 255), // Kuning PLN
+      );
+      _draw(
+        image,
+        'PLN',
+        x: logoX + (logoSize * 0.12).round(),
+        y: logoY + (logoSize * 0.2).round(),
+        font: logoSize > 36 ? img.arial24 : img.arial14,
+        color: img.ColorRgba8(14, 116, 144, 255), // Cyan/Blue PLN
+      );
+    }
 
     // Kode Temuan (Kode Pekerjaan Utama) & Unit/ULP
     final headerTextX = logoX + logoSize + (panelWidth * 0.03).round();
