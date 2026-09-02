@@ -924,12 +924,12 @@ function appendMaterialHarJarRows_(materials, username) {
 }
 var TEMUAN_SHEET_HEADERS = [
   "No",
-  "Kode WO",
-  "Kode Temuan",
   "Kode UIW",
   "Kode UP3",
   "Kode ULP",
   "ULP",
+  "Kode WO",
+  "Kode Temuan",
   "Hari",
   "Tanggal",
   "Penyulang",
@@ -937,6 +937,7 @@ var TEMUAN_SHEET_HEADERS = [
   "Section Akhir",
   "Section",
   "Segmen",
+  "Nomor Gardu",
   "Koordinat Temuan",
   "Lat Temuan",
   "Long Temuan",
@@ -948,14 +949,14 @@ var TEMUAN_SHEET_HEADERS = [
   "Tinggi Pohon",
   "Prioritas",
   "Pekerjaan (Padam / Tanpa Padam)",
-  "Jenis WO",
-  "Waktu Input",
-  "User Input",
-  "Folder Path",
   "Foto Temuan",
   "Link Foto",
   "Foto Lingkungan Sekitaran Tiang",
   "Link Foto Sekitaran Tiang",
+  "Jenis WO",
+  "Waktu Input",
+  "User Input",
+  "Folder Path",
 ];
 function temuanSheet_() {
   var ss = SpreadsheetApp.openById(CONFIG.TEMUAN_SPREADSHEET_ID);
@@ -1023,6 +1024,7 @@ function syncTemuanInspeksi_(t, incoming) {
     return fail_("OBJECT_MISMATCH", "Jenis Object tidak sesuai Sub-Tim.");
   var tem = safeText_(incoming["Temuan"], 200),
     seg = safeText_(incoming["Segmen"], 200),
+    gardu = safeText_(incoming["Nomor Gardu"] || incoming["Gardu"], 100),
     coord = safeText_(incoming["Koordinat Temuan"], 80);
   if (!tem || !seg)
     return fail_("FINDING_INVALID", "Data wajib temuan belum valid.");
@@ -1044,12 +1046,12 @@ function syncTemuanInspeksi_(t, incoming) {
     wi = x.index,
     server = x.row,
     row = {};
-  row["Kode WO"] = k;
-  row["Kode Temuan"] = code;
   row["Kode UIW"] = server[wi["kode uiw"]] || a.sesi.kodeUiw || "";
   row["Kode UP3"] = server[wi["kode up3"]] || a.sesi.kodeUp3 || "";
   row["Kode ULP"] = x.kodeUlp;
   row["ULP"] = server[wi["ulp"]] || a.sesi.ulp || "";
+  row["Kode WO"] = k;
+  row["Kode Temuan"] = code;
   row["Hari"] = [
     "Minggu",
     "Senin",
@@ -1069,6 +1071,7 @@ function syncTemuanInspeksi_(t, incoming) {
   row["Section Akhir"] = server[wi["section akhir"]] || "";
   row["Section"] = server[wi["section"]] || "";
   row["Segmen"] = seg;
+  row["Nomor Gardu"] = gardu;
   row["Koordinat Temuan"] = point.latitude + ", " + point.longitude;
   row["Lat Temuan"] = point.latitude;
   row["Long Temuan"] = point.longitude;
