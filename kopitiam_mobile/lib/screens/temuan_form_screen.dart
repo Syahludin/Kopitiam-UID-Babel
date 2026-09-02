@@ -30,21 +30,26 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
 
   final repo = TemuanRepository();
   final segmenCtrl = TextEditingController();
+  final garduCtrl = TextEditingController();
   final jarakCtrl = TextEditingController();
   final tinggiCtrl = TextEditingController();
 
   List<Map<String, dynamic>> listMaster = [];
+  List<Map<String, dynamic>> garduMaster = [];
   List<Map<String, dynamic>> pohonMaster = [];
   String kode = '';
   String object = 'Jaringan';
   String? tier;
   String? temuan;
   String? pohon;
+  String? selectedGardu;
   LocationFix? gps;
   String foto = '';
   String lingkungan = '';
   bool saving = false;
   bool mengambilGps = false;
+
+  bool get isInspeksiGardu => object.toLowerCase() == 'gardu';
 
   bool get isVegetasi {
     final value = (temuan ?? '').toLowerCase();
@@ -76,23 +81,34 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
       final rowObject = _findValue(row, const ['Objek Inspeksi', 'Jenis Object', 'Jenis Objek', 'Objektif', 'Object'])
           .trim()
           .toLowerCase();
-      // Selaraskan dengan backend (RuntimeGuards validateFindingMaster_):
-      // - Matching object secara substring (case-insensitive), bukan persis,
-      //   mis. kolom "Objek Inspeksi" berisi "JARINGAN", "Jaringan SUTT", dsb.
-      // - Jika baris tidak memiliki nilai object (kolom kosong / tidak ada),
-      //   tetap perbolehkan (backend juga berlaku demikian). Ini mencegah
-      //   dropdown Nama Temuan tampak terkunci (items kosong).
       if (rowObject.isNotEmpty && !rowObject.contains(targetObject)) return false;
       final rowTier = _findValue(row, const ['Tier']);
       return rowTier.trim().isEmpty || rowTier.trim().toLowerCase() == tier!.toLowerCase();
     }).map((row) => _findValue(row, const ['Temuan', 'Nama Temuan'])).where((v) => v.isNotEmpty).toSet().toList();
   }
 
-  @override
-  void initState() { super.initState(); _initialize(); }
+  List<String> get garduOptions {
+    return garduMaster
+        .map((row) => _findValue(row, const ['GARDU', 'Gardu', 'Nama Gardu', 'gardu']))
+        .where((v) => v.isNotEmpty)
+        .toSet()
+        .toList();
+  }
 
   @override
-  void dispose() { segmenCtrl.dispose(); jarakCtrl.dispose(); tinggiCtrl.dispose(); super.dispose(); }
+  void initState() {
+    super.initState();
+    _initialize();
+  }
+
+  @override
+  void dispose() {
+    segmenCtrl.dispose();
+    garduCtrl.dispose();
+    jarakCtrl.dispose();
+    tinggiCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _initialize() async {
     kode = await repo.kodeBaru(widget.wo.kodeWo);
@@ -100,6 +116,7 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
     object = determined.isNotEmpty ? determined : 'Jaringan';
     listMaster = await repo.master('Master_Temuan');
     pohonMaster = await repo.master('Jenis Pohon');
+    garduMaster = await repo.master('Master_Gardu');
     if (mounted) setState(() {});
   }
 
@@ -122,7 +139,21 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
     String two(int v) => v.toString().padLeft(2, '0');
     final name = '$kode.$label.${two(now.hour)}${two(now.minute)}${two(now.second)}.jpg';
     final copied = await source.copy(p.join(p.dirname(source.path), name));
-    final item = TemuanInspeksi(kodeTemuan: kode, kodeWo: widget.wo.kodeWo, temuan: temuan ?? '', jenisObject: object, koordinat: gps?.coordinate ?? '', ulp: widget.wo.ulp, penyulang: widget.wo.penyulang, section: widget.wo.section, segmen: segmenCtrl.text.trim(), hari: WoInsjar.hariIndonesia[now.weekday - 1], tanggal: WoInsjar.formatTanggal(now), waktuInput: WoInsjar.stampLengkap(now));
+    final item = TemuanInspeksi(
+      kodeTemuan: kode,
+      kodeWo: widget.wo.kodeWo,
+      temuan: temuan ?? '',
+      jenisObject: object,
+      koordinat: gps?.coordinate ?? '',
+      ulp: widget.wo.ulp,
+      penyulang: widget.wo.penyulang,
+      section: widget.wo.section,
+      segmen: isInspeksiGardu ? (selectedGardu ?? garduCtrl.text.trim()) : segmenCtrl.text.trim(),
+      nomorGardu: isInspeksiGardu ? (selectedGardu ?? garduCtrl.text.trim()) : '',
+      hari: WoInsjar.hariIndonesia[now.weekday - 1],
+      tanggal: WoInsjar.formatTanggal(now),
+      waktuInput: WoInsjar.stampLengkap(now),
+    );
     return PhotoWatermarkService.render(sourcePath: copied.path, item: item, photoLabel: label);
   }
 
@@ -132,27 +163,75 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
   }
 
   Future<void> _save() async {
-    if (tier == null || tier!.isEmpty) { _message('Pilih Tier terlebih dahulu.'); return; }
-    if (segmenCtrl.text.trim().isEmpty || gps == null || object.isEmpty || temuan == null || temuan!.isEmpty || foto.isEmpty || lingkungan.isEmpty) { _message('Lengkapi Segmen, Temuan, GPS, dan kedua foto.'); return; }
-    if (isVegetasi && (jarakCtrl.text.trim().isEmpty || pohon == null || pohon!.isEmpty || tinggiCtrl.text.trim().isEmpty)) { _message('Jarak, jenis pohon, dan tinggi pohon wajib diisi.'); return; }
+    if (tier == null || tier!.isEmpty) {
+      _message('Pilih Tier terlebih dahulu.');
+      return;
+    }
+
+    final locationValue = isInspeksiGardu
+        ? (selectedGardu ?? garduCtrl.text.trim())
+        : segmenCtrl.text.trim();
+
+    if (locationValue.isEmpty) {
+      _message(isInspeksiGardu ? 'Pilih atau isi Nomor Gardu.' : 'Isi Segmen terlebih dahulu.');
+      return;
+    }
+
+    if (gps == null || object.isEmpty || temuan == null || temuan!.isEmpty || foto.isEmpty || lingkungan.isEmpty) {
+      _message('Lengkapi ${isInspeksiGardu ? "Nomor Gardu" : "Segmen"}, Temuan, GPS, dan kedua foto.');
+      return;
+    }
+
+    if (isVegetasi && (jarakCtrl.text.trim().isEmpty || pohon == null || pohon!.isEmpty || tinggiCtrl.text.trim().isEmpty)) {
+      _message('Jarak, jenis pohon, dan tinggi pohon wajib diisi.');
+      return;
+    }
+
     setState(() => saving = true);
     try {
       final now = DateTime.now();
       final coordinate = gps!.coordinate.split(',');
       final item = TemuanInspeksi(
-        kodeTemuan: kode, kodeWo: widget.wo.kodeWo, kodeUiw: widget.wo.kodeUiw, kodeUp3: widget.wo.kodeUp3, kodeUlp: widget.wo.kodeUlp, ulp: widget.wo.ulp,
-        hari: WoInsjar.hariIndonesia[now.weekday - 1], tanggal: WoInsjar.formatTanggal(now), penyulang: widget.wo.penyulang, sectionAwal: widget.wo.sectionAwal, sectionAkhir: widget.wo.sectionAkhir, section: widget.wo.section, segmen: segmenCtrl.text.trim(),
-        koordinat: gps!.coordinate, lat: coordinate.first.trim(), long: coordinate.length > 1 ? coordinate[1].trim() : '', jenisObject: object, tier: tier!, temuan: temuan!,
-        jarak: isVegetasi ? double.tryParse(jarakCtrl.text.replaceAll(',', '.')) : null, jenisPohon: isVegetasi ? (pohon ?? '') : '', tinggiPohon: isVegetasi ? double.tryParse(tinggiCtrl.text.replaceAll(',', '.')) : null,
-        prioritas: calculatedPriority, fotoTemuan: foto, fotoLingkungan: lingkungan, waktuInput: WoInsjar.stampLengkap(now), userInput: '${widget.sesi['username'] ?? ''}',
+        kodeTemuan: kode,
+        kodeWo: widget.wo.kodeWo,
+        kodeUiw: widget.wo.kodeUiw,
+        kodeUp3: widget.wo.kodeUp3,
+        kodeUlp: widget.wo.kodeUlp,
+        ulp: widget.wo.ulp,
+        hari: WoInsjar.hariIndonesia[now.weekday - 1],
+        tanggal: WoInsjar.formatTanggal(now),
+        penyulang: widget.wo.penyulang,
+        sectionAwal: widget.wo.sectionAwal,
+        sectionAkhir: widget.wo.sectionAkhir,
+        section: widget.wo.section,
+        segmen: isInspeksiGardu ? locationValue : segmenCtrl.text.trim(),
+        nomorGardu: isInspeksiGardu ? locationValue : '',
+        koordinat: gps!.coordinate,
+        lat: coordinate.first.trim(),
+        long: coordinate.length > 1 ? coordinate[1].trim() : '',
+        jenisObject: object,
+        tier: tier!,
+        temuan: temuan!,
+        jarak: isVegetasi ? double.tryParse(jarakCtrl.text.replaceAll(',', '.')) : null,
+        jenisPohon: isVegetasi ? (pohon ?? '') : '',
+        tinggiPohon: isVegetasi ? double.tryParse(tinggiCtrl.text.replaceAll(',', '.')) : null,
+        prioritas: calculatedPriority,
+        fotoTemuan: foto,
+        fotoLingkungan: lingkungan,
+        waktuInput: WoInsjar.stampLengkap(now),
+        userInput: '${widget.sesi['username'] ?? ''}',
         folderPath: TemuanRepository.folder(widget.wo, object, kode, now),
       );
       await repo.simpan(item);
       if (mounted) Navigator.pop(context, true);
-    } finally { if (mounted) setState(() => saving = false); }
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
   }
 
-  void _message(String text) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text))); }
+  void _message(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -215,20 +294,33 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
     const SizedBox(height: 12),
     Row(children: [Expanded(child: _read('Penyulang', widget.wo.penyulang)), const SizedBox(width: 10), Expanded(child: _read('Section', widget.wo.section))]),
     const SizedBox(height: 12),
-    TextField(controller: segmenCtrl, decoration: _inputDecoration('Segmen *')),
+    if (!isInspeksiGardu)
+      TextField(controller: segmenCtrl, decoration: _inputDecoration('Segmen *'))
+    else
+      garduOptions.isNotEmpty
+          ? DropdownButtonFormField<String>(
+              isExpanded: true,
+              value: garduOptions.contains(selectedGardu) ? selectedGardu : null,
+              hint: const Text('--Pilih Nomor Gardu--'),
+              items: garduOptions.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+              onChanged: (v) => setState(() => selectedGardu = v),
+              decoration: _inputDecoration('Nomor Gardu *'),
+            )
+          : TextField(controller: garduCtrl, decoration: _inputDecoration('Nomor Gardu *')),
   ]);
 
   Widget _objectField() {
     if (objectLocked) return _read('Jenis Object', object);
     return DropdownButtonFormField<String>(value: objectOptions.contains(object) ? object : null, hint: const Text('--Pilih Object--'), items: objectOptions.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(), onChanged: (v) {
       if (v == null || v == object) return;
-      // Ganti Object: reset tier, temuan, dan seluruh state vegetasi karena
-      // Tier/Temuan sebelumnya mungkin tidak relevan untuk object yang baru.
       setState(() {
         object = v;
         tier = null;
         temuan = null;
         pohon = null;
+        selectedGardu = null;
+        segmenCtrl.clear();
+        garduCtrl.clear();
         jarakCtrl.clear();
         tinggiCtrl.clear();
       });
@@ -239,9 +331,6 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
     Row(children: [
       Expanded(child: DropdownButtonFormField<String>(value: tier, hint: const Text('--Pilih Tier--'), items: const [DropdownMenuItem(value: 'Tier 1', child: Text('Tier 1')), DropdownMenuItem(value: 'Tier 2', child: Text('Tier 2'))], onChanged: (v) {
         if (v == null || v == tier) return;
-        // Ganti Tier: reset temuan dan seluruh state vegetasi karena
-        // Temuan lama mungkin tidak tersedia di Tier baru, dan field
-        // vegetasi lama (jarak/tinggi/pohon) bisa tertinggal.
         setState(() {
           tier = v;
           temuan = null;
@@ -255,9 +344,6 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
     const SizedBox(height: 12),
     DropdownButtonFormField<String>(isExpanded: true, value: temuanOptions.contains(temuan) ? temuan : null, hint: Text(tier == null ? 'Pilih Tier dahulu' : 'Pilih Temuan'), items: temuanOptions.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(), onChanged: tier == null ? null : (v) {
       if (v == temuan) return;
-      // Ganti Temuan: jika temuan lama vegetasi dan temuan baru bukan
-      // vegetasi (atau sebaliknya), bersihkan field vegetasi agar data
-      // tidak tertinggal/tidak valid.
       final wasVegetasi = isVegetasi;
       setState(() {
         temuan = v;
@@ -302,10 +388,6 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
     const Row(children: [Icon(Icons.gpp_good_rounded, size: 14, color: green), SizedBox(width: 6), Expanded(child: Text('Foto diambil landscape', style: TextStyle(fontSize: 11, color: muted)))]),
   ]);
 
-  /// Menangani ketukan pada kolom kamera untuk verifikasi foto.
-  /// - Jika foto belum ada: langsung membuka kamera.
-  /// - Jika foto sudah ada: menampilkan 2 pilihan (Lihat Hasil / Ambil Ulang)
-  ///   agar petugas dapat memverifikasi apakah foto sudah sesuai.
   void _onPhotoTap(String label, String path, VoidCallback onCapture) {
     if (path.isEmpty || !File(path).existsSync()) {
       onCapture();
