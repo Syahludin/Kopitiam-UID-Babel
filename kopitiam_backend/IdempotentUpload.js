@@ -35,28 +35,19 @@ function validateTemuanHeaders_(headers) {
 function preparePhoto_(base64Value, role) {
   if (!base64Value) throw new Error(role + " required");
   var encoded = String(base64Value);
-  if (encoded.length > Math.ceil((CONFIG.MAX_IMAGE_BYTES * 4) / 3) + 16) {
-    throw new Error(role + " too large");
-  }
+  if (encoded.length > Math.ceil((CONFIG.MAX_IMAGE_BYTES * 4) / 3) + 16) throw new Error(role + " too large");
   var bytes;
-  try {
-    bytes = Utilities.base64Decode(encoded);
-  } catch (_) {
-    throw new Error(role + " invalid base64");
-  }
-  if (bytes.length > CONFIG.MAX_IMAGE_BYTES)
-    throw new Error(role + " too large");
+  try { bytes = Utilities.base64Decode(encoded); } catch (_) { throw new Error(role + " invalid base64"); }
+  if (bytes.length > CONFIG.MAX_IMAGE_BYTES) throw new Error(role + " too large");
   validateJpegBytes_(bytes);
   return { role: role, bytes: bytes, digest: digestBytes_(bytes) };
 }
 
 function digestBytes_(bytes) {
-  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, bytes)
-    .map(function (value) {
-      var byte = value < 0 ? value + 256 : value;
-      return ("0" + byte.toString(16)).slice(-2);
-    })
-    .join("");
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, bytes).map(function (value) {
+    var byte = value < 0 ? value + 256 : value;
+    return ("0" + byte.toString(16)).slice(-2);
+  }).join("");
 }
 
 function putPhotoIdempotent_(folder, code, prepared) {
@@ -136,7 +127,9 @@ function syncTemuanInspeksiIdempotent_(token, incoming) {
     row["Waktu Input"] = Utilities.formatDate(now, Session.getScriptTimeZone(), "dd MMMM yyyy, HH:mm:ss"); row["User Input"] = auth.sesi.username;
     row["Folder Path"] = buildFindingPath_(context.kodeUlp, object, kodeWo, code, now);
     var sheet = temuanSheet_(), values = sheet.getDataRange().getValues();
-    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0], headerValidation = validateTemuanHeaders_(headers);
+    var headers = values.length && values[0].length ? values[0] : [];
+    if (!headers.length) headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0];
+    var headerValidation = validateTemuanHeaders_(headers);
     if (!headerValidation.success) return headerValidation;
     var headerIndex = headerIndex_(headers), target = 0;
     for (var r = 1; r < values.length; r++) if (String(values[r][headerIndex["kode temuan"]] || "") === code) { target = r + 1; break; }
