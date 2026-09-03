@@ -1,1 +1,1 @@
-export 'dashboard_screen_impl.dart';
+export 'dashboard_router.dart';
