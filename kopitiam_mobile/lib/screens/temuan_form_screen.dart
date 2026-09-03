@@ -78,12 +78,26 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
     if (tier == null || tier!.isEmpty) return [];
     final targetObject = object.toLowerCase().trim();
     return listMaster.where((row) {
-      final rowObject = _findValue(row, const ['Objek Inspeksi', 'Jenis Object', 'Jenis Objek', 'Objektif', 'Object'])
-          .trim()
-          .toLowerCase();
-      if (rowObject.isNotEmpty && !rowObject.contains(targetObject)) return false;
+      final rowObject = _findValue(row, const [
+        'Object Inspeksi',
+        'Objek Inspeksi',
+        'Jenis Object',
+        'Jenis Objek',
+        'Objektif',
+        'Object',
+        'Objek',
+      ]).trim().toLowerCase();
+
+      // Jika kolom objek inspeksi ada di master, wajib cocok dengan targetObject (jaringan / gardu)
+      if (rowObject.isNotEmpty) {
+        if (!rowObject.contains(targetObject)) return false;
+      }
+
       final rowTier = _findValue(row, const ['Tier']);
-      return rowTier.trim().isEmpty || rowTier.trim().toLowerCase() == tier!.toLowerCase();
+      if (rowTier.trim().isNotEmpty && rowTier.trim().toLowerCase() != tier!.toLowerCase()) {
+        return false;
+      }
+      return true;
     }).map((row) => _findValue(row, const ['Temuan', 'Nama Temuan'])).where((v) => v.isNotEmpty).toSet().toList();
   }
 
