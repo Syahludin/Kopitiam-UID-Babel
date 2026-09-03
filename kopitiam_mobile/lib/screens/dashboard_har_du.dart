@@ -37,13 +37,34 @@ class _HarDuDashboardScreenState extends State<HarDuDashboardScreen> {
     if (mounted) setState(() => _items = items);
   }
 
+  void _showResultLater({
+    required bool success,
+    required String title,
+    required String message,
+  }) {
+    Future<void>.delayed(const Duration(milliseconds: 450), () {
+      if (!mounted) return;
+      showOperationResultDialog(
+        context,
+        success: success,
+        title: title,
+        message: message,
+      );
+    });
+  }
+
   Future<void> _download() async {
     final result = await _repository.download(_token);
     await _load();
-    if (!mounted) return;
-    if (result.pesan != null) throw StateError(result.pesan);
-    await showOperationResultDialog(
-      context,
+    if (result.pesan != null) {
+      _showResultLater(
+        success: false,
+        title: 'Download Gagal',
+        message: result.pesan!,
+      );
+      throw StateError(result.pesan!);
+    }
+    _showResultLater(
       success: result.diproses > 0,
       title: result.diproses > 0 ? 'Download Selesai' : 'Tidak Ada Data Baru',
       message: result.diproses > 0
@@ -55,10 +76,15 @@ class _HarDuDashboardScreenState extends State<HarDuDashboardScreen> {
   Future<void> _sync() async {
     final result = await _repository.sinkron(_token);
     await _load();
-    if (!mounted) return;
-    if (result.pesan != null) throw StateError(result.pesan);
-    await showOperationResultDialog(
-      context,
+    if (result.pesan != null) {
+      _showResultLater(
+        success: false,
+        title: 'Sinkronisasi Gagal',
+        message: result.pesan!,
+      );
+      throw StateError(result.pesan!);
+    }
+    _showResultLater(
       success: true,
       title: 'Sinkronisasi Selesai',
       message: '${result.diproses} WO Har Du dikirim ke server.',
@@ -84,18 +110,28 @@ class _HarDuDashboardScreenState extends State<HarDuDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final waiting = _items
-        .where((item) => WoHarDu.normalisasiStatus(item.statusWo) == WoHarDu.statusMenunggu)
+        .where((item) =>
+            WoHarDu.normalisasiStatus(item.statusWo) == WoHarDu.statusMenunggu)
         .length;
     final progress = _items
-        .where((item) => WoHarDu.normalisasiStatus(item.statusWo) == WoHarDu.statusSedang)
+        .where((item) =>
+            WoHarDu.normalisasiStatus(item.statusWo) == WoHarDu.statusSedang)
         .length;
     final done = _items
-        .where((item) => WoHarDu.normalisasiStatus(item.statusWo) == WoHarDu.statusSelesai)
+        .where((item) =>
+            WoHarDu.normalisasiStatus(item.statusWo) == WoHarDu.statusSelesai)
         .length;
-    final dirty = _items.where((item) => !item.isSynced &&
-        WoHarDu.normalisasiStatus(item.statusWo) == WoHarDu.statusSelesai).length;
+    final dirty = _items
+        .where((item) =>
+            !item.isSynced &&
+            WoHarDu.normalisasiStatus(item.statusWo) == WoHarDu.statusSelesai)
+        .length;
     return Scaffold(
-      appBar: AppBar(title: Text(const ['Work Order Har Du', 'Beranda', 'Pengaturan'][_selected])),
+      appBar: AppBar(
+        title: Text(
+          const ['Work Order Har Du', 'Beranda', 'Pengaturan'][_selected],
+        ),
+      ),
       body: IndexedStack(
         index: _selected,
         children: [
@@ -107,15 +143,19 @@ class _HarDuDashboardScreenState extends State<HarDuDashboardScreen> {
                   ? const [
                       Padding(
                         padding: EdgeInsets.symmetric(vertical: 50),
-                        child: Center(child: Text('Belum ada WO Har Du di perangkat')),
+                        child: Center(
+                          child: Text('Belum ada WO Har Du di perangkat'),
+                        ),
                       ),
                     ]
                   : _items
-                      .map((item) => WoHarDuCard(
-                            wo: item,
-                            onKerjakan: () => _open(item, start: true),
-                            onLanjut: () => _open(item),
-                          ))
+                      .map(
+                        (item) => WoHarDuCard(
+                          wo: item,
+                          onKerjakan: () => _open(item, start: true),
+                          onLanjut: () => _open(item),
+                        ),
+                      )
                       .toList(),
             ),
           ),
@@ -149,9 +189,18 @@ class _HarDuDashboardScreenState extends State<HarDuDashboardScreen> {
         selectedIndex: _selected,
         onDestinationSelected: (value) => setState(() => _selected = value),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.assignment_rounded), label: 'Work Order'),
-          NavigationDestination(icon: Icon(Icons.home_rounded), label: 'Beranda'),
-          NavigationDestination(icon: Icon(Icons.settings_rounded), label: 'Pengaturan'),
+          NavigationDestination(
+            icon: Icon(Icons.assignment_rounded),
+            label: 'Work Order',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.home_rounded),
+            label: 'Beranda',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_rounded),
+            label: 'Pengaturan',
+          ),
         ],
       ),
     );
