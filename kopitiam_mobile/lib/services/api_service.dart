@@ -20,7 +20,9 @@ class ApiService {
       return const Duration(seconds: 25);
     }
     if (action.startsWith('sync')) return const Duration(seconds: 150);
-    if (action == 'getMasterData') return const Duration(seconds: 60);
+    if (action == 'getMasterData' || action == 'getMasterGardu') {
+      return const Duration(seconds: 90);
+    }
     return const Duration(seconds: 45);
   }
 
@@ -33,7 +35,6 @@ class ApiService {
     if (initialUri.scheme != 'https' || initialUri.host != _appsScriptHost) {
       throw StateError('Alamat API Apps Script tidak valid.');
     }
-
     try {
       final request = http.Request('POST', initialUri)
         ..followRedirects = false
@@ -44,7 +45,6 @@ class ApiService {
         await client.send(request).timeout(timeout),
       );
       if (!_redirectCodes.contains(response.statusCode)) return response;
-
       final location = response.headers['location'];
       if (location == null || location.trim().isEmpty) {
         throw StateError('API mengirim redirect tanpa alamat tujuan.');
@@ -53,7 +53,6 @@ class ApiService {
       if (contentUri.scheme != 'https' || contentUri.host != _contentHost) {
         throw StateError('Redirect respons API menuju alamat yang tidak diizinkan.');
       }
-
       final contentRequest = http.Request('GET', contentUri)
         ..followRedirects = false
         ..headers['Accept'] = 'application/json';
@@ -125,12 +124,11 @@ class ApiService {
 
   static Future<Map<String, dynamic>> getMasterData(String token) =>
       _postMap({'action': 'getMasterData', 'token': token});
+  static Future<Map<String, dynamic>> getMasterGardu(String token) =>
+      _postMap({'action': 'getMasterGardu', 'token': token});
   static Future<Map<String, dynamic>> getWoInsjar(String token) =>
       _postMap({'action': 'getWoInsjar', 'token': token});
-  static Future<Map<String, dynamic>> getTemuan(
-    String token,
-    String kodeWo,
-  ) =>
+  static Future<Map<String, dynamic>> getTemuan(String token, String kodeWo) =>
       _postMap({
         'action': 'getTemuanInspeksi',
         'token': token,
