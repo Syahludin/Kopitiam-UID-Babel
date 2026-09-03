@@ -9,35 +9,30 @@ import 'services/api_service.dart';
 import 'services/device_session_service.dart';
 import 'services/local_auth_service.dart';
 import 'services/mock_location_guard_service.dart';
+import 'theme/kopitiam_theme.dart';
 
 final appNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
-  runApp(const SiManDistApp());
+  runApp(const KopitiamApp());
 }
 
-class SiManDistApp extends StatelessWidget {
-  const SiManDistApp({super.key});
+class KopitiamApp extends StatelessWidget {
+  const KopitiamApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: appNavigatorKey,
-      title: 'KOPITIAM',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF004D8C)),
-      ),
-      home: const StartupScreen(),
-      builder: (context, child) => _SessionGuard(child: child!),
-    );
-  }
+  Widget build(BuildContext context) => MaterialApp(
+        navigatorKey: appNavigatorKey,
+        title: 'Kopitiam',
+        debugShowCheckedModeBanner: false,
+        theme: KopitiamTheme.light,
+        home: const StartupScreen(),
+        builder: (context, child) => _SessionGuard(child: child!),
+      );
 }
 
 class _SessionGuard extends StatefulWidget {
   final Widget child;
-
   const _SessionGuard({required this.child});
 
   @override
@@ -117,13 +112,6 @@ class _SessionGuardState extends State<_SessionGuard>
       MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
       (_) => false,
     );
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Login offline berakhir setelah 24 jam. Silakan login online.',
-        ),
-      ),
-    );
   }
 
   @override
@@ -135,93 +123,92 @@ class _SessionGuardState extends State<_SessionGuard>
 
   @override
   Widget build(BuildContext context) => Stack(
-    children: [
-      AbsorbPointer(
-        absorbing: _mockLocationBlocked,
-        child: widget.child,
-      ),
-      if (_mockLocationBlocked)
-        Positioned(
-          left: 20,
-          right: 20,
-          top: MediaQuery.paddingOf(context).top + 72,
-          child: _MockLocationWarning(onRetry: _securityCheck),
-        ),
-    ],
-  );
+        children: [
+          AbsorbPointer(
+            absorbing: _mockLocationBlocked,
+            child: widget.child,
+          ),
+          if (_mockLocationBlocked)
+            Positioned(
+              left: 20,
+              right: 20,
+              top: MediaQuery.paddingOf(context).top + 72,
+              child: _MockLocationWarning(onRetry: _securityCheck),
+            ),
+        ],
+      );
 }
 
 class _MockLocationWarning extends StatelessWidget {
   final Future<void> Function() onRetry;
-
   const _MockLocationWarning({required this.onRetry});
 
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.transparent,
-    child: Container(
-      padding: const EdgeInsets.fromLTRB(18, 16, 14, 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF1F2),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFFDA4AF)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1F881337),
-            blurRadius: 24,
-            offset: Offset(0, 10),
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(18, 16, 14, 14),
+          decoration: BoxDecoration(
+            color: KopitiamColors.dangerSoft,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE7AAB0)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x26071F33),
+                blurRadius: 24,
+                offset: Offset(0, 10),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.gps_off_rounded, color: Color(0xFFBE123C), size: 28),
-              SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Lokasi tiruan terdeteksi',
-                      style: TextStyle(
-                        color: Color(0xFF881337),
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                      ),
+              const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.gps_off_rounded,
+                      color: KopitiamColors.danger, size: 28),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Lokasi tiruan terdeteksi',
+                          style: TextStyle(
+                            color: KopitiamColors.ink,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          'Sesi dihentikan. Matikan aplikasi pengubah lokasi sebelum masuk kembali.',
+                          style: TextStyle(
+                            color: KopitiamColors.muted,
+                            height: 1.4,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 5),
-                    Text(
-                      'Sesi telah dikeluarkan. Matikan Fake GPS atau aplikasi pihak ketiga pengubah lokasi sebelum login kembali.',
-                      style: TextStyle(
-                        color: Color(0xFF9F1239),
-                        height: 1.4,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Periksa ulang'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: KopitiamColors.danger,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Periksa ulang'),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFBE123C),
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 }
