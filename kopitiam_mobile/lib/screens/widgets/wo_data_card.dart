@@ -138,15 +138,12 @@ class _WoDataCardState extends State<WoDataCard>
                               const Icon(Icons.check_rounded,
                                   color: KopitiamColors.success, size: 36)
                             else
-                              RotationTransition(
-                                turns: _spin,
-                                child: Icon(
-                                  type == 'download'
-                                      ? Icons.cloud_download_rounded
-                                      : Icons.sync_rounded,
-                                  color: KopitiamColors.navy,
-                                  size: 32,
-                                ),
+                              Icon(
+                                type == 'download'
+                                    ? Icons.cloud_download_rounded
+                                    : Icons.sync_rounded,
+                                color: KopitiamColors.navy,
+                                size: 32,
                               ),
                           ],
                         ),
@@ -273,7 +270,7 @@ class _WoDataCardState extends State<WoDataCard>
                         ? 'Sinkron (${widget.dirty})'
                         : 'Sinkron ${widget.isRow ? "ROW" : "WO"}';
     final icon = active
-        ? Icons.sync_rounded
+        ? (type == 'download' ? Icons.cloud_download_rounded : Icons.sync_rounded)
         : success
             ? Icons.check_circle_rounded
             : failed
@@ -292,7 +289,16 @@ class _WoDataCardState extends State<WoDataCard>
         height: 48,
         child: OutlinedButton.icon(
           onPressed: _busy ? null : () => _run(type),
-          icon: Icon(icon, size: 18),
+          icon: active
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    color: KopitiamColors.ocean,
+                  ),
+                )
+              : Icon(icon, size: 18),
           label: FittedBox(
             child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
           ),
@@ -310,7 +316,14 @@ class _WoDataCardState extends State<WoDataCard>
       child: ElevatedButton.icon(
         onPressed: _busy ? null : () => _run(type),
         icon: active
-            ? RotationTransition(turns: _spin, child: Icon(icon, size: 18))
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  color: KopitiamColors.surface,
+                ),
+              )
             : Icon(icon, size: 18),
         label: FittedBox(
           child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),

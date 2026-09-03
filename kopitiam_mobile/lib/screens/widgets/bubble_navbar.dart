@@ -177,8 +177,8 @@ class _BubblePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final background = Paint()..color = KopitiamColors.surface;
     final outline = Paint()
-      ..color = KopitiamColors.line
-      ..strokeWidth = 1.5
+      ..color = KopitiamColors.navy
+      ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke;
     const centerY = 11.0;
     const radius = 39.0;
