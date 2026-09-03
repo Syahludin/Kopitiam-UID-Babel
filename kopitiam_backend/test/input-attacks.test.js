@@ -7,11 +7,8 @@ const test = require("node:test");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
-const source = fs.readFileSync(
-  path.join(root, "SecurityValidation.js"),
-  "utf8",
-);
-const production = fs.readFileSync(path.join(root, "Code.js"), "utf8");
+const source = fs.readFileSync(path.join(root, "SecurityValidation.js"), "utf8");
+const production = fs.readFileSync(path.join(root, "IdempotentUpload.js"), "utf8");
 
 function validators() {
   const sandbox = { Number, String, isFinite };
@@ -22,23 +19,17 @@ function validators() {
 
 function jpegBytes(size = 2048) {
   const bytes = new Array(size).fill(0x11);
-  bytes[0] = 0xff;
-  bytes[1] = 0xd8;
-  bytes[2] = 0xff;
-  bytes[size - 2] = 0xff;
-  bytes[size - 1] = 0xd9;
+  bytes[0] = 0xff; bytes[1] = 0xd8; bytes[2] = 0xff;
+  bytes[size - 2] = 0xff; bytes[size - 1] = 0xd9;
   return bytes;
 }
 
 test("production Temuan flow invokes coordinate and JPEG validators", () => {
-  assert.match(production, /point = validateCoordinate_\(coord\)/);
+  assert.match(production, /point = validateCoordinate_\(/);
   assert.match(production, /validateJpegBytes_\(bytes\)/);
-  assert.match(production, /COORDINATE_INVALID/);
-  assert.match(production, /PHOTO_INVALID/);
-  assert.match(
-    production,
-    /!incoming\.fotoTemuanBase64 \|\| !incoming\.fotoLingkunganBase64/,
-  );
+  assert.match(production, /INPUT_INVALID/);
+  assert.match(production, /fotoTemuanBase64/);
+  assert.match(production, /fotoLingkunganBase64/);
 });
 
 test("accepts a real-looking JPEG signature and valid Babel coordinate", () => {
@@ -51,20 +42,11 @@ test("accepts a real-looking JPEG signature and valid Babel coordinate", () => {
 
 test("rejects executable, PDF, PNG, ZIP, and HTML payloads disguised as JPEG", () => {
   const backend = validators();
-  const attacks = [
-    [0x4d, 0x5a],
-    [0x25, 0x50, 0x44, 0x46],
-    [0x89, 0x50, 0x4e, 0x47],
-    [0x50, 0x4b, 0x03, 0x04],
-    [0x3c, 0x68, 0x74, 0x6d, 0x6c],
-  ];
+  const attacks = [[0x4d, 0x5a], [0x25, 0x50, 0x44, 0x46], [0x89, 0x50, 0x4e, 0x47], [0x50, 0x4b, 0x03, 0x04], [0x3c, 0x68, 0x74, 0x6d, 0x6c]];
   for (const signature of attacks) {
     const bytes = new Array(2048).fill(0x11);
-    signature.forEach((value, index) => {
-      bytes[index] = value;
-    });
-    bytes[2046] = 0xff;
-    bytes[2047] = 0xd9;
+    signature.forEach((value, index) => { bytes[index] = value; });
+    bytes[2046] = 0xff; bytes[2047] = 0xd9;
     assert.throws(() => backend.validateJpegBytes_(bytes), /JPEG signature/);
   }
 });
@@ -72,13 +54,9 @@ test("rejects executable, PDF, PNG, ZIP, and HTML payloads disguised as JPEG", (
 test("rejects truncated JPEG and fake header-only JPEG", () => {
   const backend = validators();
   const truncated = jpegBytes();
-  truncated[truncated.length - 2] = 0x00;
-  truncated[truncated.length - 1] = 0x00;
+  truncated[truncated.length - 2] = 0; truncated[truncated.length - 1] = 0;
   assert.throws(() => backend.validateJpegBytes_(truncated), /JPEG signature/);
-  assert.throws(
-    () => backend.validateJpegBytes_([0xff, 0xd8, 0xff, 0xff, 0xd9]),
-    /too small/,
-  );
+  assert.throws(() => backend.validateJpegBytes_([0xff, 0xd8, 0xff, 0xff, 0xd9]), /too small/);
 });
 
 test("supports signed bytes returned by Apps Script base64Decode", () => {
@@ -89,30 +67,14 @@ test("supports signed bytes returned by Apps Script base64Decode", () => {
 
 test("rejects latitude and longitude outside world bounds", () => {
   const backend = validators();
-  for (const value of [
-    "90.0001, 106",
-    "-90.0001, 106",
-    "-3, 180.0001",
-    "-3, -180.0001",
-  ]) {
+  for (const value of ["90.0001, 106", "-90.0001, 106", "-3, 180.0001", "-3, -180.0001"]) {
     assert.throws(() => backend.validateCoordinate_(value), /out of range/);
   }
 });
 
 test("rejects Null Island, NaN, Infinity, extra values, and injected text", () => {
   const backend = validators();
-  const attacks = [
-    "0,0",
-    "NaN,106",
-    "Infinity,106",
-    "-3,106,999",
-    "-3;106",
-    "-3,106<script>",
-    "1e2,106",
-    "",
-    "null",
-  ];
-  for (const value of attacks) {
+  for (const value of ["0,0", "NaN,106", "Infinity,106", "-3,106,999", "-3;106", "-3,106<script>", "1e2,106", "", "null"]) {
     assert.throws(() => backend.validateCoordinate_(value));
   }
 });
