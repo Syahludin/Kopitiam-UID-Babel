@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -12,12 +13,22 @@ class ApiService {
   static const _redirectCodes = {301, 302, 303, 307, 308};
   static const _appsScriptHost = 'script.google.com';
   static const _contentHost = 'script.googleusercontent.com';
-  static const _requestTimeout = Duration(seconds: 20);
+
+  static Duration _timeoutFor(Map<String, dynamic> payload) {
+    final action = '${payload['action'] ?? ''}';
+    if (action == 'loginPerangkat' || action == 'cekPerangkat') {
+      return const Duration(seconds: 25);
+    }
+    if (action.startsWith('sync')) return const Duration(seconds: 150);
+    if (action == 'getMasterData') return const Duration(seconds: 60);
+    return const Duration(seconds: 45);
+  }
 
   static Future<http.Response> _postAppsScript(
     Map<String, dynamic> payload,
   ) async {
     final client = http.Client();
+    final timeout = _timeoutFor(payload);
     final initialUri = Uri.parse(baseUrl);
     if (initialUri.scheme != 'https' || initialUri.host != _appsScriptHost) {
       throw StateError('Alamat API Apps Script tidak valid.');
@@ -30,7 +41,7 @@ class ApiService {
         ..headers['Content-Type'] = 'application/json; charset=utf-8'
         ..body = jsonEncode(payload);
       final response = await http.Response.fromStream(
-        await client.send(request).timeout(_requestTimeout),
+        await client.send(request).timeout(timeout),
       );
       if (!_redirectCodes.contains(response.statusCode)) return response;
 
@@ -43,14 +54,11 @@ class ApiService {
         throw StateError('Redirect respons API menuju alamat yang tidak diizinkan.');
       }
 
-      // ContentService Apps Script selalu memakai satu redirect POST -> GET.
-      // Jangan aktifkan followRedirects pada URL echo: beberapa perangkat
-      // Android menganggap Location yang setara sebagai loop tanpa akhir.
       final contentRequest = http.Request('GET', contentUri)
         ..followRedirects = false
         ..headers['Accept'] = 'application/json';
       final contentResponse = await http.Response.fromStream(
-        await client.send(contentRequest).timeout(_requestTimeout),
+        await client.send(contentRequest).timeout(timeout),
       );
       if (_redirectCodes.contains(contentResponse.statusCode)) {
         throw StateError(
@@ -59,6 +67,13 @@ class ApiService {
         );
       }
       return contentResponse;
+    } on TimeoutException {
+      final action = '${payload['action'] ?? 'permintaan'}';
+      throw StateError(
+        action.startsWith('sync')
+            ? 'Sinkronisasi melewati batas waktu. Periksa jaringan lalu coba lagi; data lokal tetap aman.'
+            : 'Server terlalu lama merespons. Periksa jaringan lalu coba lagi.',
+      );
     } finally {
       client.close();
     }
