@@ -387,16 +387,31 @@ function getWoHarJar_(t) {
   var sh = SpreadsheetApp.openById(CONFIG.WO_SPREADSHEET_ID).getSheetByName(CONFIG.WO_HAR_JAR_SHEET);
   if (!sh) return { success: true, total: 0, rows: [] };
   var v = sh.getDataRange().getDisplayValues();
-  if (v.length < 2) return { success: true, total: 0, rows: [] };
+  if (v.length < 2) return { success: true, total: 0, totalSheet: 0, rows: [] };
   var h = v[0].map(function (x) { return String(x).trim(); });
   var ix = headerIndex_(h);
   var rows = [];
+  var sampleKodeUlp = "";
+  var rejectedByUlp = 0;
   for (var r = 1; r < v.length; r++) {
-    if (String(v[r][ix["kode wo"]] || "").trim() && normalizeCode_(v[r][ix["kode ulp"]]) === ac.kodeUlp) {
-      rows.push(rowObject_(h, v[r]));
+    if (!String(v[r][ix["kode wo"]] || "").trim()) continue;
+    var rowKodeUlp = normalizeCode_(v[r][ix["kode ulp"]]);
+    if (!sampleKodeUlp) sampleKodeUlp = rowKodeUlp;
+    if (rowKodeUlp !== ac.kodeUlp) {
+      rejectedByUlp++;
+      continue;
     }
+    rows.push(rowObject_(h, v[r]));
   }
-  return { success: true, total: rows.length, kodeUlpFilter: ac.kodeUlp, rows: rows };
+  return {
+    success: true,
+    total: rows.length,
+    totalSheet: v.length - 1,
+    kodeUlpFilter: ac.kodeUlp,
+    sampleKodeUlp: sampleKodeUlp,
+    rejectedByUlp: rejectedByUlp,
+    rows: rows,
+  };
 }
 
 function getWoHarDu_(t) {
@@ -407,17 +422,33 @@ function getWoHarDu_(t) {
   var sh = SpreadsheetApp.openById(CONFIG.WO_SPREADSHEET_ID).getSheetByName(CONFIG.WO_HAR_DU_SHEET);
   if (!sh) return { success: true, total: 0, rows: [] };
   var v = sh.getDataRange().getDisplayValues();
-  if (v.length < 2) return { success: true, total: 0, rows: [] };
+  if (v.length < 2) return { success: true, total: 0, totalSheet: 0, rows: [] };
   var h = v[0].map(function (x) { return String(x).trim(); });
   var ix = headerIndex_(h);
   var rows = [];
+  var sampleKodeUlp = "";
+  var rejectedByUlp = 0;
   for (var r = 1; r < v.length; r++) {
-    if (String(v[r][ix["kode wo"]] || "").trim() && normalizeCode_(v[r][ix["kode ulp"]]) === ac.kodeUlp) {
-      rows.push(rowObject_(h, v[r]));
+    if (!String(v[r][ix["kode wo"]] || "").trim()) continue;
+    var rowKodeUlp = normalizeCode_(v[r][ix["kode ulp"]]);
+    if (!sampleKodeUlp) sampleKodeUlp = rowKodeUlp;
+    if (rowKodeUlp !== ac.kodeUlp) {
+      rejectedByUlp++;
+      continue;
     }
+    rows.push(rowObject_(h, v[r]));
   }
-  return { success: true, total: rows.length, kodeUlpFilter: ac.kodeUlp, rows: rows };
+  return {
+    success: true,
+    total: rows.length,
+    totalSheet: v.length - 1,
+    kodeUlpFilter: ac.kodeUlp,
+    sampleKodeUlp: sampleKodeUlp,
+    rejectedByUlp: rejectedByUlp,
+    rows: rows,
+  };
 }
+
 
 var WO_HAR_MUTABLE_HEADERS = [
   "koordinat", "lat", "long", "foto sesudah", "link foto sesudah",

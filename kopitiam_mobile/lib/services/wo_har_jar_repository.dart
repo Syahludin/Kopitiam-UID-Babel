@@ -95,6 +95,25 @@ class WoHarJarRepository {
   Future<WoSyncResult> download(String token) async {
     final response = await ApiService.getWoHarJar(token);
     final pendingList = response['rows'];
+    if (response['success'] == true &&
+        pendingList is List &&
+        pendingList.isEmpty) {
+      final totalSheet = (response['totalSheet'] as num?)?.toInt() ?? 0;
+      final rejectedByUlp = (response['rejectedByUlp'] as num?)?.toInt() ?? 0;
+      if (totalSheet > 0 && rejectedByUlp > 0) {
+        final sample = '${response['sampleKodeUlp'] ?? ''}';
+        final filter = '${response['kodeUlpFilter'] ?? ''}';
+        return WoSyncResult(
+          total: 0,
+          diproses: 0,
+          pesan:
+              'Ditemukan $totalSheet data WO Har Jar di server, tetapi '
+              '$rejectedByUlp tidak cocok dengan Kode ULP akun Anda ($filter '
+              'vs $sample pada data). Hubungi admin untuk memeriksa Kode ULP '
+              'akun atau data WO.',
+        );
+      }
+    }
     if (response['success'] != true || pendingList is! List) {
       return WoSyncResult(
         total: 0,

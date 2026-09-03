@@ -108,6 +108,24 @@ class WoInsjarRepository {
   Future<WoSyncResult> download(String token) async {
     final db = await _db.database;
     final response = await ApiService.getWoInsjar(token);
+    if (response['success'] == true &&
+        response['rows'] is List &&
+        (response['rows'] as List).isEmpty) {
+      final totalSheet = (response['totalSheet'] as num?)?.toInt() ?? 0;
+      final rejectedByUlp = (response['rejectedByUlp'] as num?)?.toInt() ?? 0;
+      if (totalSheet > 0 && rejectedByUlp > 0) {
+        final sample = '${response['sampleKodeUlp'] ?? ''}';
+        final filter = '${response['kodeUlpFilter'] ?? ''}';
+        return WoSyncResult(
+          total: 0,
+          diproses: 0,
+          pesan:
+              'Ditemukan $totalSheet data WO di server, tetapi $rejectedByUlp '
+              'tidak cocok dengan Kode ULP akun Anda ($filter vs $sample pada '
+              'data). Hubungi admin untuk memeriksa Kode ULP akun atau data WO.',
+        );
+      }
+    }
     if (response['success'] != true || response['rows'] is! List) {
       return WoSyncResult(
         total: 0,
