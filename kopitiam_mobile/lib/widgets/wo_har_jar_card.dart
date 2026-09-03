@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/wo_har_jar.dart';
 
@@ -11,6 +12,7 @@ class WoHarJarCard extends StatelessWidget {
   static const neutral500 = Color(0xFF64748B);
   static const neutral200 = Color(0xFFE2E8F0);
   static const blueCard = Color(0xFFE8F4FC);
+  static const blueSoft = Color(0xFFE8F1FA);
   static const red600 = Color(0xFFDC2626);
 
   final WoHarJar wo;
@@ -24,22 +26,41 @@ class WoHarJarCard extends StatelessWidget {
     required this.onLanjut,
   });
 
+  String get _coordinate {
+    if (wo.koordinat.trim().isNotEmpty) return wo.koordinat.trim();
+    if (wo.lat != null && wo.long != null) return '${wo.lat}, ${wo.long}';
+    return '';
+  }
+
+  Future<void> _bukaMaps(BuildContext context) async {
+    if (_coordinate.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Koordinat WO Har Jar belum tersedia.'),
+          backgroundColor: red600,
+        ),
+      );
+      return;
+    }
+    await launchUrl(
+      Uri.parse(
+        'https://www.google.com/maps/dir/?api=1&destination='
+        '${Uri.encodeComponent(_coordinate)}',
+      ),
+      mode: LaunchMode.externalApplication,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final status = WoHarJar.normalisasiStatus(wo.statusWo);
     final isMenunggu = status == WoHarJar.statusMenunggu;
     final isSedang = status == WoHarJar.statusSedang;
     final isSelesai = status == WoHarJar.statusSelesai;
-    final color = isSelesai
-        ? green100
-        : isSedang
-            ? blueCard
-            : Colors.white;
+    final color = isSelesai ? green100 : (isSedang ? blueCard : Colors.white);
     final borderColor = isSelesai
         ? const Color(0xFF86CFA5)
-        : isSedang
-            ? const Color(0xFF8BC5E8)
-            : neutral200;
+        : (isSedang ? const Color(0xFF8BC5E8) : neutral200);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -65,9 +86,7 @@ class WoHarJarCard extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                   color: isSelesai
                       ? green600
-                      : isSedang
-                          ? navy700
-                          : amber600,
+                      : (isSedang ? navy700 : amber600),
                 ),
               ),
             ],
@@ -106,6 +125,42 @@ class WoHarJarCard extends StatelessWidget {
               color: navy950,
             ),
           ),
+          const SizedBox(height: 10),
+          InkWell(
+            onTap: () => _bukaMaps(context),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              decoration: BoxDecoration(
+                color: blueSoft,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.directions_rounded, size: 17, color: navy700),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _coordinate.isEmpty ? 'Koordinat belum tersedia' : _coordinate,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 11, color: neutral500),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'Arahkan',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: navy700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 13),
           Align(
             alignment: Alignment.centerRight,
@@ -134,7 +189,9 @@ class WoHarJarCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isTinggi ? red600.withValues(alpha: .12) : amber600.withValues(alpha: .18),
+        color: isTinggi
+            ? red600.withValues(alpha: .12)
+            : amber600.withValues(alpha: .18),
         borderRadius: BorderRadius.circular(100),
       ),
       child: Text(
@@ -154,7 +211,9 @@ class WoHarJarCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: padam ? red600.withValues(alpha: .10) : navy700.withValues(alpha: .10),
+        color: padam
+            ? red600.withValues(alpha: .10)
+            : navy700.withValues(alpha: .10),
         borderRadius: BorderRadius.circular(100),
       ),
       child: Text(

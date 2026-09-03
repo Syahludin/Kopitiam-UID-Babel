@@ -1,35 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../models/wo_row.dart';
+import '../models/wo_har_du.dart';
 
-class WoRowCard extends StatelessWidget {
-  final WoRow row;
-  final VoidCallback onStart;
-  final VoidCallback onOpen;
+class WoHarDuCard extends StatelessWidget {
+  final WoHarDu wo;
+  final VoidCallback onKerjakan;
+  final VoidCallback onLanjut;
 
-  const WoRowCard({
+  const WoHarDuCard({
     super.key,
-    required this.row,
-    required this.onStart,
-    required this.onOpen,
+    required this.wo,
+    required this.onKerjakan,
+    required this.onLanjut,
   });
 
-  static const navy950 = Color(0xFF071B30);
-  static const navy700 = Color(0xFF004D8C);
-  static const amber600 = Color(0xFFFFB800);
-  static const green600 = Color(0xFF16A34A);
-  static const green100 = Color(0xFFDCFCE7);
-  static const neutral500 = Color(0xFF64748B);
-  static const neutral200 = Color(0xFFE2E8F0);
-  static const blueCard = Color(0xFFE8F4FC);
-  static const blueSoft = Color(0xFFE8F1FA);
+  static const navy = Color(0xFF071B30);
+  static const blue = Color(0xFF004D8C);
+  static const amber = Color(0xFFFFB800);
+  static const green = Color(0xFF16A34A);
+  static const muted = Color(0xFF64748B);
+  static const line = Color(0xFFE2E8F0);
+  static const soft = Color(0xFFE8F1FA);
+  static const red = Color(0xFFDC2626);
 
   String get _coordinate {
-    if (row.koordinat.trim().isNotEmpty) return row.koordinat.trim();
-    if (row.lat.trim().isNotEmpty && row.long.trim().isNotEmpty) {
-      return '${row.lat.trim()}, ${row.long.trim()}';
-    }
+    if (wo.koordinat.trim().isNotEmpty) return wo.koordinat.trim();
+    if (wo.lat != null && wo.long != null) return '${wo.lat}, ${wo.long}';
     return '';
   }
 
@@ -37,8 +34,8 @@ class WoRowCard extends StatelessWidget {
     if (_coordinate.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Koordinat temuan belum tersedia pada ROW ini.'),
-          backgroundColor: Color(0xFFDC2626),
+          content: Text('Koordinat WO Har Du belum tersedia.'),
+          backgroundColor: red,
         ),
       );
       return;
@@ -54,26 +51,16 @@ class WoRowCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = WoRow.normalisasiStatus(row.statusWo);
-    final canOpen = status != WoRow.statusPenugasan;
-    final color = status == WoRow.statusSelesai
-        ? green100
-        : status == WoRow.statusProgress
-            ? blueCard
-            : Colors.white;
-    final card = Container(
+    final status = WoHarDu.normalisasiStatus(wo.statusWo);
+    final waiting = status == WoHarDu.statusMenunggu;
+    final done = status == WoHarDu.statusSelesai;
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: color,
+        color: done ? const Color(0xFFDCFCE7) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: status == WoRow.statusSelesai
-              ? const Color(0xFF86CFA5)
-              : status == WoRow.statusProgress
-                  ? const Color(0xFF8BC5E8)
-                  : neutral200,
-        ),
+        border: Border.all(color: done ? const Color(0xFF86CFA5) : line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,42 +69,43 @@ class WoRowCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  row.kodeWo,
+                  wo.kodeWo,
                   style: const TextStyle(
+                    color: navy,
                     fontWeight: FontWeight.w800,
-                    color: navy950,
                   ),
                 ),
               ),
               Text(
                 status,
                 style: TextStyle(
+                  color: done ? green : blue,
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
-                  color: status == WoRow.statusSelesai
-                      ? green600
-                      : status == WoRow.statusProgress
-                          ? navy700
-                          : amber600,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
-            row.temuan,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            wo.nomorGardu.isEmpty ? 'Gardu belum ditentukan' : wo.nomorGardu,
             style: const TextStyle(
+              color: navy,
               fontSize: 15,
               fontWeight: FontWeight.w800,
-              color: navy950,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
-            '${row.kodeTemuan} • ${row.segmen}',
-            style: const TextStyle(fontSize: 12, color: neutral500),
+            '${wo.penyulang} • ${wo.section}',
+            style: const TextStyle(color: muted, fontSize: 12),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            wo.temuan,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: navy, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 10),
           InkWell(
@@ -127,59 +115,52 @@ class WoRowCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
               decoration: BoxDecoration(
-                color: blueSoft,
+                color: soft,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.directions_rounded, size: 17, color: navy700),
+                  const Icon(Icons.directions_rounded, size: 17, color: blue),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _coordinate.isEmpty ? 'Koordinat belum tersedia' : _coordinate,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 11, color: neutral500),
+                      style: const TextStyle(fontSize: 11, color: muted),
                     ),
                   ),
                   const Text(
                     'Arahkan',
                     style: TextStyle(
+                      color: blue,
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: navy700,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 13),
+          const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerRight,
-            child: status == WoRow.statusPenugasan
+            child: waiting
                 ? ElevatedButton(
-                    onPressed: onStart,
+                    onPressed: onKerjakan,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: amber600,
-                      foregroundColor: navy950,
+                      backgroundColor: amber,
+                      foregroundColor: navy,
                     ),
-                    child: const Text('Mulai Pekerjaan'),
+                    child: const Text('Kerjakan'),
                   )
                 : OutlinedButton(
-                    onPressed: onOpen,
-                    child: const Text('Buka'),
+                    onPressed: onLanjut,
+                    child: Text(done ? 'Lihat' : 'Lanjut'),
                   ),
           ),
         ],
       ),
     );
-    return canOpen
-        ? InkWell(
-            onTap: onOpen,
-            borderRadius: BorderRadius.circular(16),
-            child: card,
-          )
-        : card;
   }
 }
