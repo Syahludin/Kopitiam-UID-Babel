@@ -135,7 +135,11 @@ function syncTemuanInspeksiIdempotent_(token, incoming) {
     for (var r = 1; r < values.length; r++) if (String(values[r][headerIndex["kode temuan"]] || "") === code) { target = r + 1; break; }
     var folder = folderPath_(row["Folder Path"]), primary = putPhotoIdempotent_(folder, code, primaryPrepared); created.push(primary);
     var environment = putPhotoIdempotent_(folder, code, environmentPrepared); created.push(environment);
-    row["Foto Temuan"] = primary.name; row["Link Foto"] = primary.url; row["Foto Lingkungan Sekitaran Tiang"] = environment.name; row["Link Foto Sekitaran Tiang"] = environment.url;
+    var cleanFolderPath = String(row["Folder Path"] || "").replace(/[\/\\]+$/, "");
+    row["Foto Temuan"] = cleanFolderPath + "\\" + primary.name;
+    row["Link Foto"] = primary.url;
+    row["Foto Lingkungan Sekitaran Tiang"] = cleanFolderPath + "\\" + environment.name;
+    row["Link Foto Sekitaran Tiang"] = environment.url;
     var normalizedRow = {};
     for (var key in row) if (Object.prototype.hasOwnProperty.call(row, key)) normalizedRow[normalize_(key)] = row[key];
     var output = headers.map(function (header) { var value = normalizedRow[normalize_(header)]; return value === undefined || value === null ? "" : safeCell_(value); });
