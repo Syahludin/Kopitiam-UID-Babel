@@ -10,7 +10,7 @@ import 'package:kopitiam_mobile/screens/login_screen.dart';
 /// diberi waktu nyata, karena itu memakai runAsync, bukan pumpAndSettle yang
 /// tidak pernah tenang akibat Timer.periodic pemeriksaan keamanan.
 Future<void> _bootstrap(WidgetTester tester) async {
-  await tester.pumpWidget(const SiManDistApp());
+  await tester.pumpWidget(const KopitiamApp());
   await tester.runAsync(
     () => Future<void>.delayed(const Duration(milliseconds: 300)),
   );
