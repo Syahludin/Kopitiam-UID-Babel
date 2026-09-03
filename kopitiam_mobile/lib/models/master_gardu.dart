@@ -7,10 +7,8 @@ class MasterGardu {
   final String ptsLbs;
   final String lokasiKelasGardu;
   final String linePrimerGardu;
-  final String koordinatGps;
+  final String latLong;
   final String jenisGardu;
-  final String koordinatX;
-  final String koordinatY;
 
   const MasterGardu({
     this.no = '',
@@ -21,59 +19,59 @@ class MasterGardu {
     this.ptsLbs = '',
     this.lokasiKelasGardu = '',
     this.linePrimerGardu = '',
-    this.koordinatGps = '',
+    this.latLong = '',
     this.jenisGardu = '',
-    this.koordinatX = '',
-    this.koordinatY = '',
   });
 
   factory MasterGardu.fromMap(Map<String, dynamic> map) {
+    String normalize(String key) =>
+        key.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+
     String find(List<String> keys) {
       for (final key in keys) {
-        if (map.containsKey(key) && '${map[key]}'.trim().isNotEmpty) {
-          return '${map[key]}'.trim();
-        }
+        final value = '${map[key] ?? ''}'.trim();
+        if (value.isNotEmpty) return value;
       }
-      final normalized = keys.map((k) => k.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '')).toSet();
+      final normalizedKeys = keys.map(normalize).toSet();
       for (final entry in map.entries) {
-        final k = entry.key.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-        if (normalized.contains(k) && '${entry.value}'.trim().isNotEmpty) {
-          return '${entry.value}'.trim();
+        final value = '${entry.value ?? ''}'.trim();
+        if (normalizedKeys.contains(normalize(entry.key)) && value.isNotEmpty) {
+          return value;
         }
       }
       return '';
     }
 
     return MasterGardu(
-      no: find(['NO', 'No', 'no']),
-      ulp: find(['ULP', 'Ulp', 'ulp']),
-      gardu: find(['GARDU', 'Gardu', 'Nama Gardu', 'gardu']),
-      alamat: find(['ALAMAT', 'Alamat', 'alamat']),
-      penyulang: find(['PENYULANG', 'Penyulang', 'penyulang']),
-      ptsLbs: find(['PTS/LBS', 'PTS / LBS', 'Pts/Lbs', 'pts_lbs']),
-      lokasiKelasGardu: find(['LOKASI KELAS GARDU', 'Lokasi Kelas Gardu', 'Kelas Gardu']),
-      linePrimerGardu: find(['LINE PRIMER GARDU', 'Line Primer Gardu', 'Line Primer']),
-      koordinatGps: find(['KOORDINAT GPS', 'Koordinat GPS', 'Koordinat']),
-      jenisGardu: find(['JENIS GARDU', 'Jenis Gardu', 'jenis_gardu']),
-      koordinatX: find(['KOORDINAT X', 'Koordinat X', 'Long', 'Longitude', 'X']),
-      koordinatY: find(['KOORDINAT Y', 'Koordinat Y', 'Lat', 'Latitude', 'Y']),
+      no: find(const ['NO', 'No', 'no']),
+      ulp: find(const ['ULP', 'Ulp', 'ulp']),
+      gardu: find(const ['GARDU', 'Gardu', 'Nama Gardu', 'gardu']),
+      alamat: find(const ['ALAMAT', 'Alamat', 'alamat']),
+      penyulang: find(const ['PENYULANG', 'Penyulang', 'penyulang']),
+      ptsLbs: find(const ['PTS/LBS', 'PTS / LBS', 'Pts/Lbs', 'pts_lbs']),
+      lokasiKelasGardu: find(
+        const ['LOKASI KELAS GARDU', 'Lokasi Kelas Gardu', 'Kelas Gardu'],
+      ),
+      linePrimerGardu: find(
+        const ['LINE PRIMER GARDU', 'Line Primer Gardu', 'Line Primer'],
+      ),
+      latLong: find(
+        const ['LAT LONG', 'Lat Long', 'LAT/LONG', 'Koordinat GPS', 'Koordinat'],
+      ),
+      jenisGardu: find(const ['JENIS GARDU', 'Jenis Gardu', 'jenis_gardu']),
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'NO': no,
-      'ULP': ulp,
-      'GARDU': gardu,
-      'ALAMAT': alamat,
-      'PENYULANG': penyulang,
-      'PTS/LBS': ptsLbs,
-      'LOKASI KELAS GARDU': lokasiKelasGardu,
-      'LINE PRIMER GARDU': linePrimerGardu,
-      'KOORDINAT GPS': koordinatGps,
-      'JENIS GARDU': jenisGardu,
-      'KOORDINAT X': koordinatX,
-      'KOORDINAT Y': koordinatY,
-    };
-  }
+  Map<String, dynamic> toMap() => {
+        'NO': no,
+        'ULP': ulp,
+        'GARDU': gardu,
+        'ALAMAT': alamat,
+        'PENYULANG': penyulang,
+        'PTS/LBS': ptsLbs,
+        'LOKASI KELAS GARDU': lokasiKelasGardu,
+        'LINE PRIMER GARDU': linePrimerGardu,
+        'LAT LONG': latLong,
+        'JENIS GARDU': jenisGardu,
+      };
 }
