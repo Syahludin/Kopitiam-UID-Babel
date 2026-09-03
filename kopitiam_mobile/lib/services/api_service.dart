@@ -40,12 +40,30 @@ class ApiService {
         throw StateError('Redirect respons API menuju alamat yang tidak diizinkan.');
       }
       final contentRequest = http.Request('GET', contentUri)
-        ..followRedirects = false
+        ..followRedirects = true
+        ..maxRedirects = 5
         ..headers['Accept'] = 'application/json'
         ..headers['Cache-Control'] = 'no-store';
-      return await http.Response.fromStream(
+      final contentResponse = await http.Response.fromStream(
         await client.send(contentRequest).timeout(timeout),
       );
+      if (_redirectCodes.contains(contentResponse.statusCode)) {
+        final nextLocation = contentResponse.headers['location'];
+        if (nextLocation != null && nextLocation.trim().isNotEmpty) {
+          final nextUri = contentUri.resolve(nextLocation.trim());
+          if (nextUri.scheme == 'https' && (nextUri.host == _contentHost || nextUri.host == _appsScriptHost)) {
+            final nextRequest = http.Request('GET', nextUri)
+              ..followRedirects = true
+              ..maxRedirects = 5
+              ..headers['Accept'] = 'application/json'
+              ..headers['Cache-Control'] = 'no-store';
+            return await http.Response.fromStream(
+              await client.send(nextRequest).timeout(timeout),
+            );
+          }
+        }
+      }
+      return contentResponse;
     } finally {
       client.close();
     }
