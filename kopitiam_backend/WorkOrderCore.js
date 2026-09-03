@@ -93,9 +93,16 @@ function getWoInsdu_(token) {
 
 var WO_CORE_MUTABLE = {
   insjar: ['koordinat awal', 'koordinat akhir', 'realisasi kms', 'waktu mulai', 'waktu selesai', 'durasi pekerjaan', 'status wo'],
-  row: ['status wo', 'tindak lanjut', 'ukuran diamter batan (cm)', 'ukuran diameter batang (cm)', 'jenis tebangan', 'jenis pekerjaan', 'foto sesudah', 'link foto sesudah', 'waktu realisasi', 'user input', 'waktu input'],
+  row: ['status wo', 'tindak lanjut', 'ukuran diamter batan (cm)', 'ukuran diameter batang (cm)', 'jenis tebangan', 'jenis pekerjaan', 'foto sesudah', 'link foto sesudah', 'waktu realisasi', 'user input', 'waktu input', 'folder path'],
   insdu: ['beban utama r (a) wbp', 'beban utama s (a) wbp', 'beban utama t (a) wbp', 'beban jurusan n (a) wbp', 'tegangan r-s (v) wbp', 'tegangan s-t (v) wbp', 'tegangan r-t (v) wbp', 'tegangan r-n (v) wbp', 'tegangan s-n (v) wbp', 'tegangan t-n (v) wbp', 'beban utama r (a) lwbp', 'beban utama s (a) lwbp', 'beban utama t (a) lwbp', 'beban jurusan n (a) lwbp', 'tegangan r-s (v) lwbp', 'tegangan s-t (v) lwbp', 'tegangan r-t (v) lwbp', 'tegangan r-n (v) lwbp', 'tegangan s-n (v) lwbp', 'tegangan t-n (v) lwbp', 'cover fco atas', 'cover fco bawah', 'cover bushing tm', 'cover bushing tr', 'cover arrester', 'jumperan atas', 'jumperan bawah', 'waktu mulai', 'waktu selesai', 'durasi pekerjaan', 'status wo']
 };
+
+function uploadWoPhoto_(folderPathStr, code, base64Data, role) {
+  if (!base64Data) return null;
+  var prepared = preparePhoto_(base64Data, role);
+  var folder = folderPath_(folderPathStr);
+  return putPhotoIdempotent_(folder, code, prepared);
+}
 
 function woCoreSync_(token, mode, sheetName, rows) {
   var auth = cekSesi_(token);
@@ -123,6 +130,31 @@ function woCoreSync_(token, mode, sheetName, rows) {
       if (target < 0) return fail_('WO_NOT_FOUND', 'WO tidak ditemukan: ' + code);
       var normalized = {};
       for (var key in incoming) if (Object.prototype.hasOwnProperty.call(incoming, key)) normalized[normalize_(key)] = incoming[key];
+
+      var existingFolderPath = index['folder path'] !== undefined ? values[target][index['folder path']] : '';
+      var folderPathVal = normalized['folder path'] || existingFolderPath || ('Kopitiam/WO/' + safePath_(access.kodeUlp) + '/' + safePath_(code) + '/');
+      normalized['folder path'] = folderPathVal;
+
+      var b64Photo = normalized['foto sesudah base64'] || normalized['fotosesudahbase64'];
+      if (b64Photo) {
+        try {
+          var uploaded = uploadWoPhoto_(folderPathVal, code, b64Photo, 'Foto Sesudah');
+          if (uploaded) {
+            var cleanPath = String(folderPathVal || '').replace(/[\/\\]+$/, '');
+            normalized['foto sesudah'] = cleanPath + '\\' + uploaded.name;
+            normalized['link foto sesudah'] = uploaded.url;
+          }
+        } catch (photoErr) {
+          console.error('Upload foto sesudah gagal:', photoErr);
+        }
+      } else if (normalized['foto sesudah']) {
+        var rawName = String(normalized['foto sesudah']).trim();
+        if (rawName && rawName.indexOf('\\') < 0 && rawName.indexOf('/') < 0) {
+          var cleanFolderPath = String(folderPathVal || '').replace(/[\/\\]+$/, '');
+          normalized['foto sesudah'] = cleanFolderPath + '\\' + rawName;
+        }
+      }
+
       var output = values[target].slice();
       for (var c = 0; c < headers.length; c++) {
         var header = normalize_(headers[c]);

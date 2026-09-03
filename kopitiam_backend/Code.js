@@ -449,7 +449,6 @@ function getWoHarDu_(t) {
   };
 }
 
-
 var WO_HAR_MUTABLE_HEADERS = [
   "koordinat", "lat", "long", "foto sesudah", "link foto sesudah",
   "catatan petugas", "status wo", "waktu selesai", "durasi", "user input", "waktu input", "folder path"
@@ -497,6 +496,31 @@ function syncGenericWoHar_(sesi, sheetName, rows) {
       var out = v[targetRow - 1].slice();
       var normPayload = {};
       for (var key in d) if (Object.prototype.hasOwnProperty.call(d, key)) normPayload[normalize_(key)] = d[key];
+
+      var existingFolder = ix["folder path"] !== undefined ? v[targetRow - 1][ix["folder path"]] : "";
+      var folderPathVal = normPayload["folder path"] || existingFolder || ("Kopitiam/WO_HAR/" + safePath_(sesi.kodeUlp || "") + "/" + safePath_(kodeWo) + "/");
+      normPayload["folder path"] = folderPathVal;
+
+      var b64Photo = normPayload["foto sesudah base64"] || normPayload["fotosesudahbase64"];
+      if (b64Photo) {
+        try {
+          var uploaded = uploadWoPhoto_(folderPathVal, kodeWo, b64Photo, "Foto Sesudah");
+          if (uploaded) {
+            var cleanPath = String(folderPathVal || "").replace(/[\/\\]+$/, "");
+            normPayload["foto sesudah"] = cleanPath + "\\" + uploaded.name;
+            normPayload["link foto sesudah"] = uploaded.url;
+          }
+        } catch (photoErr) {
+          console.error("Upload foto har gagal:", photoErr);
+        }
+      } else if (normPayload["foto sesudah"]) {
+        var rawName = String(normPayload["foto sesudah"]).trim();
+        if (rawName && rawName.indexOf("\\") < 0 && rawName.indexOf("/") < 0) {
+          var cleanFolderPath = String(folderPathVal || "").replace(/[\/\\]+$/, "");
+          normPayload["foto sesudah"] = cleanFolderPath + "\\" + rawName;
+        }
+      }
+
       for (var c = 0; c < h.length; c++) {
         var n = normalize_(h[c]);
         if (WO_HAR_MUTABLE_HEADERS.indexOf(n) >= 0 && normPayload[n] !== undefined) {
