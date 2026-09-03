@@ -12,25 +12,28 @@ class ApiService {
   static const _redirectCodes = {301, 302, 303, 307, 308};
   static const _appsScriptHost = 'script.google.com';
   static const _contentHost = 'script.googleusercontent.com';
+  static const _requestTimeout = Duration(seconds: 20);
 
-  static Future<http.Response> _postAppsScript(Map<String, dynamic> payload) async {
+  static Future<http.Response> _postAppsScript(
+    Map<String, dynamic> payload,
+  ) async {
     final client = http.Client();
-    const timeout = Duration(seconds: 120);
     final initialUri = Uri.parse(baseUrl);
     if (initialUri.scheme != 'https' || initialUri.host != _appsScriptHost) {
       throw StateError('Alamat API Apps Script tidak valid.');
     }
+
     try {
       final request = http.Request('POST', initialUri)
         ..followRedirects = false
         ..headers['Accept'] = 'application/json'
         ..headers['Content-Type'] = 'application/json; charset=utf-8'
-        ..headers['Cache-Control'] = 'no-store'
         ..body = jsonEncode(payload);
       final response = await http.Response.fromStream(
-        await client.send(request).timeout(timeout),
+        await client.send(request).timeout(_requestTimeout),
       );
       if (!_redirectCodes.contains(response.statusCode)) return response;
+
       final location = response.headers['location'];
       if (location == null || location.trim().isEmpty) {
         throw StateError('API mengirim redirect tanpa alamat tujuan.');
@@ -39,29 +42,21 @@ class ApiService {
       if (contentUri.scheme != 'https' || contentUri.host != _contentHost) {
         throw StateError('Redirect respons API menuju alamat yang tidak diizinkan.');
       }
+
+      // ContentService Apps Script selalu memakai satu redirect POST -> GET.
+      // Jangan aktifkan followRedirects pada URL echo: beberapa perangkat
+      // Android menganggap Location yang setara sebagai loop tanpa akhir.
       final contentRequest = http.Request('GET', contentUri)
-        ..followRedirects = true
-        ..maxRedirects = 5
-        ..headers['Accept'] = 'application/json'
-        ..headers['Cache-Control'] = 'no-store';
+        ..followRedirects = false
+        ..headers['Accept'] = 'application/json';
       final contentResponse = await http.Response.fromStream(
-        await client.send(contentRequest).timeout(timeout),
+        await client.send(contentRequest).timeout(_requestTimeout),
       );
       if (_redirectCodes.contains(contentResponse.statusCode)) {
-        final nextLocation = contentResponse.headers['location'];
-        if (nextLocation != null && nextLocation.trim().isNotEmpty) {
-          final nextUri = contentUri.resolve(nextLocation.trim());
-          if (nextUri.scheme == 'https' && (nextUri.host == _contentHost || nextUri.host == _appsScriptHost)) {
-            final nextRequest = http.Request('GET', nextUri)
-              ..followRedirects = true
-              ..maxRedirects = 5
-              ..headers['Accept'] = 'application/json'
-              ..headers['Cache-Control'] = 'no-store';
-            return await http.Response.fromStream(
-              await client.send(nextRequest).timeout(timeout),
-            );
-          }
-        }
+        throw StateError(
+          'Redirect ContentService berulang (HTTP '
+          '${contentResponse.statusCode}). Perbarui deployment Apps Script.',
+        );
       }
       return contentResponse;
     } finally {
@@ -82,10 +77,15 @@ class ApiService {
     throw StateError('Format respons API tidak valid.');
   }
 
-  static Future<Map<String, dynamic>> _postMap(Map<String, dynamic> payload) async =>
+  static Future<Map<String, dynamic>> _postMap(
+    Map<String, dynamic> payload,
+  ) async =>
       _decode(await _postAppsScript(payload));
 
-  static Future<Map<String, dynamic>> loginPerangkat(String username, String password) async {
+  static Future<Map<String, dynamic>> loginPerangkat(
+    String username,
+    String password,
+  ) async {
     final device = await DeviceSessionService.deviceName();
     final response = await _postMap({
       'action': 'loginPerangkat',
@@ -112,30 +112,57 @@ class ApiService {
       _postMap({'action': 'getMasterData', 'token': token});
   static Future<Map<String, dynamic>> getWoInsjar(String token) =>
       _postMap({'action': 'getWoInsjar', 'token': token});
-  static Future<Map<String, dynamic>> getTemuan(String token, String kodeWo) =>
-      _postMap({'action': 'getTemuanInspeksi', 'token': token, 'kodeWo': kodeWo});
-  static Future<Map<String, dynamic>> syncWoInsjar(String token, List<Map<String, dynamic>> rows) =>
+  static Future<Map<String, dynamic>> getTemuan(
+    String token,
+    String kodeWo,
+  ) =>
+      _postMap({
+        'action': 'getTemuanInspeksi',
+        'token': token,
+        'kodeWo': kodeWo,
+      });
+  static Future<Map<String, dynamic>> syncWoInsjar(
+    String token,
+    List<Map<String, dynamic>> rows,
+  ) =>
       _postMap({'action': 'syncWoInsjar', 'token': token, 'rows': rows});
-  static Future<Map<String, dynamic>> syncTemuan(String token, Map<String, dynamic> row) =>
+  static Future<Map<String, dynamic>> syncTemuan(
+    String token,
+    Map<String, dynamic> row,
+  ) =>
       _postMap({'action': 'syncTemuanInspeksi', 'token': token, 'row': row});
   static Future<Map<String, dynamic>> getWoRow(String token) =>
       _postMap({'action': 'getWoRow', 'token': token});
-  static Future<Map<String, dynamic>> syncWoRow(String token, List<Map<String, dynamic>> rows) =>
+  static Future<Map<String, dynamic>> syncWoRow(
+    String token,
+    List<Map<String, dynamic>> rows,
+  ) =>
       _postMap({'action': 'syncWoRow', 'token': token, 'rows': rows});
   static Future<Map<String, dynamic>> getWoHarJar(String token) =>
       _postMap({'action': 'getWoHarJar', 'token': token});
-  static Future<Map<String, dynamic>> syncWoHarJar(String token, List<Map<String, dynamic>> rows) =>
+  static Future<Map<String, dynamic>> syncWoHarJar(
+    String token,
+    List<Map<String, dynamic>> rows,
+  ) =>
       _postMap({'action': 'syncWoHarJar', 'token': token, 'rows': rows});
   static Future<Map<String, dynamic>> getWoHarDu(String token) =>
       _postMap({'action': 'getWoHarDu', 'token': token});
-  static Future<Map<String, dynamic>> syncWoHarDu(String token, List<Map<String, dynamic>> rows) =>
+  static Future<Map<String, dynamic>> syncWoHarDu(
+    String token,
+    List<Map<String, dynamic>> rows,
+  ) =>
       _postMap({'action': 'syncWoHarDu', 'token': token, 'rows': rows});
   static Future<Map<String, dynamic>> getWoInsdu(String token) =>
       _postMap({'action': 'getWoInsdu', 'token': token});
-  static Future<Map<String, dynamic>> syncWoInsdu(String token, List<Map<String, dynamic>> rows) =>
+  static Future<Map<String, dynamic>> syncWoInsdu(
+    String token,
+    List<Map<String, dynamic>> rows,
+  ) =>
       _postMap({'action': 'syncWoInsdu', 'token': token, 'rows': rows});
 
-  static Future<Map<String, dynamic>> logoutPerangkat({String token = ''}) async {
+  static Future<Map<String, dynamic>> logoutPerangkat({
+    String token = '',
+  }) async {
     final device = await DeviceSessionService.token();
     try {
       return await _postMap({
@@ -148,7 +175,10 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> login(String username, String password) =>
+  static Future<Map<String, dynamic>> login(
+    String username,
+    String password,
+  ) =>
       loginPerangkat(username, password);
   static Future<Map<String, dynamic>> cekSesi(String token) => cekPerangkat();
   static Future<Map<String, dynamic>> logout(String token) =>
