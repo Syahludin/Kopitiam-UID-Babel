@@ -37,10 +37,10 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('layar masuk memakai branding KOPITIAM', (tester) async {
+  testWidgets('layar masuk memakai branding Kopitiam', (tester) async {
     await _bootstrap(tester);
 
-    expect(find.text('KOPITIAM'), findsOneWidget);
+    expect(find.text('Kopitiam'), findsOneWidget);
     expect(find.widgetWithText(ElevatedButton, 'Login'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
