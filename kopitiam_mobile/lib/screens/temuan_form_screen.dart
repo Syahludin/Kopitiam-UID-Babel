@@ -76,21 +76,39 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
 
   List<String> get temuanOptions {
     if (tier == null || tier!.isEmpty) return [];
-    final targetObject = object.toLowerCase().trim();
+    
+    // Tentukan target object strictly: 'jaringan' atau 'gardu'
+    final determined = repo.jenisObject(widget.sesi).toLowerCase().trim();
+    final targetObject = (determined.isNotEmpty ? determined : object).toLowerCase().trim();
+
     return listMaster.where((row) {
+      // Periksa kolom objek inspeksi
       final rowObject = _findValue(row, const [
         'Object Inspeksi',
         'Objek Inspeksi',
+        'Object',
+        'Objek',
         'Jenis Object',
         'Jenis Objek',
         'Objektif',
-        'Object',
-        'Objek',
+        'Kategori',
       ]).trim().toLowerCase();
 
-      // Jika kolom objek inspeksi ada di master, wajib cocok dengan targetObject (jaringan / gardu)
+      // Bila kolom objek terdeteksi di master temuan
       if (rowObject.isNotEmpty) {
-        if (!rowObject.contains(targetObject)) return false;
+        if (targetObject == 'jaringan') {
+          // Harus memuat kata jaringan atau jtr/jtm dan tidak boleh khusus gardu
+          if (rowObject.contains('gardu') && !rowObject.contains('jaringan')) {
+            return false;
+          }
+          if (!rowObject.contains('jaringan') && !rowObject.contains('jar') && !rowObject.contains('line') && !rowObject.contains('saluran')) {
+            return false;
+          }
+        } else if (targetObject == 'gardu') {
+          if (!rowObject.contains('gardu') && !rowObject.contains('trafo')) {
+            return false;
+          }
+        }
       }
 
       final rowTier = _findValue(row, const ['Tier']);
