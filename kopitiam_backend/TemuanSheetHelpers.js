@@ -15,7 +15,8 @@ function temuanSheet_() {
   var sheet = spreadsheet.getSheetByName(CONFIG.TEMUAN_SHEET || "Inp_Temuan");
   if (!sheet) {
     sheet = spreadsheet.insertSheet(CONFIG.TEMUAN_SHEET || "Inp_Temuan");
-    sheet.appendRow(temuanSheetHeaders_());
+    var headers = temuanSheetHeaders_();
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     try { sheet.setFrozenRows(1); } catch (_) {}
   }
   return sheet;
@@ -23,7 +24,7 @@ function temuanSheet_() {
 
 function validateTemuanHeaders_(headers) {
   var index = headerIndex_(headers);
-  var required = ["kode wo", "kode temuan", "temuan", "jenis object", "tier", "prioritas", "koordinat temuan"];
+  var required = ["kode wo", "kode temuan", "temuan", "tier"];
   for (var i = 0; i < required.length; i++) {
     if (index[required[i]] === undefined) {
       return fail_("SHEET_HEADERS_INVALID", "Header sheet Inp_Temuan belum valid. Kolom wajib tidak ditemukan: " + required[i] + ".");
@@ -37,9 +38,7 @@ function buildFindingPath_(kodeUlp, object, kodeWo, kodeTemuan, now) {
   var year = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy");
   var day = Utilities.formatDate(now, Session.getScriptTimeZone(), "dd");
   var monthName = Utilities.formatDate(now, Session.getScriptTimeZone(), "MM. MMMM");
-  return "Kopitiam/Rekap Temuan Inspeksi/" + safePath_(kodeUlp) + "/" +
-    safePath_(object) + "/" + year + "/" + monthName + "/" + day + "/" +
-    safePath_(kodeWo) + "/" + safePath_(kodeTemuan) + "/";
+  return "Kopitiam/Rekap Temuan Inspeksi/" + safePath_(kodeUlp) + "/" + safePath_(object) + "/" + year + "/" + monthName + "/" + day + "/" + safePath_(kodeWo) + "/" + safePath_(kodeTemuan) + "/";
 }
 
 function folderPath_(pathValue) {
