@@ -1,0 +1,935 @@
+{
+  ".claude/skills/ngodingpakeai/SKILL.md": {
+    "summary": "Dokumentasi dan aturan skill SKILL untuk membantu AI agent menjalankan workflow pengembangan secara konsisten."
+  },
+  ".codex/skills/ngodingpakeai/SKILL.md": {
+    "summary": "Dokumentasi dan aturan skill SKILL untuk membantu AI agent menjalankan workflow pengembangan secara konsisten."
+  },
+  ".github/skills/prompt-master-main/LICENSE": {
+    "summary": "Dokumentasi dan aturan skill LICENSE untuk membantu AI agent menjalankan workflow pengembangan secara konsisten."
+  },
+  ".github/skills/prompt-master-main/README.md": {
+    "summary": "Dokumentasi dan aturan skill README untuk membantu AI agent menjalankan workflow pengembangan secara konsisten."
+  },
+  ".github/skills/prompt-master-main/references/patterns.md": {
+    "summary": "Dokumentasi dan aturan skill Patterns untuk membantu AI agent menjalankan workflow pengembangan secara konsisten."
+  },
+  ".github/skills/prompt-master-main/references/templates.md": {
+    "summary": "Dokumentasi dan aturan skill Templates untuk membantu AI agent menjalankan workflow pengembangan secara konsisten."
+  },
+  ".github/skills/prompt-master-main/SKILL.md": {
+    "summary": "Dokumentasi dan aturan skill SKILL untuk membantu AI agent menjalankan workflow pengembangan secara konsisten."
+  },
+  ".github/workflows/app-icons.yml": {
+    "summary": "Workflow GitHub Actions App Icons untuk menjalankan otomasi build, audit, pengujian, atau pemeliharaan repository."
+  },
+  ".github/workflows/backend-ci.yml": {
+    "summary": "Workflow GitHub Actions Backend Ci untuk menjalankan otomasi build, audit, pengujian, atau pemeliharaan repository."
+  },
+  ".github/workflows/flutter-ci.yml": {
+    "summary": "Workflow GitHub Actions Flutter Ci untuk menjalankan otomasi build, audit, pengujian, atau pemeliharaan repository."
+  },
+  ".ngodingpakeaiignore": {
+    "summary": "File  yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "AGENTS.md": {
+    "summary": "Dokumentasi AGENTS yang menjelaskan tujuan, setup, penggunaan, atau prosedur pengembangan komponen terkait."
+  },
+  "branding/README.md": {
+    "summary": "Dokumentasi README yang menjelaskan tujuan, setup, penggunaan, atau prosedur pengembangan komponen terkait."
+  },
+  "ci/generate_app_icons.py": {
+    "summary": "File Generate App Icons yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_backend/.clasp.json": {
+    "summary": "Konfigurasi .Clasp untuk toolchain, aplikasi, otomasi, atau dependensi proyek."
+  },
+  "kopitiam_backend/.claspignore": {
+    "summary": "File  yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_backend/appsscript.json": {
+    "summary": "Konfigurasi Appsscript untuk toolchain, aplikasi, otomasi, atau dependensi proyek."
+  },
+  "kopitiam_backend/Code.js": {
+    "summary": "Entrypoint utama Google Apps Script yang menangani routing API, autentikasi, master data, temuan, work order, dan respons aplikasi Kopitiam."
+  },
+  "kopitiam_backend/DEPLOY.md": {
+    "summary": "Dokumentasi DEPLOY yang menjelaskan tujuan, setup, penggunaan, atau prosedur pengembangan komponen terkait."
+  },
+  "kopitiam_backend/IdempotentUpload.js": {
+    "summary": "Modul upload idempoten yang mencegah duplikasi kiriman melalui kunci request, pemeriksaan status, dan pencatatan hasil."
+  },
+  "kopitiam_backend/local_schema/README.md": {
+    "summary": "Dokumentasi README yang menjelaskan tujuan, setup, penggunaan, atau prosedur pengembangan komponen terkait."
+  },
+  "kopitiam_backend/local_schema/user_app_mobile.sql": {
+    "summary": "Skema SQL User App Mobile yang mendefinisikan tabel, kolom, indeks, dan struktur penyimpanan lokal untuk domain terkait."
+  },
+  "kopitiam_backend/package-lock.json": {
+    "summary": "Konfigurasi Package Lock untuk toolchain, aplikasi, otomasi, atau dependensi proyek."
+  },
+  "kopitiam_backend/package.json": {
+    "summary": "Konfigurasi Package untuk toolchain, aplikasi, otomasi, atau dependensi proyek."
+  },
+  "kopitiam_backend/README.md": {
+    "summary": "Dokumentasi README yang menjelaskan tujuan, setup, penggunaan, atau prosedur pengembangan komponen terkait."
+  },
+  "kopitiam_backend/RuntimeGuards.js": {
+    "summary": "Kumpulan guard runtime untuk validasi konfigurasi, request, izin, dan kondisi aman sebelum fungsi backend dijalankan."
+  },
+  "kopitiam_backend/SecurityValidation.js": {
+    "summary": "Validasi keamanan input backend untuk menolak payload berbahaya, nilai tidak valid, dan pola serangan umum."
+  },
+  "kopitiam_backend/Setup.js": {
+    "summary": "Fungsi setup Google Apps Script untuk menyiapkan Spreadsheet, sheet, header tabel, konfigurasi awal, dan trigger yang dibutuhkan."
+  },
+  "kopitiam_backend/TemuanSheetHelpers.js": {
+    "summary": "Helper akses sheet temuan untuk pemetaan kolom, pencarian, penulisan, dan normalisasi data inspeksi."
+  },
+  "kopitiam_backend/test/har-du-routing.test.js": {
+    "summary": "Pengujian Har Du Routing.Test yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait."
+  },
+  "kopitiam_backend/test/idempotent-upload.test.js": {
+    "summary": "Pengujian Idempotent Upload.Test yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait."
+  },
+  "kopitiam_backend/test/input-attacks.test.js": {
+    "summary": "Pengujian Input Attacks.Test yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait."
+  },
+  "kopitiam_backend/test/production-integration.test.js": {
+    "summary": "Pengujian Production Integration.Test yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait."
+  },
+  "kopitiam_backend/test/row-flow.test.js": {
+    "summary": "Pengujian Row Flow.Test yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait."
+  },
+  "kopitiam_backend/test/runtime-guards.test.js": {
+    "summary": "Pengujian Runtime Guards.Test yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait."
+  },
+  "kopitiam_backend/test/security.test.js": {
+    "summary": "Pengujian Security.Test yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait."
+  },
+  "kopitiam_backend/test/setup.test.js": {
+    "summary": "Pengujian Setup.Test yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait."
+  },
+  "kopitiam_backend/test/temuan-sheet-sim.test.js": {
+    "summary": "Pengujian Temuan Sheet Sim.Test yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait."
+  },
+  "kopitiam_backend/TestDummy.js": {
+    "summary": "Modul backend Apps Script Test Dummy yang menangani logika server, validasi, akses data Spreadsheet, dan respons API terkait."
+  },
+  "kopitiam_backend/WorkOrderContext.js": {
+    "summary": "Pembentuk konteks work order berdasarkan pengguna, unit, peran, dan jenis pekerjaan aktif."
+  },
+  "kopitiam_backend/WorkOrderCore.js": {
+    "summary": "Logika inti work order untuk daftar, detail, perubahan status, tindak lanjut, dan sinkronisasi hasil pekerjaan."
+  },
+  "kopitiam_backend/WoSourceAudit.js": {
+    "summary": "Audit sumber data work order untuk memeriksa sheet, skema, duplikasi, dan konsistensi rute data."
+  },
+  "kopitiam_backend/ZZ_ApiRouterOverride.js": {
+    "summary": "Override router API untuk menjaga kompatibilitas endpoint dan mengarahkan aksi ke handler domain yang tepat."
+  },
+  "kopitiam_backend/ZZ_MasterDataFiltered.js": {
+    "summary": "Endpoint master data terfilter berdasarkan konteks pengguna, unit, dan kebutuhan modul mobile."
+  },
+  "kopitiam_backend/ZZ_RuntimeIntegration.js": {
+    "summary": "Lapisan integrasi runtime yang menghubungkan override dan modul kompatibilitas backend."
+  },
+  "kopitiam_mobile/.ci-trigger": {
+    "summary": "File  yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/.dart_tool/dartpad/web_plugin_registrant.dart": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Web Plugin Registrant; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/extension_discovery/vs_code.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Vs Code; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/.filecache": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk ; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/android_aot_bundle_release_android-arm.stamp": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Android Aot Bundle Release Android Arm; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/android_aot_bundle_release_android-arm64.stamp": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Android Aot Bundle Release Android Arm64; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/android_aot_bundle_release_android-x64.stamp": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Android Aot Bundle Release Android X64; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/android_aot_release_android-arm.stamp": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Android Aot Release Android Arm; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/android_aot_release_android-arm64.stamp": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Android Aot Release Android Arm64; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/android_aot_release_android-x64.stamp": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Android Aot Release Android X64; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/aot_android_asset_bundle.stamp": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Aot Android Asset Bundle; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/app.dill": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk App; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/build_hooks.d": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Build Hooks; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/build_hooks.stamp": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Build Hooks; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/build_hooks_result.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Build Hooks Result; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/flutter_android_aot_bundle_release_android-arm.d": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Flutter Android Aot Bundle Release Android Arm; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/flutter_android_aot_bundle_release_android-arm64.d": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Flutter Android Aot Bundle Release Android Arm64; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/flutter_android_aot_bundle_release_android-x64.d": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Flutter Android Aot Bundle Release Android X64; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/flutter_android_aot_release_android-arm.d": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Flutter Android Aot Release Android Arm; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/flutter_android_aot_release_android-arm64.d": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Flutter Android Aot Release Android Arm64; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/flutter_android_aot_release_android-x64.d": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Flutter Android Aot Release Android X64; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/flutter_assets.d": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Flutter Assets; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/gen_dart_plugin_registrant.stamp": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Gen Dart Plugin Registrant; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/gen_localizations.stamp": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Gen Localizations; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/install_code_assets.d": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Install Code Assets; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/install_code_assets.stamp": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Install Code Assets; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/kernel_snapshot_program.d": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Kernel Snapshot Program; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/kernel_snapshot_program.stamp": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Kernel Snapshot Program; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/link_hooks.d": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Link Hooks; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/link_hooks.stamp": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Link Hooks; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/link_hooks_result.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Link Hooks Result; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/native_assets.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Native Assets; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/outputs.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Outputs; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/recorded_uses.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Recorded Uses; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/2138a4cc052e8ef4cbde96f62d20e5f1/_composite.stamp": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk  Composite; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/flutter_build/dart_plugin_registrant.dart": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Dart Plugin Registrant; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/0e9dd36a4b/.lock": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk ; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/0e9dd36a4b/dependencies.dependencies_hash_file.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Dependencies.Dependencies Hash File; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/0e9dd36a4b/hook.dependencies_hash_file.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Hook.Dependencies Hash File; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/0e9dd36a4b/hook.dill": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Hook; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/0e9dd36a4b/hook.dill.d": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Hook.Dill; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/0e9dd36a4b/input.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Input; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/0e9dd36a4b/output.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Output; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/0e9dd36a4b/stderr.txt": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Stderr; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/0e9dd36a4b/stdout.txt": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Stdout; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/74b9685c23/.lock": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk ; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/74b9685c23/dependencies.dependencies_hash_file.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Dependencies.Dependencies Hash File; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/74b9685c23/hook.dependencies_hash_file.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Hook.Dependencies Hash File; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/74b9685c23/hook.dill": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Hook; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/74b9685c23/hook.dill.d": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Hook.Dill; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/74b9685c23/input.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Input; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/74b9685c23/output.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Output; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/74b9685c23/stderr.txt": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Stderr; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/74b9685c23/stdout.txt": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Stdout; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/af70a4d4ea/.lock": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk ; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/af70a4d4ea/dependencies.dependencies_hash_file.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Dependencies.Dependencies Hash File; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/af70a4d4ea/hook.dependencies_hash_file.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Hook.Dependencies Hash File; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/af70a4d4ea/hook.dill": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Hook; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/af70a4d4ea/hook.dill.d": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Hook.Dill; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/af70a4d4ea/input.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Input; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/af70a4d4ea/output.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Output; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/af70a4d4ea/stderr.txt": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Stderr; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/objective_c/af70a4d4ea/stdout.txt": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Stdout; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/hooks_runner/shared/objective_c/.lock": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk ; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/package_config.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Package Config; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/package_graph.json": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Package Graph; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.dart_tool/version": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Version; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.flutter-plugins-dependencies": {
+    "summary": "File  yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/.gitignore": {
+    "summary": "File  yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/.idea/libraries/Dart_SDK.xml": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Dart SDK; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.idea/libraries/KotlinJavaRuntime.xml": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Kotlin Java Runtime; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.idea/modules.xml": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Modules; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.idea/runConfigurations/main_dart.xml": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Main Dart; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.idea/workspace.xml": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Workspace; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/.metadata": {
+    "summary": "File  yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/analysis_options.yaml": {
+    "summary": "Konfigurasi Analysis Options untuk toolchain, aplikasi, otomasi, atau dependensi proyek."
+  },
+  "kopitiam_mobile/android/.gitignore": {
+    "summary": "File  yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/android/.gradle/9.3.1/gc.properties": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Gc; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/android/.gradle/buildOutputCleanup/cache.properties": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Cache; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/android/.gradle/vcs-1/gc.properties": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Gc; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/android/app/build.gradle.kts": {
+    "summary": "Konfigurasi build Android Build.Gradle untuk plugin, SDK, dependensi, varian, dan proses packaging."
+  },
+  "kopitiam_mobile/android/app/proguard-rules.pro": {
+    "summary": "File Proguard Rules yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/android/app/src/debug/AndroidManifest.xml": {
+    "summary": "Manifest Android Android Manifest yang mendeklarasikan activity, izin, intent, dan konfigurasi runtime aplikasi."
+  },
+  "kopitiam_mobile/android/app/src/main/AndroidManifest.xml": {
+    "summary": "Manifest Android Android Manifest yang mendeklarasikan activity, izin, intent, dan konfigurasi runtime aplikasi."
+  },
+  "kopitiam_mobile/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java": {
+    "summary": "File Generated Plugin Registrant yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/android/app/src/main/kotlin/id/co/uidbabel/kopitiam/MainActivity.kt": {
+    "summary": "File Main Activity yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/android/app/src/main/res/drawable/launch_background.xml": {
+    "summary": "File Launch Background yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/android/app/src/main/res/drawable-v21/launch_background.xml": {
+    "summary": "File Launch Background yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/android/app/src/main/res/mipmap-anydpi-v26/launcher_icon.xml": {
+    "summary": "File Launcher Icon yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/android/app/src/main/res/values/ic_launcher_background.xml": {
+    "summary": "File Ic Launcher Background yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/android/app/src/main/res/values/styles.xml": {
+    "summary": "File Styles yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/android/app/src/main/res/values-night/styles.xml": {
+    "summary": "File Styles yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/android/app/src/profile/AndroidManifest.xml": {
+    "summary": "Manifest Android Android Manifest yang mendeklarasikan activity, izin, intent, dan konfigurasi runtime aplikasi."
+  },
+  "kopitiam_mobile/android/build.gradle.kts": {
+    "summary": "Konfigurasi build Android Build.Gradle untuk plugin, SDK, dependensi, varian, dan proses packaging."
+  },
+  "kopitiam_mobile/android/gradle/wrapper/gradle-wrapper.properties": {
+    "summary": "File Gradle Wrapper yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/android/gradle.properties": {
+    "summary": "Konfigurasi build Android Gradle untuk plugin, SDK, dependensi, varian, dan proses packaging."
+  },
+  "kopitiam_mobile/android/gradlew": {
+    "summary": "File Gradlew yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/android/gradlew.bat": {
+    "summary": "File Gradlew yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/android/key.properties": {
+    "summary": "Konfigurasi lokal Key; nilai mesin, signing, atau lingkungan tidak disertakan dalam ringkasan dan file sebaiknya diabaikan."
+  },
+  "kopitiam_mobile/android/key.properties.example": {
+    "summary": "File Key.Properties yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/android/local.properties": {
+    "summary": "Konfigurasi lokal Local; nilai mesin, signing, atau lingkungan tidak disertakan dalam ringkasan dan file sebaiknya diabaikan."
+  },
+  "kopitiam_mobile/android/RELEASE_SIGNING.md": {
+    "summary": "Dokumentasi RELEASE SIGNING yang menjelaskan tujuan, setup, penggunaan, atau prosedur pengembangan komponen terkait."
+  },
+  "kopitiam_mobile/android/settings.gradle.kts": {
+    "summary": "Konfigurasi build Android Settings.Gradle untuk plugin, SDK, dependensi, varian, dan proses packaging."
+  },
+  "kopitiam_mobile/android/simandist_mobile_android.iml": {
+    "summary": "File Simandist Mobile Android yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/assets/icons/README.md": {
+    "summary": "Dokumentasi README yang menjelaskan tujuan, setup, penggunaan, atau prosedur pengembangan komponen terkait."
+  },
+  "kopitiam_mobile/ios/.gitignore": {
+    "summary": "Konfigurasi atau host platform Apple  untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Flutter/AppFrameworkInfo.plist": {
+    "summary": "Konfigurasi atau host platform Apple App Framework Info untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Flutter/Debug.xcconfig": {
+    "summary": "Konfigurasi atau host platform Apple Debug untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Flutter/ephemeral/.swift_pm.lock": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk .Swift Pm; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/ios/Flutter/ephemeral/flutter_lldbinit": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Flutter Lldbinit; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/ios/Flutter/ephemeral/flutter_lldb_helper.py": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Flutter Lldb Helper; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/ios/Flutter/ephemeral/flutter_native_integration.env": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Flutter Native Integration; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/ios/Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage/Package.swift": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Package; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/ios/Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage/Sources/FlutterGeneratedPluginSwiftPackage/FlutterGeneratedPluginSwiftPackage.swift": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Flutter Generated Plugin Swift Package; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/ios/Flutter/flutter_export_environment.sh": {
+    "summary": "Konfigurasi atau host platform Apple Flutter Export Environment untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Flutter/Generated.xcconfig": {
+    "summary": "Konfigurasi atau host platform Apple Generated untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Flutter/Release.xcconfig": {
+    "summary": "Konfigurasi atau host platform Apple Release untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner/AppDelegate.swift": {
+    "summary": "Konfigurasi atau host platform Apple App Delegate untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json": {
+    "summary": "Konfigurasi atau host platform Apple Contents untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner/Assets.xcassets/LaunchImage.imageset/Contents.json": {
+    "summary": "Konfigurasi atau host platform Apple Contents untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner/Assets.xcassets/LaunchImage.imageset/README.md": {
+    "summary": "Konfigurasi atau host platform Apple README untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner/Base.lproj/LaunchScreen.storyboard": {
+    "summary": "Konfigurasi atau host platform Apple Launch Screen untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner/Base.lproj/Main.storyboard": {
+    "summary": "Konfigurasi atau host platform Apple Main untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner/GeneratedPluginRegistrant.h": {
+    "summary": "Konfigurasi atau host platform Apple Generated Plugin Registrant untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner/GeneratedPluginRegistrant.m": {
+    "summary": "Konfigurasi atau host platform Apple Generated Plugin Registrant untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner/Info.plist": {
+    "summary": "Konfigurasi atau host platform Apple Info untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner/Runner-Bridging-Header.h": {
+    "summary": "Konfigurasi atau host platform Apple Runner Bridging Header untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner/SceneDelegate.swift": {
+    "summary": "Konfigurasi atau host platform Apple Scene Delegate untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner.xcodeproj/project.pbxproj": {
+    "summary": "Konfigurasi atau host platform Apple Project untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner.xcodeproj/project.xcworkspace/contents.xcworkspacedata": {
+    "summary": "Konfigurasi atau host platform Apple Contents untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist": {
+    "summary": "Konfigurasi atau host platform Apple IDEWorkspace Checks untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings": {
+    "summary": "Konfigurasi atau host platform Apple Workspace Settings untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme": {
+    "summary": "Konfigurasi atau host platform Apple Runner untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner.xcworkspace/contents.xcworkspacedata": {
+    "summary": "Konfigurasi atau host platform Apple Contents untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist": {
+    "summary": "Konfigurasi atau host platform Apple IDEWorkspace Checks untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/Runner.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings": {
+    "summary": "Konfigurasi atau host platform Apple Workspace Settings untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/ios/RunnerTests/RunnerTests.swift": {
+    "summary": "Konfigurasi atau host platform Apple Runner Tests untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/lib/db/wo_har_jar_table.sql": {
+    "summary": "Skema SQL Wo Har Jar Table yang mendefinisikan tabel, kolom, indeks, dan struktur penyimpanan lokal untuk domain terkait."
+  },
+  "kopitiam_mobile/lib/db/wo_insjar_table.sql": {
+    "summary": "Skema SQL Wo Insjar Table yang mendefinisikan tabel, kolom, indeks, dan struktur penyimpanan lokal untuk domain terkait."
+  },
+  "kopitiam_mobile/lib/main.dart": {
+    "summary": "Entrypoint Flutter yang menginisialisasi aplikasi Kopitiam, tema, layanan lokal, sesi, dan rute layar awal."
+  },
+  "kopitiam_mobile/lib/models/local_user.dart": {
+    "summary": "Model data Local User untuk serialisasi API, penyimpanan lokal, status sinkronisasi, dan representasi domain aplikasi."
+  },
+  "kopitiam_mobile/lib/models/master_gardu.dart": {
+    "summary": "Model data Master Gardu untuk serialisasi API, penyimpanan lokal, status sinkronisasi, dan representasi domain aplikasi."
+  },
+  "kopitiam_mobile/lib/models/temuan_inspeksi.dart": {
+    "summary": "Model data Temuan Inspeksi untuk serialisasi API, penyimpanan lokal, status sinkronisasi, dan representasi domain aplikasi."
+  },
+  "kopitiam_mobile/lib/models/wo_har_du.dart": {
+    "summary": "Model data Wo Har Du untuk serialisasi API, penyimpanan lokal, status sinkronisasi, dan representasi domain aplikasi."
+  },
+  "kopitiam_mobile/lib/models/wo_har_jar.dart": {
+    "summary": "Model data Wo Har Jar untuk serialisasi API, penyimpanan lokal, status sinkronisasi, dan representasi domain aplikasi."
+  },
+  "kopitiam_mobile/lib/models/wo_insdu.dart": {
+    "summary": "Model data Wo Insdu untuk serialisasi API, penyimpanan lokal, status sinkronisasi, dan representasi domain aplikasi."
+  },
+  "kopitiam_mobile/lib/models/wo_insjar.dart": {
+    "summary": "Model data Wo Insjar untuk serialisasi API, penyimpanan lokal, status sinkronisasi, dan representasi domain aplikasi."
+  },
+  "kopitiam_mobile/lib/models/wo_material_har_jar.dart": {
+    "summary": "Model data Wo Material Har Jar untuk serialisasi API, penyimpanan lokal, status sinkronisasi, dan representasi domain aplikasi."
+  },
+  "kopitiam_mobile/lib/models/wo_row.dart": {
+    "summary": "Model data Wo Row untuk serialisasi API, penyimpanan lokal, status sinkronisasi, dan representasi domain aplikasi."
+  },
+  "kopitiam_mobile/lib/models/wo_yandal_p0.dart": {
+    "summary": "Model data Wo Yandal P0 untuk serialisasi API, penyimpanan lokal, status sinkronisasi, dan representasi domain aplikasi."
+  },
+  "kopitiam_mobile/lib/screens/dashboard_har_du.dart": {
+    "summary": "Layar Flutter Dashboard Har Du untuk alur pengguna terkait, termasuk pemuatan data, validasi, state, dan navigasi."
+  },
+  "kopitiam_mobile/lib/screens/dashboard_router.dart": {
+    "summary": "Layar Flutter Dashboard Router untuk alur pengguna terkait, termasuk pemuatan data, validasi, state, dan navigasi."
+  },
+  "kopitiam_mobile/lib/screens/dashboard_screen.dart": {
+    "summary": "Layar Flutter Dashboard Screen untuk alur pengguna terkait, termasuk pemuatan data, validasi, state, dan navigasi."
+  },
+  "kopitiam_mobile/lib/screens/dashboard_screen_impl.dart": {
+    "summary": "Layar Flutter Dashboard Screen Impl untuk alur pengguna terkait, termasuk pemuatan data, validasi, state, dan navigasi."
+  },
+  "kopitiam_mobile/lib/screens/dashboard_screen_insdu.dart": {
+    "summary": "Layar Flutter Dashboard Screen Insdu untuk alur pengguna terkait, termasuk pemuatan data, validasi, state, dan navigasi."
+  },
+  "kopitiam_mobile/lib/screens/dashboard_unified.dart": {
+    "summary": "Dashboard terpadu yang menampilkan modul sesuai peran, ringkasan pekerjaan, navigasi, dan status data."
+  },
+  "kopitiam_mobile/lib/screens/form_tindak_lanjut_har_du_screen.dart": {
+    "summary": "Layar Flutter Form Tindak Lanjut Har Du Screen untuk alur pengguna terkait, termasuk pemuatan data, validasi, state, dan navigasi."
+  },
+  "kopitiam_mobile/lib/screens/form_tindak_lanjut_har_jar_screen.dart": {
+    "summary": "Layar Flutter Form Tindak Lanjut Har Jar Screen untuk alur pengguna terkait, termasuk pemuatan data, validasi, state, dan navigasi."
+  },
+  "kopitiam_mobile/lib/screens/landscape_camera_screen.dart": {
+    "summary": "Layar kamera lanskap untuk mengambil, memotong, memeriksa, dan mengembalikan foto bukti pekerjaan."
+  },
+  "kopitiam_mobile/lib/screens/login_screen.dart": {
+    "summary": "Layar login Kopitiam dengan input identitas, validasi, autentikasi, dan pemulihan sesi."
+  },
+  "kopitiam_mobile/lib/screens/settings_session_section.dart": {
+    "summary": "Layar Flutter Settings Session Section untuk alur pengguna terkait, termasuk pemuatan data, validasi, state, dan navigasi."
+  },
+  "kopitiam_mobile/lib/screens/startup_screen.dart": {
+    "summary": "Layar Flutter Startup Screen untuk alur pengguna terkait, termasuk pemuatan data, validasi, state, dan navigasi."
+  },
+  "kopitiam_mobile/lib/screens/temuan_form_screen.dart": {
+    "summary": "Form temuan inspeksi untuk kategori, aset, uraian, lokasi, foto, validasi, dan penyimpanan."
+  },
+  "kopitiam_mobile/lib/screens/temuan_tab.dart": {
+    "summary": "Layar Flutter Temuan Tab untuk alur pengguna terkait, termasuk pemuatan data, validasi, state, dan navigasi."
+  },
+  "kopitiam_mobile/lib/screens/widgets/bubble_navbar.dart": {
+    "summary": "Widget Flutter Bubble Navbar untuk menampilkan data, status, dan aksi pengguna secara konsisten pada alur Kopitiam."
+  },
+  "kopitiam_mobile/lib/screens/widgets/login_sheet.dart": {
+    "summary": "Widget Flutter Login Sheet untuk menampilkan data, status, dan aksi pengguna secara konsisten pada alur Kopitiam."
+  },
+  "kopitiam_mobile/lib/screens/widgets/operation_result_dialog.dart": {
+    "summary": "Widget Flutter Operation Result Dialog untuk menampilkan data, status, dan aksi pengguna secara konsisten pada alur Kopitiam."
+  },
+  "kopitiam_mobile/lib/screens/widgets/safety_welcome_dialog.dart": {
+    "summary": "Widget Flutter Safety Welcome Dialog untuk menampilkan data, status, dan aksi pengguna secara konsisten pada alur Kopitiam."
+  },
+  "kopitiam_mobile/lib/screens/widgets/success_overlay.dart": {
+    "summary": "Widget Flutter Success Overlay untuk menampilkan data, status, dan aksi pengguna secara konsisten pada alur Kopitiam."
+  },
+  "kopitiam_mobile/lib/screens/widgets/welcome_card.dart": {
+    "summary": "Widget Flutter Welcome Card untuk menampilkan data, status, dan aksi pengguna secara konsisten pada alur Kopitiam."
+  },
+  "kopitiam_mobile/lib/screens/widgets/wo_data_card.dart": {
+    "summary": "Widget Flutter Wo Data Card untuk menampilkan data, status, dan aksi pengguna secara konsisten pada alur Kopitiam."
+  },
+  "kopitiam_mobile/lib/screens/widgets/wo_insdu_card.dart": {
+    "summary": "Widget Flutter Wo Insdu Card untuk menampilkan data, status, dan aksi pengguna secara konsisten pada alur Kopitiam."
+  },
+  "kopitiam_mobile/lib/screens/widgets/wo_insjar_card.dart": {
+    "summary": "Widget Flutter Wo Insjar Card untuk menampilkan data, status, dan aksi pengguna secara konsisten pada alur Kopitiam."
+  },
+  "kopitiam_mobile/lib/screens/widgets/wo_row_card.dart": {
+    "summary": "Widget Flutter Wo Row Card untuk menampilkan data, status, dan aksi pengguna secara konsisten pada alur Kopitiam."
+  },
+  "kopitiam_mobile/lib/screens/widgets/wo_summary_card.dart": {
+    "summary": "Widget Flutter Wo Summary Card untuk menampilkan data, status, dan aksi pengguna secara konsisten pada alur Kopitiam."
+  },
+  "kopitiam_mobile/lib/screens/wo_insdu_form_screen.dart": {
+    "summary": "Layar Flutter Wo Insdu Form Screen untuk alur pengguna terkait, termasuk pemuatan data, validasi, state, dan navigasi."
+  },
+  "kopitiam_mobile/lib/screens/wo_insjar_form_screen.dart": {
+    "summary": "Layar Flutter Wo Insjar Form Screen untuk alur pengguna terkait, termasuk pemuatan data, validasi, state, dan navigasi."
+  },
+  "kopitiam_mobile/lib/screens/wo_row_form_screen.dart": {
+    "summary": "Layar Flutter Wo Row Form Screen untuk alur pengguna terkait, termasuk pemuatan data, validasi, state, dan navigasi."
+  },
+  "kopitiam_mobile/lib/services/api_service.dart": {
+    "summary": "Klien API Google Apps Script untuk autentikasi, master data, temuan, work order, parsing respons, dan penanganan kegagalan."
+  },
+  "kopitiam_mobile/lib/services/database_helper.dart": {
+    "summary": "Helper database lokal untuk membuka skema, menjalankan migrasi, serta menyediakan operasi SQLite aplikasi."
+  },
+  "kopitiam_mobile/lib/services/device_session_service.dart": {
+    "summary": "Pengelola sesi perangkat, identitas instalasi, masa berlaku, dan status login pengguna."
+  },
+  "kopitiam_mobile/lib/services/high_accuracy_location_service.dart": {
+    "summary": "Layanan lokasi presisi tinggi dengan pemeriksaan izin, akurasi, timeout, dan kualitas koordinat."
+  },
+  "kopitiam_mobile/lib/services/local_auth_service.dart": {
+    "summary": "Layanan autentikasi lokal untuk memverifikasi pengguna tersimpan dan mendukung akses saat koneksi terbatas."
+  },
+  "kopitiam_mobile/lib/services/local_user_repository.dart": {
+    "summary": "Repository Local User Repository yang mengoordinasikan data lokal, API, antrean perubahan, retry, dan sinkronisasi domain terkait."
+  },
+  "kopitiam_mobile/lib/services/mock_location_guard_service.dart": {
+    "summary": "Guard untuk mendeteksi indikasi lokasi palsu sebelum data lapangan dikirim."
+  },
+  "kopitiam_mobile/lib/services/photo_watermark_service.dart": {
+    "summary": "Layanan pengolahan foto yang menambahkan watermark waktu, lokasi, petugas, dan konteks pekerjaan."
+  },
+  "kopitiam_mobile/lib/services/session_bootstrap_service.dart": {
+    "summary": "Orkestrator bootstrap sesi yang memulihkan login, memuat profil, dan menentukan layar awal aplikasi."
+  },
+  "kopitiam_mobile/lib/services/sqlite_service.dart": {
+    "summary": "Layanan SQLite untuk query, transaksi, cache, dan penyimpanan data operasional secara offline."
+  },
+  "kopitiam_mobile/lib/services/temuan_repository.dart": {
+    "summary": "Repository temuan inspeksi yang menggabungkan cache lokal, antrean upload, pembacaan API, dan sinkronisasi."
+  },
+  "kopitiam_mobile/lib/services/wo_har_du_repository.dart": {
+    "summary": "Repository Wo Har Du Repository yang mengoordinasikan data lokal, API, antrean perubahan, retry, dan sinkronisasi domain terkait."
+  },
+  "kopitiam_mobile/lib/services/wo_har_jar_repository.dart": {
+    "summary": "Repository Wo Har Jar Repository yang mengoordinasikan data lokal, API, antrean perubahan, retry, dan sinkronisasi domain terkait."
+  },
+  "kopitiam_mobile/lib/services/wo_insdu_repository.dart": {
+    "summary": "Repository Wo Insdu Repository yang mengoordinasikan data lokal, API, antrean perubahan, retry, dan sinkronisasi domain terkait."
+  },
+  "kopitiam_mobile/lib/services/wo_insjar_repository.dart": {
+    "summary": "Repository Wo Insjar Repository yang mengoordinasikan data lokal, API, antrean perubahan, retry, dan sinkronisasi domain terkait."
+  },
+  "kopitiam_mobile/lib/services/wo_row_repository.dart": {
+    "summary": "Repository Wo Row Repository yang mengoordinasikan data lokal, API, antrean perubahan, retry, dan sinkronisasi domain terkait."
+  },
+  "kopitiam_mobile/lib/theme/kopitiam_theme.dart": {
+    "summary": "Tema visual terpusat Kopitiam yang mengatur warna, tipografi, kartu, input, tombol, dan dialog."
+  },
+  "kopitiam_mobile/lib/widgets/material_input_section.dart": {
+    "summary": "Widget Flutter Material Input Section untuk menampilkan data, status, dan aksi pengguna secara konsisten pada alur Kopitiam."
+  },
+  "kopitiam_mobile/lib/widgets/wo_har_du_card.dart": {
+    "summary": "Widget Flutter Wo Har Du Card untuk menampilkan data, status, dan aksi pengguna secara konsisten pada alur Kopitiam."
+  },
+  "kopitiam_mobile/lib/widgets/wo_har_jar_card.dart": {
+    "summary": "Widget Flutter Wo Har Jar Card untuk menampilkan data, status, dan aksi pengguna secara konsisten pada alur Kopitiam."
+  },
+  "kopitiam_mobile/linux/.gitignore": {
+    "summary": "Konfigurasi atau runner desktop  untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/linux/CMakeLists.txt": {
+    "summary": "Konfigurasi atau runner desktop CMake Lists untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/linux/flutter/CMakeLists.txt": {
+    "summary": "Konfigurasi atau runner desktop CMake Lists untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/linux/flutter/generated_plugins.cmake": {
+    "summary": "Konfigurasi atau runner desktop Generated Plugins untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/linux/flutter/generated_plugin_registrant.cc": {
+    "summary": "Konfigurasi atau runner desktop Generated Plugin Registrant untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/linux/flutter/generated_plugin_registrant.h": {
+    "summary": "Konfigurasi atau runner desktop Generated Plugin Registrant untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/linux/runner/CMakeLists.txt": {
+    "summary": "Konfigurasi atau runner desktop CMake Lists untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/linux/runner/main.cc": {
+    "summary": "Konfigurasi atau runner desktop Main untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/linux/runner/my_application.cc": {
+    "summary": "Konfigurasi atau runner desktop My Application untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/linux/runner/my_application.h": {
+    "summary": "Konfigurasi atau runner desktop My Application untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/macos/.gitignore": {
+    "summary": "Konfigurasi atau host platform Apple  untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Flutter/ephemeral/.swift_pm.lock": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk .Swift Pm; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/macos/Flutter/ephemeral/Flutter-Generated.xcconfig": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Flutter Generated; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/macos/Flutter/ephemeral/flutter_export_environment.sh": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Flutter Export Environment; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/macos/Flutter/ephemeral/flutter_native_integration.env": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Flutter Native Integration; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/macos/Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage/Package.swift": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Package; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/macos/Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage/Sources/FlutterGeneratedPluginSwiftPackage/FlutterGeneratedPluginSwiftPackage.swift": {
+    "summary": "Artefak lokal atau hasil generasi toolchain untuk Flutter Generated Plugin Swift Package; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks."
+  },
+  "kopitiam_mobile/macos/Flutter/Flutter-Debug.xcconfig": {
+    "summary": "Konfigurasi atau host platform Apple Flutter Debug untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Flutter/Flutter-Release.xcconfig": {
+    "summary": "Konfigurasi atau host platform Apple Flutter Release untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Flutter/GeneratedPluginRegistrant.swift": {
+    "summary": "Konfigurasi atau host platform Apple Generated Plugin Registrant untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Runner/AppDelegate.swift": {
+    "summary": "Konfigurasi atau host platform Apple App Delegate untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json": {
+    "summary": "Konfigurasi atau host platform Apple Contents untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Runner/Base.lproj/MainMenu.xib": {
+    "summary": "Konfigurasi atau host platform Apple Main Menu untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Runner/Configs/AppInfo.xcconfig": {
+    "summary": "Konfigurasi atau host platform Apple App Info untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Runner/Configs/Debug.xcconfig": {
+    "summary": "Konfigurasi atau host platform Apple Debug untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Runner/Configs/Release.xcconfig": {
+    "summary": "Konfigurasi atau host platform Apple Release untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Runner/Configs/Warnings.xcconfig": {
+    "summary": "Konfigurasi atau host platform Apple Warnings untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Runner/DebugProfile.entitlements": {
+    "summary": "Konfigurasi atau host platform Apple Debug Profile untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Runner/Info.plist": {
+    "summary": "Konfigurasi atau host platform Apple Info untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Runner/MainFlutterWindow.swift": {
+    "summary": "Konfigurasi atau host platform Apple Main Flutter Window untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Runner/Release.entitlements": {
+    "summary": "Konfigurasi atau host platform Apple Release untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Runner.xcodeproj/project.pbxproj": {
+    "summary": "Konfigurasi atau host platform Apple Project untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist": {
+    "summary": "Konfigurasi atau host platform Apple IDEWorkspace Checks untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme": {
+    "summary": "Konfigurasi atau host platform Apple Runner untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Runner.xcworkspace/contents.xcworkspacedata": {
+    "summary": "Konfigurasi atau host platform Apple Contents untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist": {
+    "summary": "Konfigurasi atau host platform Apple IDEWorkspace Checks untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/macos/RunnerTests/RunnerTests.swift": {
+    "summary": "Konfigurasi atau host platform Apple Runner Tests untuk build dan integrasi aplikasi Flutter."
+  },
+  "kopitiam_mobile/pubspec.lock": {
+    "summary": "File Pubspec yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/pubspec.yaml": {
+    "summary": "Konfigurasi Pubspec untuk toolchain, aplikasi, otomasi, atau dependensi proyek."
+  },
+  "kopitiam_mobile/README.md": {
+    "summary": "Dokumentasi README yang menjelaskan tujuan, setup, penggunaan, atau prosedur pengembangan komponen terkait."
+  },
+  "kopitiam_mobile/simandist_mobile.iml": {
+    "summary": "File Simandist Mobile yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/test/api_service_redirect_source_test.dart": {
+    "summary": "Pengujian Api Service Redirect Source Test yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait."
+  },
+  "kopitiam_mobile/test/feature_audit_test.dart": {
+    "summary": "Pengujian Feature Audit Test yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait."
+  },
+  "kopitiam_mobile/test/high_accuracy_location_service_test.dart": {
+    "summary": "Pengujian High Accuracy Location Service Test yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait."
+  },
+  "kopitiam_mobile/test/landscape_crop_test.dart": {
+    "summary": "Pengujian Landscape Crop Test yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait."
+  },
+  "kopitiam_mobile/test/mock_location_guard_source_test.dart": {
+    "summary": "Pengujian Mock Location Guard Source Test yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait."
+  },
+  "kopitiam_mobile/test/row_feature_test.dart": {
+    "summary": "Pengujian Row Feature Test yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait."
+  },
+  "kopitiam_mobile/test/widget_test.dart": {
+    "summary": "Pengujian Widget Test yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait."
+  },
+  "kopitiam_mobile/web/index.html": {
+    "summary": "File Index yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam."
+  },
+  "kopitiam_mobile/web/manifest.json": {
+    "summary": "Konfigurasi Manifest untuk toolchain, aplikasi, otomasi, atau dependensi proyek."
+  },
+  "kopitiam_mobile/windows/.gitignore": {
+    "summary": "Konfigurasi atau runner desktop  untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/windows/CMakeLists.txt": {
+    "summary": "Konfigurasi atau runner desktop CMake Lists untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/windows/flutter/CMakeLists.txt": {
+    "summary": "Konfigurasi atau runner desktop CMake Lists untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/windows/flutter/generated_plugins.cmake": {
+    "summary": "Konfigurasi atau runner desktop Generated Plugins untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/windows/flutter/generated_plugin_registrant.cc": {
+    "summary": "Konfigurasi atau runner desktop Generated Plugin Registrant untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/windows/flutter/generated_plugin_registrant.h": {
+    "summary": "Konfigurasi atau runner desktop Generated Plugin Registrant untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/windows/runner/CMakeLists.txt": {
+    "summary": "Konfigurasi atau runner desktop CMake Lists untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/windows/runner/flutter_window.cpp": {
+    "summary": "Konfigurasi atau runner desktop Flutter Window untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/windows/runner/flutter_window.h": {
+    "summary": "Konfigurasi atau runner desktop Flutter Window untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/windows/runner/main.cpp": {
+    "summary": "Konfigurasi atau runner desktop Main untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/windows/runner/resource.h": {
+    "summary": "Konfigurasi atau runner desktop Resource untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/windows/runner/runner.exe.manifest": {
+    "summary": "Konfigurasi atau runner desktop Runner.Exe untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/windows/runner/Runner.rc": {
+    "summary": "Konfigurasi atau runner desktop Runner untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/windows/runner/utils.cpp": {
+    "summary": "Konfigurasi atau runner desktop Utils untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/windows/runner/utils.h": {
+    "summary": "Konfigurasi atau runner desktop Utils untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/windows/runner/win32_window.cpp": {
+    "summary": "Konfigurasi atau runner desktop Win32 Window untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "kopitiam_mobile/windows/runner/win32_window.h": {
+    "summary": "Konfigurasi atau runner desktop Win32 Window untuk membangun dan menjalankan aplikasi Flutter pada platform terkait."
+  },
+  "opencode.json": {
+    "summary": "Konfigurasi Opencode untuk toolchain, aplikasi, otomasi, atau dependensi proyek."
+  }
+}
