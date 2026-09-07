@@ -1,8 +1,24 @@
-# .ngodingpakeaiignore — extra paths to keep out of NgodingPakeAI sync.
-# Uses .gitignore syntax. Secrets, node_modules, build output and .env files
-# are ALWAYS blocked by the CLI regardless of what is listed here.
+# Extra paths excluded from NgodingPakeAI sync. Uses .gitignore syntax.
 
-# Examples:
-# docs/internal/
-# *.snap
-# fixtures/
+# Secrets and machine-specific configuration
+**/key.properties
+**/local.properties
+**/*.env
+**/*.env.*
+
+# Generated Flutter, Dart, Android, Apple, and IDE state
+**/.dart_tool/
+**/.gradle/
+**/.idea/
+**/Flutter/ephemeral/
+**/Generated.xcconfig
+**/flutter_export_environment.sh
+**/.flutter-plugins-dependencies
+
+# Compiled and generated build output
+**/build/
+**/*.dill
+**/*.stamp
+
+# Summary generator is repository maintenance, not product context
+.github/workflows/generate-ngoding-summaries.yml

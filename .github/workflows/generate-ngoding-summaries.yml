@@ -1,0 +1,103 @@
+name: Generate NgodingPakeAI summaries
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.ngodingpakeai/pending.json'
+      - '.github/workflows/generate-ngoding-summaries.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate Indonesian summaries
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const pending = JSON.parse(fs.readFileSync('.ngodingpakeai/pending.json', 'utf8'));
+
+          const clean = (path) => path.split('/').pop()
+            .replace(/\.[^.]+$/, '')
+            .replace(/[_-]+/g, ' ')
+            .replace(/([a-z])([A-Z])/g, '$1 $2')
+            .replace(/\b\w/g, c => c.toUpperCase());
+
+          const exact = {
+            'kopitiam_backend/Code.js': 'Entrypoint utama Google Apps Script yang menangani routing API, autentikasi, master data, temuan, work order, dan respons aplikasi Kopitiam.',
+            'kopitiam_backend/IdempotentUpload.js': 'Modul upload idempoten yang mencegah duplikasi kiriman melalui kunci request, pemeriksaan status, dan pencatatan hasil.',
+            'kopitiam_backend/RuntimeGuards.js': 'Kumpulan guard runtime untuk validasi konfigurasi, request, izin, dan kondisi aman sebelum fungsi backend dijalankan.',
+            'kopitiam_backend/SecurityValidation.js': 'Validasi keamanan input backend untuk menolak payload berbahaya, nilai tidak valid, dan pola serangan umum.',
+            'kopitiam_backend/Setup.js': 'Fungsi setup Google Apps Script untuk menyiapkan Spreadsheet, sheet, header tabel, konfigurasi awal, dan trigger yang dibutuhkan.',
+            'kopitiam_backend/TemuanSheetHelpers.js': 'Helper akses sheet temuan untuk pemetaan kolom, pencarian, penulisan, dan normalisasi data inspeksi.',
+            'kopitiam_backend/WorkOrderContext.js': 'Pembentuk konteks work order berdasarkan pengguna, unit, peran, dan jenis pekerjaan aktif.',
+            'kopitiam_backend/WorkOrderCore.js': 'Logika inti work order untuk daftar, detail, perubahan status, tindak lanjut, dan sinkronisasi hasil pekerjaan.',
+            'kopitiam_backend/WoSourceAudit.js': 'Audit sumber data work order untuk memeriksa sheet, skema, duplikasi, dan konsistensi rute data.',
+            'kopitiam_backend/ZZ_ApiRouterOverride.js': 'Override router API untuk menjaga kompatibilitas endpoint dan mengarahkan aksi ke handler domain yang tepat.',
+            'kopitiam_backend/ZZ_MasterDataFiltered.js': 'Endpoint master data terfilter berdasarkan konteks pengguna, unit, dan kebutuhan modul mobile.',
+            'kopitiam_backend/ZZ_RuntimeIntegration.js': 'Lapisan integrasi runtime yang menghubungkan override dan modul kompatibilitas backend.',
+            'kopitiam_mobile/lib/main.dart': 'Entrypoint Flutter yang menginisialisasi aplikasi Kopitiam, tema, layanan lokal, sesi, dan rute layar awal.',
+            'kopitiam_mobile/lib/services/api_service.dart': 'Klien API Google Apps Script untuk autentikasi, master data, temuan, work order, parsing respons, dan penanganan kegagalan.',
+            'kopitiam_mobile/lib/services/database_helper.dart': 'Helper database lokal untuk membuka skema, menjalankan migrasi, serta menyediakan operasi SQLite aplikasi.',
+            'kopitiam_mobile/lib/services/sqlite_service.dart': 'Layanan SQLite untuk query, transaksi, cache, dan penyimpanan data operasional secara offline.',
+            'kopitiam_mobile/lib/services/local_auth_service.dart': 'Layanan autentikasi lokal untuk memverifikasi pengguna tersimpan dan mendukung akses saat koneksi terbatas.',
+            'kopitiam_mobile/lib/services/device_session_service.dart': 'Pengelola sesi perangkat, identitas instalasi, masa berlaku, dan status login pengguna.',
+            'kopitiam_mobile/lib/services/session_bootstrap_service.dart': 'Orkestrator bootstrap sesi yang memulihkan login, memuat profil, dan menentukan layar awal aplikasi.',
+            'kopitiam_mobile/lib/services/high_accuracy_location_service.dart': 'Layanan lokasi presisi tinggi dengan pemeriksaan izin, akurasi, timeout, dan kualitas koordinat.',
+            'kopitiam_mobile/lib/services/mock_location_guard_service.dart': 'Guard untuk mendeteksi indikasi lokasi palsu sebelum data lapangan dikirim.',
+            'kopitiam_mobile/lib/services/photo_watermark_service.dart': 'Layanan pengolahan foto yang menambahkan watermark waktu, lokasi, petugas, dan konteks pekerjaan.',
+            'kopitiam_mobile/lib/services/temuan_repository.dart': 'Repository temuan inspeksi yang menggabungkan cache lokal, antrean upload, pembacaan API, dan sinkronisasi.',
+            'kopitiam_mobile/lib/theme/kopitiam_theme.dart': 'Tema visual terpusat Kopitiam yang mengatur warna, tipografi, kartu, input, tombol, dan dialog.',
+            'kopitiam_mobile/lib/screens/login_screen.dart': 'Layar login Kopitiam dengan input identitas, validasi, autentikasi, dan pemulihan sesi.',
+            'kopitiam_mobile/lib/screens/dashboard_unified.dart': 'Dashboard terpadu yang menampilkan modul sesuai peran, ringkasan pekerjaan, navigasi, dan status data.',
+            'kopitiam_mobile/lib/screens/temuan_form_screen.dart': 'Form temuan inspeksi untuk kategori, aset, uraian, lokasi, foto, validasi, dan penyimpanan.',
+            'kopitiam_mobile/lib/screens/landscape_camera_screen.dart': 'Layar kamera lanskap untuk mengambil, memotong, memeriksa, dan mengembalikan foto bukti pekerjaan.'
+          };
+
+          function summary(path) {
+            if (exact[path]) return exact[path];
+            const title = clean(path);
+            const lower = path.toLowerCase();
+            if (lower.includes('/.dart_tool/') || lower.includes('/.gradle/') || lower.includes('/.idea/') || lower.includes('/ephemeral/')) return `Artefak lokal atau hasil generasi toolchain untuk ${title}; tidak memuat logika bisnis utama dan sebaiknya dikecualikan dari indeks.`;
+            if (lower.endsWith('key.properties') || lower.endsWith('local.properties') || lower.includes('native_integration.env')) return `Konfigurasi lokal ${title}; nilai mesin, signing, atau lingkungan tidak disertakan dalam ringkasan dan file sebaiknya diabaikan.`;
+            if (lower.includes('/models/')) return `Model data ${title} untuk serialisasi API, penyimpanan lokal, status sinkronisasi, dan representasi domain aplikasi.`;
+            if (lower.includes('/services/') && lower.includes('repository')) return `Repository ${title} yang mengoordinasikan data lokal, API, antrean perubahan, retry, dan sinkronisasi domain terkait.`;
+            if (lower.includes('/services/')) return `Layanan ${title} yang menyediakan fungsi aplikasi lintas layar dan mengisolasi integrasi perangkat, data, atau jaringan.`;
+            if (lower.includes('/screens/widgets/') || lower.includes('/widgets/')) return `Widget Flutter ${title} untuk menampilkan data, status, dan aksi pengguna secara konsisten pada alur Kopitiam.`;
+            if (lower.includes('/screens/')) return `Layar Flutter ${title} untuk alur pengguna terkait, termasuk pemuatan data, validasi, state, dan navigasi.`;
+            if (lower.includes('/test/') || lower.startsWith('test/')) return `Pengujian ${title} yang memverifikasi perilaku, kontrak data, validasi, dan regresi pada komponen terkait.`;
+            if (lower.includes('/workflows/')) return `Workflow GitHub Actions ${title} untuk menjalankan otomasi build, audit, pengujian, atau pemeliharaan repository.`;
+            if (lower.includes('/skills/')) return `Dokumentasi dan aturan skill ${title} untuk membantu AI agent menjalankan workflow pengembangan secara konsisten.`;
+            if (lower.endsWith('.sql')) return `Skema SQL ${title} yang mendefinisikan tabel, kolom, indeks, dan struktur penyimpanan lokal untuk domain terkait.`;
+            if (lower.endsWith('androidmanifest.xml')) return `Manifest Android ${title} yang mendeklarasikan activity, izin, intent, dan konfigurasi runtime aplikasi.`;
+            if (lower.endsWith('.gradle.kts') || lower.endsWith('gradle.properties') || lower.endsWith('settings.gradle.kts')) return `Konfigurasi build Android ${title} untuk plugin, SDK, dependensi, varian, dan proses packaging.`;
+            if (lower.includes('/ios/') || lower.includes('/macos/')) return `Konfigurasi atau host platform Apple ${title} untuk build dan integrasi aplikasi Flutter.`;
+            if (lower.includes('/windows/') || lower.includes('/linux/')) return `Konfigurasi atau runner desktop ${title} untuk membangun dan menjalankan aplikasi Flutter pada platform terkait.`;
+            if (lower.includes('backend') && lower.endsWith('.js')) return `Modul backend Apps Script ${title} yang menangani logika server, validasi, akses data Spreadsheet, dan respons API terkait.`;
+            if (lower.endsWith('.md')) return `Dokumentasi ${title} yang menjelaskan tujuan, setup, penggunaan, atau prosedur pengembangan komponen terkait.`;
+            if (lower.endsWith('.json') || lower.endsWith('.yaml') || lower.endsWith('.yml')) return `Konfigurasi ${title} untuk toolchain, aplikasi, otomasi, atau dependensi proyek.`;
+            return `File ${title} yang mendukung konfigurasi, build, integrasi platform, atau operasi proyek Kopitiam.`;
+          }
+
+          const output = {};
+          for (const file of pending.files) output[file.path] = { summary: summary(file.path) };
+          fs.writeFileSync('.ngodingpakeai/summaries.json', JSON.stringify(output, null, 2) + '\n');
+          console.log(`Generated ${Object.keys(output).length} summaries`);
+          NODE
+      - name: Commit summaries
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .ngodingpakeai/summaries.json
+          git diff --cached --quiet || git commit -m 'chore: add NgodingPakeAI summaries [skip ci]'
+          git push
