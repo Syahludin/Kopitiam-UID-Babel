@@ -34,5 +34,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          { echo '## Backend CI detail'; echo '```text'; tail -n 180 backend-result.log; echo '```'; } > failure.md
+          { echo '## Backend CI full detail'; echo '```text'; cat backend-result.log; echo '```'; } > failure.md
           gh pr comment "${{ github.event.pull_request.number }}" --body-file failure.md
