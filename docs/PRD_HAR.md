@@ -2,6 +2,17 @@
 
 > Dokumen ini diperbarui bertahap. Bagian yang sudah disepakati dikunci sebagai keputusan; bagian berikutnya ditambahkan setelah review.
 
+## 0. Sumber spreadsheet
+
+Struktur sheet sumber untuk WO Har berada pada [Spreadsheet WO Har](https://docs.google.com/spreadsheets/d/1NYLuEIxOz8Hk4INvv8q6wq_W5CCOgfQUn7ffDgyDGy8/edit?gid=1534488256#gid=1534488256).
+
+Sheet yang menjadi acuan:
+
+- `WO_Har_Jar`
+- `WO_Har_Du`
+
+Referensi ini dipakai untuk mencocokkan struktur header, lineage, dan rancangan detail pekerjaan/material. Data di spreadsheet tidak diubah oleh PRD ini.
+
 ## 1. Keputusan model data
 
 Satu baris pada `WO_Har_Jar` atau `WO_Har_Du` merepresentasikan **satu Work Order eksekusi**, bukan satu kegiatan dan bukan satu penggunaan material. Karena satu WO dapat memiliki banyak kegiatan dan setiap kegiatan dapat memakai banyak material, kegiatan serta material tidak boleh dipaksakan menjadi kolom berulang pada baris WO.
@@ -100,7 +111,7 @@ Inp_Temuan (Kode Temuan)
 - `User Input`: otomatis dari `username` sesi.
 - `Waktu Mulai`: otomatis saat card WO diklik pertama kali.
 - `Waktu Selesai`: otomatis saat hasil lengkap disimpan.
-- `Status WO`: otomatis menjadi `Progress Pekerjaan` saat card diklik dan `Selesai` saat disimpan.
+- `Status WO`: otomatis menjadi `Progress Pekerjaan` saat card WO diklik dan `Selesai` saat disimpan.
 
 Kolom `Durasi` tidak digunakan.
 
