@@ -1,166 +1,18 @@
-/* Har v2: header + Pekerjaan_WO_Har + Material_WO_Har.
- * No schema creation or deployment side effects. Header completion is committed last.
- * Sheets do not provide cross-sheet transactions: stable IDs make partial retries safe.
- */
+/* Har v2: header + Pekerjaan_WO_Har + Material_WO_Har. */
 var HAR_LINEAGE_ = ['Kode WO','Kode Temuan','Kode UIW','Kode UP3','Kode ULP','ULP','Hari','Tanggal','Penyulang','Section','Segmen','Nomor Gardu','Jenis Object','Tier','Temuan','Prioritas','Jenis WO','Koordinat','Lat','Long'];
 var HAR_JOB_HEADERS_ = ['No','Kode Pekerjaan'].concat(HAR_LINEAGE_,['Uraian Pekerjaan','Jumlah','Set','User Input','Waktu Input']);
 var HAR_MATERIAL_HEADERS_ = ['No','Kode Penggunaan Material','Kode Pekerjaan'].concat(HAR_LINEAGE_,['Uraian Pekerjaan','Material','Jumlah','Satuan','Kepemilikan','Catatan','User Input','Waktu Input']);
-
-function harError_(message) { throw new Error(message); }
-function harText_(value) { return String(value == null ? '' : value).trim(); }
-function harType_(mode) {
-  if (mode === 'jar') return 'WO Har Jar';
-  if (mode === 'du') return 'WO Har Du';
-  return harError_('Jenis WO tidak valid.');
-}
-function harAllowed_(s,mode) {
-  var team=normalize_(s.subTim || s.tim || '');
-  var parts=normalize_(s.username).split(/[.\s_-]+/);
-  var general=['har','hartek','har teknik'].indexOf(team)>=0 || parts.indexOf('har')>=0 || parts.indexOf('hartek')>=0;
-  var specific=mode==='jar'?['har jar','harjar','har jaringan']:['har du','hardu','har gardu'];
-  return !!harText_(s.kodeUlp) && (general || specific.indexOf(team)>=0 || parts.indexOf(mode==='jar'?'harjar':'hardu')>=0);
-}
-function harOwns_(s,row) {
-  var team=normalize_(row['Tim Eksekusi']);
-  return normalizeCode_(s.kodeUlp)===normalizeCode_(row['Kode ULP']) && !!team && [s.username,s.tim,s.subTim].some(function(v){return normalize_(v)===team;});
-}
-function harSheet_(ss,name,required) {
-  var sheet=ss.getSheetByName(name);
-  if(!sheet) return harError_('Sheet wajib tidak ditemukan: '+name);
-  var values=sheet.getDataRange().getDisplayValues();
-  var headers=(values[0]||[]).map(harText_);
-  // Support physical column names supplied earlier for Material_WO_Har.
-  var canonical=headers.map(function(h){return h==='Kode Pekerjaan WO Har'?'Kode Pekerjaan':h==='Kode WO Har'?'Kode WO':h;});
-  if(new Set(canonical).size!==canonical.length) return harError_('Header duplikat: '+name);
-  required.forEach(function(h){if(canonical.indexOf(h)<0)harError_('Kolom '+h+' tidak ditemukan di '+name);});
-  return {sheet:sheet,headers:headers,canonical:canonical,rows:values.slice(1).map(function(r){var o={};canonical.forEach(function(h,i){o[h]=r[i];});return o;})};
-}
-function getHarExecution_(token,mode) {
-  var auth=cekSesi_(token);if(!auth.success)return auth;
-  if(!harAllowed_(auth.sesi,mode))return fail_('HAR_ACCESS_DENIED','Akses WO Har ditolak.');
-  try {
-    var type=harType_(mode);
-    var ss=SpreadsheetApp.openById(CONFIG.WO_SPREADSHEET_ID);
-    var source=harSheet_(ss,mode==='jar'?CONFIG.WO_HAR_JAR_SHEET:CONFIG.WO_HAR_DU_SHEET,['Kode WO','Kode Temuan','Kode ULP','Tim Eksekusi','Status WO','Waktu Mulai','Waktu Selesai','Folder Path']);
-    var rows=source.rows.filter(function(r){return harText_(r['Kode WO']) && harOwns_(auth.sesi,r);}).map(function(r){r['Jenis WO']=type;return r;});
-    return {success:true,rows:rows,total:rows.length};
-  } catch(e){return fail_('HAR_SCHEMA_INVALID',e.message);}
-}
-function harNumber_(value,label) {
-  var n=Number(harText_(value).replace(',','.'));
-  if(!isFinite(n)||n<=0)harError_(label+' harus lebih besar dari nol.');
-  return n;
-}
-function harMaterialAvailable_(row) {
-  var status=normalize_(row['Status Baris']);
-  return ['nonaktif','tidak aktif','inactive','deleted','hapus','0','false'].indexOf(status)<0 && harText_(row['Kode Material']) && harText_(row['Nama Material']) && harText_(row['Satuan Material']);
-}
-function harSnapshot_(header,type) {
-  var data={};HAR_LINEAGE_.forEach(function(k){data[k]=header[k]||'';});
-  data['Jenis WO']=type;
-  data[type==='WO Har Jar'?'Nomor Gardu':'Segmen']='';
-  return data;
-}
-function harFind_(table,key,value) {
-  var found=[];table.rows.forEach(function(r,i){if(harText_(r[key])===value)found.push(i);});
-  if(found.length>1)harError_('Kunci duplikat di pusat: '+value);
-  return found.length?found[0]:-1;
-}
-function harCheckOwner_(table,key,row) {
-  var index=harFind_(table,key,row[key]);
-  if(index>=0){var existing=table.rows[index];if(harText_(existing['Kode WO'])!==row['Kode WO'] || harText_(existing['Jenis WO'])!==row['Jenis WO'] || harText_(existing['Kode Temuan'])!==row['Kode Temuan'] || (key==='Kode Penggunaan Material' && harText_(existing['Kode Pekerjaan'])!==row['Kode Pekerjaan']))harError_('Relasi detail tidak cocok: '+row[key]);}
-  return index;
-}
-function harUpsert_(table,key,row) {
-  var index=harCheckOwner_(table,key,row);
-  if(index<0){var fresh=table.canonical.map(function(h){return h==='No'?table.rows.length+1:safeCell_(row[h]||'');});table.sheet.appendRow(fresh);table.rows.push(row);return;}
-  // Write only owned fields, preserving extra columns and formulas.
-  Object.keys(row).forEach(function(h){var c=table.canonical.indexOf(h);if(c>=0)table.sheet.getRange(index+2,c+1).setValue(safeCell_(row[h]));});
-  table.rows[index]=Object.assign({},table.rows[index],row);
-}
-function harIdentical_(table,key,row) {
-  var index=harCheckOwner_(table,key,row);
-  return index>=0 && Object.keys(row).every(function(h){return harText_(table.rows[index][h])===harText_(row[h]);});
-}
-function syncHarExecution_(token,mode,rows) {
-  var auth=cekSesi_(token);if(!auth.success)return auth;
-  if(!harAllowed_(auth.sesi,mode))return fail_('HAR_ACCESS_DENIED','Akses WO Har ditolak.');
-  if(!Array.isArray(rows)||rows.length!==1)return fail_('BATCH_INVALID','Kirim satu paket WO per permintaan.');
-  var lock=LockService.getScriptLock();lock.waitLock(30000);
-  try {
-    var s=auth.sesi,type=harType_(mode),input=rows[0];
-    if(!input||input.schemaVersion!==2)harError_('Versi kontrak WO tidak valid.');
-    var ss=SpreadsheetApp.openById(CONFIG.WO_SPREADSHEET_ID);
-    var headerTable=harSheet_(ss,mode==='jar'?CONFIG.WO_HAR_JAR_SHEET:CONFIG.WO_HAR_DU_SHEET,['Kode WO','Kode Temuan','Kode ULP','Tim Eksekusi','Status WO','Waktu Mulai','Waktu Selesai','Folder Path','Foto Sesudah','Link Foto Sesudah','Catatan Petugas','User Input']);
-    var code=harText_(input['Kode WO']),position=harFind_(headerTable,'Kode WO',code);
-    if(position<0)harError_('WO tidak ditemukan.');
-    var header=headerTable.rows[position];
-    if(!harOwns_(s,header))harError_('WO bukan penugasan akun ini.');
-    if(harText_(input['Kode Temuan'])!==harText_(header['Kode Temuan']) || harText_(input['Jenis WO'])!==type)harError_('Parent atau Jenis WO tidak cocok.');
-    var status=harText_(input['Status WO']);
-    if(['Progress Pekerjaan','Selesai'].indexOf(status)<0)harError_('Transisi status tidak valid.');
-    var start=harText_(input['Waktu Mulai']);
-    if(!start || start.length>80)harError_('Waktu Mulai wajib.');
-    var existingStart=harText_(header['Waktu Mulai']);
-    if(existingStart && existingStart!==start)harError_('Waktu Mulai tidak boleh berubah.');
-    if(!Array.isArray(input.jobs)||input.jobs.length>100||!Array.isArray(input.materials)||input.materials.length>300)harError_('Batas pekerjaan/material tidak valid.');
-    var jobTable=harSheet_(ss,'Pekerjaan_WO_Har',HAR_JOB_HEADERS_);
-    var materialTable=harSheet_(ss,'Material_WO_Har',HAR_MATERIAL_HEADERS_);
-    var snapshot=harSnapshot_(header,type),jobs={},materials={},preparedJobs=[],preparedMaterials=[];
-    input.jobs.forEach(function(j){
-      var id=harText_(j['Kode Pekerjaan']);
-      if(!/^PKJ-[a-f0-9]{32}$/.test(id)||jobs[id])harError_('Kode Pekerjaan tidak valid/duplikat.');
-      if(harText_(j['Kode WO'])!==code || harText_(j['Kode Temuan'])!==harText_(header['Kode Temuan']))harError_('Pekerjaan salah parent.');
-      var description=harText_(j['Uraian Pekerjaan']),set=harText_(j.Set),stamp=harText_(j['Waktu Input']);
-      if(!description||description.length>2000||!set||set.length>80||!stamp||stamp.length>80)harError_('Lengkapi uraian, Set, dan waktu pekerjaan.');
-      var row=Object.assign({},snapshot,{'Kode Pekerjaan':id,'Uraian Pekerjaan':description,'Jumlah':harNumber_(j.Jumlah,'Jumlah pekerjaan'),'Set':set,'User Input':s.username,'Waktu Input':stamp});
-      harCheckOwner_(jobTable,'Kode Pekerjaan',row);jobs[id]=row;preparedJobs.push(row);
-    });
-    var master=input.materials.length?harSheet_(getSpreadsheet_(),'Master_Material',['Kode Material','Nama Material','Satuan Material','Status Baris']).rows:[];
-    input.materials.forEach(function(m){
-      var id=harText_(m['Kode Penggunaan Material']),job=jobs[harText_(m['Kode Pekerjaan'])];
-      if(!/^MAT-[a-f0-9]{32}$/.test(id)||materials[id]||!job)harError_('Relasi material tidak valid.');
-      if(harText_(m['Kode WO'])!==code || harText_(m['Kode Temuan'])!==harText_(header['Kode Temuan']))harError_('Material salah parent.');
-      var matches=master.filter(function(r){return harMaterialAvailable_(r)&&harText_(r['Nama Material'])===harText_(m.Material);});
-      if(matches.length!==1)harError_('Material tidak ada/ambigu/nonaktif: '+harText_(m.Material));
-      if(harText_(m.Satuan)!==harText_(matches[0]['Satuan Material']))harError_('Satuan material berubah; unduh ulang master.');
-      if(['PLN','Mitra','Bongkaran'].indexOf(m.Kepemilikan)<0)harError_('Kepemilikan material tidak valid.');
-      var stamp=harText_(m['Waktu Input']);if(!stamp||stamp.length>80)harError_('Waktu material wajib.');
-      var row=Object.assign({},snapshot,{'Kode Penggunaan Material':id,'Kode Pekerjaan':job['Kode Pekerjaan'],'Uraian Pekerjaan':job['Uraian Pekerjaan'],'Material':matches[0]['Nama Material'],'Jumlah':harNumber_(m.Jumlah,'Jumlah material'),'Satuan':matches[0]['Satuan Material'],'Kepemilikan':m.Kepemilikan,'Catatan':'','User Input':s.username,'Waktu Input':stamp});
-      harCheckOwner_(materialTable,'Kode Penggunaan Material',row);materials[id]=row;preparedMaterials.push(row);
-    });
-    var finished=normalize_(header['Status WO'])==='selesai';
-    var end=harText_(input['Waktu Selesai']),note=harText_(input['Catatan Petugas']);
-    if(note.length>2000)harError_('Catatan terlalu panjang.');
-    var photo=null;
-    if(status==='Selesai'){
-      if(!end || end.length>80)harError_('Waktu Selesai wajib.');
-      if(!harText_(header['Folder Path']))harError_('Folder Path parent kosong.');
-      photo=preparePhoto_(input.fotoSesudahBase64,'Foto Sesudah');
-    }
-    var photos={};
-    if(finished){
-      if(status!=='Selesai'||harText_(header['Waktu Selesai'])!==end||harText_(header['Catatan Petugas'])!==note||!preparedJobs.every(function(j){return harIdentical_(jobTable,'Kode Pekerjaan',j);})||!preparedMaterials.every(function(m){return harIdentical_(materialTable,'Kode Penggunaan Material',m);})||harText_(header['Foto Sesudah']).indexOf(photo.digest.substring(0,24))<0)harError_('WO selesai hanya dapat dilihat.');
-      photos[code]={'Foto Sesudah':header['Foto Sesudah'],'Link Foto Sesudah':header['Link Foto Sesudah']};
-      return {success:true,accepted:[code],photos:photos,reused:true};
-    }
-    // Everything is validated before the first write or photo upload.
-    var uploaded=null;
-    if(photo)uploaded=putPhotoIdempotent_(folderPath_(header['Folder Path']),code,photo);
-    preparedJobs.forEach(function(j){harUpsert_(jobTable,'Kode Pekerjaan',j);});
-    preparedMaterials.forEach(function(m){harUpsert_(materialTable,'Kode Penggunaan Material',m);});
-    var fields={'Waktu Mulai':existingStart||start};
-    if(status==='Selesai'){
-      fields['Waktu Selesai']=end;fields['User Input']=s.username;fields['Catatan Petugas']=note;
-      fields['Foto Sesudah']=harText_(header['Folder Path']).replace(/[\/\\]+$/,'')+'\\'+uploaded.name;
-      fields['Link Foto Sesudah']=uploaded.url;
-      photos[code]={'Foto Sesudah':fields['Foto Sesudah'],'Link Foto Sesudah':fields['Link Foto Sesudah']};
-    }
-    Object.keys(fields).forEach(function(k){headerTable.sheet.getRange(position+2,headerTable.canonical.indexOf(k)+1).setValue(safeCell_(fields[k]));});
-    SpreadsheetApp.flush();
-    headerTable.sheet.getRange(position+2,headerTable.canonical.indexOf('Status WO')+1).setValue(status);
-    SpreadsheetApp.flush();
-    return {success:true,accepted:[code],photos:photos,diproses:1};
-  }catch(e){console.error('Har v2 sync:',e.message);return fail_('HAR_SYNC_FAILED',e.message);}
-  finally{lock.releaseLock();}
-}
+function harError_(message){throw new Error(message);} function harText_(value){return String(value==null?'':value).trim();}
+function harType_(mode){if(mode==='jar')return 'WO Har Jar';if(mode==='du')return 'WO Har Du';return harError_('Jenis WO tidak valid.');}
+function harAllowed_(s,mode){var team=normalize_(s.subTim||s.tim||''),parts=normalize_(s.username).split(/[.\s_-]+/),role=normalize_(s.role);var specific=mode==='jar'?['har jar','harjar','har jaringan']:['har du','hardu','har gardu'];var exact=specific.indexOf(team)>=0||parts.indexOf(mode==='jar'?'harjar':'hardu')>=0;var general=role.indexOf('admin')>=0||['har','hartek','har teknik'].indexOf(team)>=0||parts.indexOf('har')>=0||parts.indexOf('hartek')>=0;return !!harText_(s.kodeUlp)&&(exact||general);}
+function harOwns_(s,row){return normalizeCode_(s.kodeUlp)===normalizeCode_(row['Kode ULP'])&&normalize_(row['Tim Eksekusi'])===normalize_(s.username);}
+function harSheet_(ss,name,required){var sheet=ss.getSheetByName(name);if(!sheet)return harError_('Sheet wajib tidak ditemukan: '+name);var values=sheet.getDataRange().getDisplayValues(),headers=(values[0]||[]).map(harText_),canonical=headers.map(function(h){return h==='Kode Pekerjaan WO Har'?'Kode Pekerjaan':h==='Kode WO Har'?'Kode WO':h;});if(new Set(canonical).size!==canonical.length)return harError_('Header duplikat: '+name);required.forEach(function(h){if(canonical.indexOf(h)<0)harError_('Kolom '+h+' tidak ditemukan di '+name);});return{sheet:sheet,headers:headers,canonical:canonical,rows:values.slice(1).map(function(r){var o={};canonical.forEach(function(h,i){o[h]=r[i];});return o;})};}
+function getHarExecution_(token,mode){var auth=cekSesi_(token);if(!auth.success)return auth;if(!harAllowed_(auth.sesi,mode))return fail_('HAR_ACCESS_DENIED','Akses WO Har ditolak.');try{var type=harType_(mode),ss=SpreadsheetApp.openById(CONFIG.WO_SPREADSHEET_ID),source=harSheet_(ss,mode==='jar'?CONFIG.WO_HAR_JAR_SHEET:CONFIG.WO_HAR_DU_SHEET,['Kode WO','Kode Temuan','Kode ULP','Tim Eksekusi','Status WO','Waktu Mulai','Waktu Selesai','Folder Path']);var rows=source.rows.filter(function(r){return harText_(r['Kode WO'])&&harOwns_(auth.sesi,r);}).map(function(r){r['Jenis WO']=type;return r;});return{success:true,rows:rows,total:rows.length,message:rows.length?'':'Tidak ada WO untuk username '+auth.sesi.username+'.'};}catch(e){return fail_('HAR_SCHEMA_INVALID',e.message);}}
+function harNumber_(value,label){var n=Number(harText_(value).replace(',','.'));if(!isFinite(n)||n<=0)harError_(label+' harus lebih besar dari nol.');return n;}
+function harMaterialAvailable_(row){var status=normalize_(row['Status Baris']);return['nonaktif','tidak aktif','inactive','deleted','hapus','0','false'].indexOf(status)<0&&harText_(row['Kode Material'])&&harText_(row['Nama Material'])&&harText_(row['Satuan Material']);}
+function harSnapshot_(header,type){var data={};HAR_LINEAGE_.forEach(function(k){data[k]=header[k]||'';});data['Jenis WO']=type;data[type==='WO Har Jar'?'Nomor Gardu':'Segmen']='';return data;}
+function harFind_(table,key,value){var found=[];table.rows.forEach(function(r,i){if(harText_(r[key])===value)found.push(i);});if(found.length>1)harError_('Kunci duplikat di pusat: '+value);return found.length?found[0]:-1;}
+function harCheckOwner_(table,key,row){var index=harFind_(table,key,row[key]);if(index>=0){var existing=table.rows[index];if(harText_(existing['Kode WO'])!==row['Kode WO']||harText_(existing['Jenis WO'])!==row['Jenis WO']||harText_(existing['Kode Temuan'])!==row['Kode Temuan']||(key==='Kode Penggunaan Material'&&harText_(existing['Kode Pekerjaan'])!==row['Kode Pekerjaan']))harError_('Relasi detail tidak cocok: '+row[key]);}return index;}
+function harUpsert_(table,key,row){var index=harCheckOwner_(table,key,row);if(index<0){var fresh=table.canonical.map(function(h){return h==='No'?table.rows.length+1:safeCell_(row[h]||'');});table.sheet.appendRow(fresh);table.rows.push(row);return;}Object.keys(row).forEach(function(h){var c=table.canonical.indexOf(h);if(c>=0)table.sheet.getRange(index+2,c+1).setValue(safeCell_(row[h]));});table.rows[index]=Object.assign({},table.rows[index],row);}
+function harIdentical_(table,key,row){var index=harCheckOwner_(table,key,row);return index>=0&&Object.keys(row).every(function(h){return harText_(table.rows[index][h])===harText_(row[h]);});}
+function syncHarExecution_(token,mode,rows){var auth=cekSesi_(token);if(!auth.success)return auth;if(!harAllowed_(auth.sesi,mode))return fail_('HAR_ACCESS_DENIED','Akses WO Har ditolak.');if(!Array.isArray(rows)||rows.length!==1)return fail_('BATCH_INVALID','Kirim satu paket WO per permintaan.');var lock=LockService.getScriptLock();lock.waitLock(30000);try{var s=auth.sesi,type=harType_(mode),input=rows[0];if(!input||input.schemaVersion!==2)harError_('Versi kontrak WO tidak valid.');var ss=SpreadsheetApp.openById(CONFIG.WO_SPREADSHEET_ID),headerTable=harSheet_(ss,mode==='jar'?CONFIG.WO_HAR_JAR_SHEET:CONFIG.WO_HAR_DU_SHEET,['Kode WO','Kode Temuan','Kode ULP','Tim Eksekusi','Status WO','Waktu Mulai','Waktu Selesai','Folder Path','Foto Sesudah','Link Foto Sesudah','Catatan Petugas','User Input']),code=harText_(input['Kode WO']),position=harFind_(headerTable,'Kode WO',code);if(position<0)harError_('WO tidak ditemukan.');var header=headerTable.rows[position];if(!harOwns_(s,header))harError_('WO bukan penugasan username ini.');if(harText_(input['Kode Temuan'])!==harText_(header['Kode Temuan'])||harText_(input['Jenis WO'])!==type)harError_('Parent atau Jenis WO tidak cocok.');var status=harText_(input['Status WO']);if(['Progress Pekerjaan','Selesai'].indexOf(status)<0)harError_('Transisi status tidak valid.');var start=harText_(input['Waktu Mulai']);if(!start||start.length>80)harError_('Waktu Mulai wajib.');var existingStart=harText_(header['Waktu Mulai']);if(existingStart&&existingStart!==start)harError_('Waktu Mulai tidak boleh berubah.');if(!Array.isArray(input.jobs)||input.jobs.length>100||!Array.isArray(input.materials)||input.materials.length>300)harError_('Batas pekerjaan/material tidak valid.');var jobTable=harSheet_(ss,'Pekerjaan_WO_Har',HAR_JOB_HEADERS_),materialTable=harSheet_(ss,'Material_WO_Har',HAR_MATERIAL_HEADERS_),snapshot=harSnapshot_(header,type),jobs={},materials={},preparedJobs=[],preparedMaterials=[];input.jobs.forEach(function(j){var id=harText_(j['Kode Pekerjaan']);if(!/^PKJ-[a-f0-9]{32}$/.test(id)||jobs[id])harError_('Kode Pekerjaan tidak valid/duplikat.');if(harText_(j['Kode WO'])!==code||harText_(j['Kode Temuan'])!==harText_(header['Kode Temuan']))harError_('Pekerjaan salah parent.');var description=harText_(j['Uraian Pekerjaan']),set=harText_(j.Set),stamp=harText_(j['Waktu Input']);if(!description||description.length>2000||!set||set.length>80||!stamp||stamp.length>80)harError_('Lengkapi uraian, Set, dan waktu pekerjaan.');var row=Object.assign({},snapshot,{'Kode Pekerjaan':id,'Uraian Pekerjaan':description,'Jumlah':harNumber_(j.Jumlah,'Jumlah pekerjaan'),'Set':set,'User Input':s.username,'Waktu Input':stamp});harCheckOwner_(jobTable,'Kode Pekerjaan',row);jobs[id]=row;preparedJobs.push(row);});var master=input.materials.length?harSheet_(getSpreadsheet_(),'Master_Material',['Kode Material','Nama Material','Satuan Material','Status Baris']).rows:[];input.materials.forEach(function(m){var id=harText_(m['Kode Penggunaan Material']),job=jobs[harText_(m['Kode Pekerjaan'])];if(!/^MAT-[a-f0-9]{32}$/.test(id)||materials[id]||!job)harError_('Relasi material tidak valid.');if(harText_(m['Kode WO'])!==code||harText_(m['Kode Temuan'])!==harText_(header['Kode Temuan']))harError_('Material salah parent.');var matches=master.filter(function(r){return harMaterialAvailable_(r)&&harText_(r['Nama Material'])===harText_(m.Material);});if(matches.length!==1)harError_('Material tidak ada/ambigu/nonaktif: '+harText_(m.Material));if(harText_(m.Satuan)!==harText_(matches[0]['Satuan Material']))harError_('Satuan material berubah; unduh ulang master.');if(['PLN','Mitra','Bongkaran'].indexOf(m.Kepemilikan)<0)harError_('Kepemilikan material tidak valid.');var stamp=harText_(m['Waktu Input']);if(!stamp||stamp.length>80)harError_('Waktu material wajib.');var row=Object.assign({},snapshot,{'Kode Penggunaan Material':id,'Kode Pekerjaan':job['Kode Pekerjaan'],'Uraian Pekerjaan':job['Uraian Pekerjaan'],'Material':matches[0]['Nama Material'],'Jumlah':harNumber_(m.Jumlah,'Jumlah material'),'Satuan':matches[0]['Satuan Material'],'Kepemilikan':m.Kepemilikan,'Catatan':'','User Input':s.username,'Waktu Input':stamp});harCheckOwner_(materialTable,'Kode Penggunaan Material',row);materials[id]=row;preparedMaterials.push(row);});var finished=normalize_(header['Status WO'])==='selesai',end=harText_(input['Waktu Selesai']),note=harText_(input['Catatan Petugas']);if(note.length>2000)harError_('Catatan terlalu panjang.');var photo=null;if(status==='Selesai'){if(!end||end.length>80)harError_('Waktu Selesai wajib.');if(!harText_(header['Folder Path']))harError_('Folder Path parent kosong.');photo=preparePhoto_(input.fotoSesudahBase64,'Foto Sesudah');}var photos={};if(finished){if(status!=='Selesai'||harText_(header['Waktu Selesai'])!==end||harText_(header['Catatan Petugas'])!==note||!preparedJobs.every(function(j){return harIdentical_(jobTable,'Kode Pekerjaan',j);})||!preparedMaterials.every(function(m){return harIdentical_(materialTable,'Kode Penggunaan Material',m);})||harText_(header['Foto Sesudah']).indexOf(photo.digest.substring(0,24))<0)harError_('WO selesai hanya dapat dilihat.');photos[code]={'Foto Sesudah':header['Foto Sesudah'],'Link Foto Sesudah':header['Link Foto Sesudah']};return{success:true,accepted:[code],photos:photos,reused:true};}var uploaded=null;if(photo)uploaded=putPhotoIdempotent_(folderPath_(header['Folder Path']),code,photo);preparedJobs.forEach(function(j){harUpsert_(jobTable,'Kode Pekerjaan',j);});preparedMaterials.forEach(function(m){harUpsert_(materialTable,'Kode Penggunaan Material',m);});var fields={'Waktu Mulai':existingStart||start};if(status==='Selesai'){fields['Waktu Selesai']=end;fields['User Input']=s.username;fields['Catatan Petugas']=note;fields['Foto Sesudah']=harText_(header['Folder Path']).replace(/[\/\\]+$/,'')+'\\'+uploaded.name;fields['Link Foto Sesudah']=uploaded.url;photos[code]={'Foto Sesudah':fields['Foto Sesudah'],'Link Foto Sesudah':fields['Link Foto Sesudah']};}Object.keys(fields).forEach(function(k){headerTable.sheet.getRange(position+2,headerTable.canonical.indexOf(k)+1).setValue(safeCell_(fields[k]));});SpreadsheetApp.flush();headerTable.sheet.getRange(position+2,headerTable.canonical.indexOf('Status WO')+1).setValue(status);SpreadsheetApp.flush();return{success:true,accepted:[code],photos:photos,diproses:1};}catch(e){console.error('Har v2 sync:',e.message);return fail_('HAR_SYNC_FAILED',e.message);}finally{lock.releaseLock();}}
