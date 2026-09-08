@@ -7,10 +7,7 @@ const test = require("node:test");
 
 const root = path.resolve(__dirname, "..");
 const code = fs.readFileSync(path.join(root, "Code.js"), "utf8");
-const idempotent = fs.readFileSync(
-  path.join(root, "IdempotentUpload.js"),
-  "utf8",
-);
+const idempotent = fs.readFileSync(path.join(root, "IdempotentUpload.js"), "utf8");
 
 test("production POST router consumes action quota before dispatch", () => {
   assert.match(code, /function doPost\(e\)/);
@@ -27,10 +24,7 @@ test("device handler fails closed before issuing a fresh session", () => {
 });
 
 test("every cached session is bound to a live device record", () => {
-  assert.match(
-    code,
-    /verifySessionDeviceBinding_\(t, sesi\)/,
-  );
+  assert.match(code, /verifySessionDeviceBinding_\(t, sesi\)/);
   assert.match(code, /session\.deviceToken/);
   assert.match(code, /device_.*deviceToken/);
   assert.match(code, /validateDeviceRecord_\(record, Date\.now\(\)\)/);
@@ -55,16 +49,12 @@ test("account status is checked on every successful cached session request", () 
 
 test("master validation runs before idempotent Temuan transaction", () => {
   assert.match(idempotent, /function syncTemuanInspeksiIdempotent_/);
-  const fnStart = idempotent.indexOf(
-    "function syncTemuanInspeksiIdempotent_",
-  );
-  const fnBody = idempotent.slice(
-    fnStart,
-    idempotent.indexOf("\nfunction ", fnStart + 1),
-  );
+  const fnStart = idempotent.indexOf("function syncTemuanInspeksiIdempotent_");
+  const next = idempotent.indexOf("\nfunction ", fnStart + 1);
+  const fnBody = idempotent.slice(fnStart, next < 0 ? undefined : next);
   assert.match(fnBody, /validateFindingMaster_/);
   assert.match(fnBody, /incoming\["Jenis Object"\]/);
-  assert.match(fnBody, /incoming\["Prioritas"\]/);
+  assert.match(fnBody, /incoming(?:\["Prioritas"\]|\.Prioritas)/);
   const masterIdx = fnBody.indexOf("validateFindingMaster_");
   const syncIdx = fnBody.indexOf("woContext_");
   assert.ok(masterIdx < syncIdx, "master validation must run before woContext_");
