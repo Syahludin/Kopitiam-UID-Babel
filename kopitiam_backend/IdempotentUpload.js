@@ -25,9 +25,7 @@ function validateTemuanHeaders_(headers) {
   var index = headerIndex_(headers);
   var required = ["kode wo", "kode temuan", "temuan", "jenis object", "tier", "prioritas", "koordinat temuan"];
   for (var i = 0; i < required.length; i++) {
-    if (index[required[i]] === undefined) {
-      return fail_("SHEET_HEADERS_INVALID", "Header sheet Inp_Temuan belum valid. Kolom wajib tidak ditemukan: " + required[i] + ".");
-    }
+    if (index[required[i]] === undefined) return fail_("SHEET_HEADERS_INVALID", "Header sheet Inp_Temuan belum valid. Kolom wajib tidak ditemukan: " + required[i] + ".");
   }
   return { success: true };
 }
@@ -82,72 +80,145 @@ function photoIdempotencyKey_(code, primary, environment) {
   return sha256_(code + "|" + primary.digest + "|" + environment.digest).substring(0, 40);
 }
 
+function c4aContext_(session, incoming) {
+  var kodeUlp = normalizeCode_(session.kodeUlp || incoming["Kode ULP"] || "");
+  var incomingUlp = normalizeCode_(incoming["Kode ULP"] || "");
+  if (!kodeUlp || !incomingUlp || kodeUlp !== incomingUlp) return fail_("ULP_MISMATCH", "Unit temuan tidak sesuai akun login.");
+  return {
+    success: true,
+    kodeUlp: kodeUlp,
+    values: {
+      "Kode UIW": safeText_(incoming["Kode UIW"] || session.kodeUiw, 40),
+      "Kode UP3": safeText_(incoming["Kode UP3"] || session.kodeUp3, 40),
+      "Kode ULP": safeText_(incoming["Kode ULP"] || session.kodeUlp, 40),
+      "ULP": safeText_(incoming.ULP || session.ulp, 120),
+      "Penyulang": safeText_(incoming.Penyulang, 120),
+      "Section Awal": safeText_(incoming["Section Awal"], 120),
+      "Section Akhir": safeText_(incoming["Section Akhir"], 120),
+      "Section": safeText_(incoming.Section, 200),
+      "Nomor Gardu": safeText_(incoming["Nomor Gardu"], 120)
+    }
+  };
+}
+
+function buildC4aFindingPath_(kodeUlp, object, code, now) {
+  var month = Utilities.formatDate(now, Session.getScriptTimeZone(), "MM");
+  var year = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy");
+  var day = Utilities.formatDate(now, Session.getScriptTimeZone(), "dd");
+  var monthName = Utilities.formatDate(now, Session.getScriptTimeZone(), "MM. MMMM");
+  return "Kopitiam/Rekap Temuan Inspeksi/" + safePath_(kodeUlp) + "/" + safePath_(object) + "/" + year + "/" + monthName + "/" + day + "/" + safePath_(code) + "/";
+}
+
 function syncTemuanInspeksiIdempotent_(token, incoming) {
   var auth = cekSesi_(token);
   if (!auth.success) return auth;
   if (!incoming || typeof incoming !== "object") return fail_("FINDING_REQUIRED", "Data temuan kosong.");
-  var master = validateFindingMaster_(safeText_(incoming["Jenis Object"], 40), safeText_(incoming["Tier"], 20), safeText_(incoming["Temuan"], 200), safeText_(incoming["Prioritas"], 20));
-  if (!master.success) return master;
-  var kodeWo = safeText_(incoming["Kode WO"], 100), code = safeText_(incoming["Kode Temuan"], 120);
-  if (code.indexOf(kodeWo + ".TO-") !== 0 || !/^[0-9]{3}$/.test(code.substring((kodeWo + ".TO-").length))) return fail_("FINDING_CODE_INVALID", "Kode Temuan tidak valid.");
-  var tier = safeText_(incoming["Tier"], 20), object = safeText_(incoming["Jenis Object"], 40);
+
+  var kodeWo = safeText_(incoming["Kode WO"], 100);
+  var code = safeText_(incoming["Kode Temuan"], 120);
+  var isC4a = kodeWo === "";
+  if (isC4a) {
+    if (!/^PEG-[A-Z0-9]+\.TO-[0-9]{3}$/.test(code)) return fail_("FINDING_CODE_INVALID", "Kode Temuan C4A tidak valid.");
+    incoming["Kode WO"] = "";
+    incoming["Jenis WO"] = "";
+  } else if (code.indexOf(kodeWo + ".TO-") !== 0 || !/^[0-9]{3}$/.test(code.substring((kodeWo + ".TO-").length))) {
+    return fail_("FINDING_CODE_INVALID", "Kode Temuan tidak valid.");
+  }
+
+  var object = safeText_(incoming["Jenis Object"], 40);
+  var tier = safeText_(incoming.Tier, 20);
+  var finding = safeText_(incoming.Temuan, 200);
+  var priority = safeText_(incoming.Prioritas, 20);
+  var segment = safeText_(incoming.Segmen, 200);
   if (tier !== "Tier 1" && tier !== "Tier 2") return fail_("TIER_INVALID", "Tier tidak valid.");
-  var sub = normalize_(auth.sesi.subTim || auth.sesi.tim), expected = object;
-  if (sub.indexOf("inspeksi jaringan") >= 0 || sub.indexOf("insjar") >= 0) expected = "Jaringan";
-  else if (sub.indexOf("inspeksi gardu") >= 0 || sub.indexOf("insdu") >= 0) expected = "Gardu";
-  else if (object !== "Jaringan" && object !== "Gardu") return fail_("OBJECT_INVALID", "Jenis Object harus Jaringan atau Gardu.");
-  if (expected !== object) return fail_("OBJECT_MISMATCH", "Jenis Object tidak sesuai Sub-Tim.");
-  var finding = safeText_(incoming["Temuan"], 200), segment = safeText_(incoming["Segmen"], 200);
+  if (object !== "Jaringan" && object !== "Gardu") return fail_("OBJECT_INVALID", "Jenis Object harus Jaringan atau Gardu.");
   if (!finding || !segment) return fail_("FINDING_INVALID", "Data wajib temuan belum valid.");
+
+  var master = validateFindingMaster_(object, tier, finding, priority);
+  if (!master.success) return master;
+
+  var sub = normalize_(auth.sesi.subTim || auth.sesi.tim);
+  if (!isC4a) {
+    var expected = object;
+    if (sub.indexOf("inspeksi jaringan") >= 0 || sub.indexOf("insjar") >= 0) expected = "Jaringan";
+    else if (sub.indexOf("inspeksi gardu") >= 0 || sub.indexOf("insdu") >= 0) expected = "Gardu";
+    if (expected !== object) return fail_("OBJECT_MISMATCH", "Jenis Object tidak sesuai Sub-Tim.");
+  }
+
   var point, primaryPrepared, environmentPrepared;
   try {
     point = validateCoordinate_(safeText_(incoming["Koordinat Temuan"], 80));
     primaryPrepared = preparePhoto_(incoming.fotoTemuanBase64, "Foto Temuan");
     environmentPrepared = preparePhoto_(incoming.fotoLingkunganBase64, "Foto Lingkungan");
   } catch (_) { return fail_("INPUT_INVALID", "Koordinat atau file foto tidak valid."); }
+
   var lock = LockService.getScriptLock(), created = [];
   lock.waitLock(30000);
   try {
-    var context = woContext_(auth.sesi, kodeWo, true);
+    var context = isC4a ? c4aContext_(auth.sesi, incoming) : woContext_(auth.sesi, kodeWo, true);
     if (!context.success) return context;
-    var now = new Date(), index = context.index, server = context.row, row = {};
-    row["Kode WO"] = kodeWo; row["Kode Temuan"] = code;
-    row["Kode UIW"] = server[index["kode uiw"]] || auth.sesi.kodeUiw || "";
-    row["Kode UP3"] = server[index["kode up3"]] || auth.sesi.kodeUp3 || "";
-    row["Kode ULP"] = context.kodeUlp; row["ULP"] = server[index.ulp] || auth.sesi.ulp || "";
-    row["Hari"] = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"][now.getDay()];
-    row["Tanggal"] = Utilities.formatDate(now, Session.getScriptTimeZone(), "dd MMMM yyyy");
-    row["Penyulang"] = server[index.penyulang] || ""; row["Section Awal"] = server[index["section awal"]] || "";
-    row["Section Akhir"] = server[index["section akhir"]] || ""; row["Section"] = server[index.section] || "";
-    row["Segmen"] = segment; row["Koordinat Temuan"] = point.latitude + ", " + point.longitude;
-    row["Lat Temuan"] = point.latitude; row["Long Temuan"] = point.longitude; row["Jenis Object"] = object;
-    row["Tier"] = tier; row["Temuan"] = finding; row["Jarak Terhadap Jaringan"] = numericOrBlank_(incoming["Jarak Terhadap Jaringan"]);
-    row["Jenis Pohon"] = safeText_(incoming["Jenis Pohon"], 100); row["Tinggi Pohon"] = numericOrBlank_(incoming["Tinggi Pohon"]);
-    row["Prioritas"] = safeText_(incoming["Prioritas"], 20); row["Pekerjaan (Padam / Tanpa Padam)"] = ""; row["Jenis WO"] = "";
-    row["Waktu Input"] = Utilities.formatDate(now, Session.getScriptTimeZone(), "dd MMMM yyyy, HH:mm:ss"); row["User Input"] = auth.sesi.username;
-    row["Folder Path"] = buildFindingPath_(context.kodeUlp, object, kodeWo, code, now);
+    var now = new Date(), row = {}, source = context.values || {};
+    if (!isC4a) {
+      var index = context.index, server = context.row;
+      source = {
+        "Kode UIW": server[index["kode uiw"]] || auth.sesi.kodeUiw || "",
+        "Kode UP3": server[index["kode up3"]] || auth.sesi.kodeUp3 || "",
+        "Kode ULP": context.kodeUlp,
+        "ULP": server[index.ulp] || auth.sesi.ulp || "",
+        "Penyulang": server[index.penyulang] || "",
+        "Section Awal": server[index["section awal"]] || "",
+        "Section Akhir": server[index["section akhir"]] || "",
+        "Section": server[index.section] || "",
+        "Nomor Gardu": server[index["nomor gardu"]] || ""
+      };
+    }
+    row["Kode WO"] = isC4a ? "" : kodeWo;
+    row["Kode Temuan"] = code;
+    ["Kode UIW","Kode UP3","Kode ULP","ULP","Penyulang","Section Awal","Section Akhir","Section","Nomor Gardu"].forEach(function (key) { row[key] = source[key] || ""; });
+    row.Hari = safeText_(incoming.Hari, 20) || ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"][now.getDay()];
+    row.Tanggal = safeText_(incoming.Tanggal, 40) || Utilities.formatDate(now, Session.getScriptTimeZone(), "dd MMMM yyyy");
+    row.Segmen = segment;
+    row["Koordinat Temuan"] = point.latitude + ", " + point.longitude;
+    row["Lat Temuan"] = point.latitude; row["Long Temuan"] = point.longitude;
+    row["Jenis Object"] = object; row.Tier = tier; row.Temuan = finding;
+    row["Jarak Terhadap Jaringan"] = numericOrBlank_(incoming["Jarak Terhadap Jaringan"]);
+    row["Jenis Pohon"] = safeText_(incoming["Jenis Pohon"], 100);
+    row["Tinggi Pohon"] = numericOrBlank_(incoming["Tinggi Pohon"]);
+    row.Prioritas = priority;
+    row["Pekerjaan (Padam / Tanpa Padam)"] = isC4a ? "" : safeText_(incoming["Pekerjaan (Padam / Tanpa Padam)"], 80);
+    row["Jenis WO"] = isC4a ? "" : safeText_(incoming["Jenis WO"], 80);
+    row["Waktu Input"] = safeText_(incoming["Waktu Input"], 80) || Utilities.formatDate(now, Session.getScriptTimeZone(), "dd MMMM yyyy, HH:mm:ss");
+    row["User Input"] = auth.sesi.username;
+    row["Folder Path"] = isC4a ? buildC4aFindingPath_(context.kodeUlp, object, code, now) : buildFindingPath_(context.kodeUlp, object, kodeWo, code, now);
+
     var sheet = temuanSheet_(), values = sheet.getDataRange().getValues();
-    var headers = values.length && values[0].length ? values[0] : [];
-    if (!headers.length) headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0];
-    var headerValidation = validateTemuanHeaders_(headers);
-    if (!headerValidation.success) return headerValidation;
+    var headers = values.length && values[0].length ? values[0] : sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0];
+    var validation = validateTemuanHeaders_(headers);
+    if (!validation.success) return validation;
     var headerIndex = headerIndex_(headers), target = 0;
     for (var r = 1; r < values.length; r++) if (String(values[r][headerIndex["kode temuan"]] || "") === code) { target = r + 1; break; }
-    var folder = folderPath_(row["Folder Path"]), primary = putPhotoIdempotent_(folder, code, primaryPrepared); created.push(primary);
+
+    var folder = folderPath_(row["Folder Path"]);
+    var primary = putPhotoIdempotent_(folder, code, primaryPrepared); created.push(primary);
     var environment = putPhotoIdempotent_(folder, code, environmentPrepared); created.push(environment);
-    var cleanFolderPath = String(row["Folder Path"] || "").replace(/[\/\\]+$/, "");
-    row["Foto Temuan"] = cleanFolderPath + "\\" + primary.name;
-    row["Link Foto"] = primary.url;
-    row["Foto Lingkungan Sekitaran Tiang"] = cleanFolderPath + "\\" + environment.name;
+    var cleanPath = String(row["Folder Path"]).replace(/[\/\\]+$/, "");
+    row["Foto Temuan"] = cleanPath + "\\" + primary.name; row["Link Foto"] = primary.url;
+    row["Foto Lingkungan Sekitaran Tiang"] = cleanPath + "\\" + environment.name;
     row["Link Foto Sekitaran Tiang"] = environment.url;
-    var normalizedRow = {};
-    for (var key in row) if (Object.prototype.hasOwnProperty.call(row, key)) normalizedRow[normalize_(key)] = row[key];
-    var output = headers.map(function (header) { var value = normalizedRow[normalize_(header)]; return value === undefined || value === null ? "" : safeCell_(value); });
-    var firstHeader = normalize_(headers[0] || ""), numberColumn = firstHeader === "no" || firstHeader === "no." || firstHeader === "nomor";
-    if (target) { if (numberColumn) output[0] = values[target - 1][0]; sheet.getRange(target, 1, 1, headers.length).setValues([output]); }
-    else { if (numberColumn) output[0] = sheet.getLastRow(); sheet.appendRow(output); }
-    SpreadsheetApp.flush(); removeStalePhotos_(folder, code, [primary.name, environment.name]);
-    return { success: true, linkFoto: primary.url, linkLingkungan: environment.url, folderPath: row["Folder Path"], idempotencyKey: photoIdempotencyKey_(code, primary, environment), reused: !primary.created && !environment.created };
+    var normalized = {};
+    for (var key in row) if (Object.prototype.hasOwnProperty.call(row, key)) normalized[normalize_(key)] = row[key];
+    var output = headers.map(function (header) { var value = normalized[normalize_(header)]; return value == null ? "" : safeCell_(value); });
+    var numberColumn = ["no","no.","nomor"].indexOf(normalize_(headers[0] || "")) >= 0;
+    if (target) {
+      if (numberColumn) output[0] = values[target - 1][0];
+      sheet.getRange(target, 1, 1, headers.length).setValues([output]);
+    } else {
+      if (numberColumn) output[0] = sheet.getLastRow();
+      sheet.appendRow(output);
+    }
+    SpreadsheetApp.flush();
+    removeStalePhotos_(folder, code, [primary.name, environment.name]);
+    return { success: true, linkFoto: primary.url, linkLingkungan: environment.url, folderPath: row["Folder Path"], idempotencyKey: photoIdempotencyKey_(code, primary, environment), reused: !primary.created && !environment.created, mode: isC4a ? "C4A" : "WO" };
   } catch (err) {
     console.error("syncTemuanInspeksi idempotent gagal:", err && err.stack ? err.stack : err);
     rollbackCreatedPhotos_(created);
