@@ -1,13 +1,19 @@
 name: Backend CI
+
 on:
   push:
     branches: [main]
-    paths: ['kopitiam_backend/**', '.github/workflows/backend-ci.yml']
+    paths:
+      - 'kopitiam_backend/**'
+      - '.github/workflows/backend-ci.yml'
   pull_request:
-    paths: ['kopitiam_backend/**', '.github/workflows/backend-ci.yml']
+    paths:
+      - 'kopitiam_backend/**'
+      - '.github/workflows/backend-ci.yml'
+
 permissions:
   contents: read
-  pull-requests: write
+
 jobs:
   syntax-security-tests:
     runs-on: ubuntu-latest
@@ -22,17 +28,9 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: kopitiam_backend/package-lock.json
-      - run: npm ci
-      - name: Check and test
-        shell: bash
-        run: |
-          set -o pipefail
-          { npm run check && npm test; } 2>&1 | tee backend-result.log
-      - name: Report failure
-        if: failure() && github.event_name == 'pull_request'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          { echo '## Backend CI full detail'; echo '```text'; cat backend-result.log; echo '```'; } > failure.md
-          gh pr comment "${{ github.event.pull_request.number }}" --body-file failure.md
+      - name: Install locked dependencies
+        run: npm ci
+      - name: JavaScript syntax
+        run: npm run check
+      - name: Backend regression tests
+        run: npm test
