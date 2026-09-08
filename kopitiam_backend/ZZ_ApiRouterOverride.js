@@ -19,10 +19,13 @@ function doPost(e) {
     if (action === 'syncWoInsdu') return json_(syncWoInsdu_(body.token, body.rows));
     if (action === 'getWoRow') return json_(getWoRow_(body.token));
     if (action === 'syncWoRow') return json_(syncWoRow_(body.token, body.rows));
-    if (action === 'getWoHarJar') return json_(getWoHarJar_(body.token));
-    if (action === 'syncWoHarJar') return json_(syncWoHarJar_(body.token, body.rows));
-    if (action === 'getWoHarDu') return json_(getWoHarDu_(body.token));
-    if (action === 'syncWoHarDu') return json_(syncWoHarDu_(body.token, body.rows));
+    if (action === 'getWoHarJar') return json_(getHarExecution_(body.token, 'jar'));
+    if (action === 'getWoHarDu') return json_(getHarExecution_(body.token, 'du'));
+    if (action === 'syncWoHarJar' || action === 'syncWoHarDu') {
+      var mode = action === 'syncWoHarJar' ? 'jar' : 'du';
+      if (Array.isArray(body.rows) && body.rows.length && body.rows[0].schemaVersion === 2) return json_(syncHarExecution_(body.token, mode, body.rows));
+      return json_(mode === 'jar' ? syncWoHarJar_(body.token, body.rows) : syncWoHarDu_(body.token, body.rows));
+    }
     if (action === 'getTemuanInspeksi') return json_(getTemuanInspeksi_(body.token, body.kodeWo));
     if (action === 'syncTemuanInspeksi') return json_(syncTemuanInspeksiIdempotent_(body.token, body.row));
     return json_(fail_('ACTION_INVALID', 'Action API tidak dikenal.'));
