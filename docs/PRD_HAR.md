@@ -9,12 +9,14 @@ Satu baris pada `WO_Har_Jar` atau `WO_Har_Du` merepresentasikan **satu Work Orde
 Model yang dipakai:
 
 - **Header WO (1 baris):** `WO_Har_Jar` atau `WO_Har_Du`.
-- **Detail kegiatan (0..n baris):** sheet anak `WO_Har_Kegiatan`.
-- **Detail material (0..n baris):** sheet anak `WO_Har_Material`.
+- **Detail pekerjaan (0..n baris):** satu tabel detail pekerjaan Har.
+- **Detail material (0..n baris):** satu tabel detail material Har.
 - Relasi header ke detail menggunakan `Kode WO`.
+- Relasi pekerjaan ke material menggunakan `Kode Pekerjaan`.
 - Relasi seluruh WO tindak lanjut ke temuan asal menggunakan `Kode Temuan`.
+- `Jenis WO` menjadi discriminator bisnis; nilainya otomatis dari sumber header (`WO Har Jar`, `WO Har Du`, atau `WO ROW`). Tidak ada kolom `Jenis Modul` tambahan.
 
-Dengan model ini, satu WO tetap satu baris, tetapi petugas dapat mencatat banyak kegiatan dan banyak material tanpa menambah kolom dinamis seperti `Kegiatan 1`, `Kegiatan 2`, atau `Material 1`.
+Dengan model ini, satu WO tetap satu baris, tetapi petugas dapat mencatat banyak pekerjaan dan banyak material tanpa menambah kolom dinamis seperti `Pekerjaan 1`, `Pekerjaan 2`, atau `Material 1`.
 
 ## 2. Data lineage yang disepakati
 
@@ -28,7 +30,7 @@ WO_Ins_Jar / WO_Ins_Du
   -> data diteruskan ke WO_ROW / WO_Har_Jar / WO_Har_Du
   -> petugas Har mengunduh WO
   -> klik card: Status WO = Progress Pekerjaan, Waktu Mulai terisi otomatis
-  -> petugas mengisi satu atau lebih kegiatan dan material yang digunakan
+  -> petugas mengisi satu atau lebih pekerjaan dan material yang digunakan
   -> petugas mengambil Foto Sesudah dan menyimpan
   -> Status WO = Selesai, User Input = username, Waktu Selesai terisi otomatis
   -> hasil disinkronkan ke pusat
@@ -40,14 +42,15 @@ WO_Ins_Jar / WO_Ins_Du
 - `Kode WO` inspeksi tidak digunakan sebagai identitas WO Har.
 - `Kode WO` Har adalah **execution key baru** yang dibuat ketika Koordinator meneruskan temuan.
 - Satu `Kode Temuan` dapat mempunyai beberapa `Kode WO` tindak lanjut.
-- Satu `Kode WO` dapat mempunyai banyak kegiatan.
-- Satu kegiatan dapat mempunyai banyak material.
+- Satu `Kode WO` dapat mempunyai banyak pekerjaan.
+- Satu pekerjaan dapat mempunyai banyak material.
+- `Jenis WO` membedakan sumber/jenis tindak lanjut: `WO Har Jar`, `WO Har Du`, atau `WO ROW`.
 
 ```text
 Inp_Temuan (Kode Temuan)
   1 -> n WO_Har_* (Kode WO baru, Kode Temuan tetap)
-  1 -> n WO_Har_Kegiatan
-  1 -> n WO_Har_Material melalui Kode Kegiatan
+  1 -> n Detail Pekerjaan (Kode WO, Kode Pekerjaan)
+  1 -> n Detail Material melalui Kode Pekerjaan
 ```
 
 ## 3. Pemetaan header WO
@@ -82,7 +85,7 @@ Inp_Temuan (Kode Temuan)
 
 - `Kode WO`: dibuat ulang sebagai identitas eksekusi.
 - `Pekerjaan (Padam / Tanpa Padam)`
-- `Jenis WO`
+- `Jenis WO`: otomatis sesuai sumber sheet, bukan input petugas.
 - `Tim Eksekusi`
 - `Tanggal Penugasan`
 - `Catatan Koordinator / TL`
@@ -101,73 +104,106 @@ Inp_Temuan (Kode Temuan)
 
 Kolom `Durasi` tidak digunakan.
 
-## 4. Rancangan sheet detail
+## 4. Struktur detail pekerjaan
 
-### 4.1 `WO_Har_Kegiatan`
-
-Satu baris merepresentasikan satu kegiatan dalam satu WO.
+Satu baris merepresentasikan satu pekerjaan/tindak lanjut pada satu WO. Struktur yang disepakati:
 
 ```text
 No
-Kode Kegiatan
+Kode Pekerjaan
 Kode WO
 Kode Temuan
-Urutan
-Jenis Kegiatan
-Uraian Kegiatan
-Volume
-Satuan
-Status Kegiatan
-Catatan
+Kode UIW
+Kode UP3
+Kode ULP
+ULP
+Hari
+Tanggal
+Penyulang
+Section
+Segmen
+Nomor Gardu
+Jenis Object
+Tier
+Temuan
+Prioritas
+Jenis WO
+Koordinat
+Lat
+Long
+Uraian Pekerjaan
 User Input
 Waktu Input
-Waktu Selesai
 ```
 
 Aturan:
 
-- `Kode Kegiatan` unik dan idempoten.
+- `Kode Pekerjaan` unik dan idempoten.
 - `Kode WO` wajib menunjuk header WO Har.
-- `Kode Temuan` disalin untuk audit dan pencarian parent-child.
-- WO hanya boleh disimpan sebagai `Selesai` jika seluruh kegiatan wajib sudah lengkap.
-- Daftar `Jenis Kegiatan` idealnya berasal dari master, bukan teks bebas, tetapi `Uraian Kegiatan` boleh manual.
+- `Kode Temuan` tetap menunjuk parent pada `Inp_Temuan`.
+- `Segmen` hanya berlaku untuk `WO Har Jar`.
+- `Nomor Gardu` hanya berlaku untuk `WO Har Du`.
+- `Jenis WO` membedakan `WO Har Jar`, `WO Har Du`, dan `WO ROW`; nilainya berasal dari sumber, bukan input manual.
+- Data identitas, aset, temuan, koordinat, dan foto parent yang masuk ke detail tetap mengikuti lineage dan tidak diedit petugas.
 
-### 4.2 `WO_Har_Material`
+## 5. Struktur detail material
 
-Satu baris merepresentasikan satu material yang dipakai pada satu kegiatan.
+Satu baris merepresentasikan satu material yang dipakai pada satu pekerjaan.
 
 ```text
 No
 Kode Penggunaan Material
+Kode Pekerjaan
 Kode WO
-Kode Kegiatan
-Kode Material
+Kode Temuan
+Kode UIW
+Kode UP3
+Kode ULP
+ULP
+Hari
+Tanggal
+Penyulang
+Section
+Segmen
+Nomor Gardu
+Jenis Object
+Tier
+Temuan
+Prioritas
+Jenis WO
+Koordinat
+Lat
+Long
+Uraian Pekerjaan
 Material
 Jumlah
 Satuan
 Kepemilikan
-Keterangan
+Catatan
 User Input
 Waktu Input
 ```
 
 Aturan:
 
-- Material bersifat opsional per kegiatan.
-- Jika kegiatan memerlukan material, minimal satu baris material wajib diisi.
+- `Kode Penggunaan Material` unik dan menjadi idempotency key.
+- `Kode Pekerjaan` wajib menunjuk baris pada detail pekerjaan.
+- `Kode WO` dan `Kode Temuan` disimpan untuk audit serta pencarian parent-child.
+- `Jenis WO` cukup menjadi pembeda; tidak perlu kolom `Jenis Modul`.
+- Material bersifat opsional per pekerjaan.
+- Jika pekerjaan memerlukan material, minimal satu baris material wajib diisi.
 - `Jumlah` harus lebih besar dari nol.
-- `Kode Penggunaan Material` menjadi idempotency key agar retry tidak menggandakan material.
 - Material dipilih dari `Master_Material`; nama dan satuan dapat disalin sebagai snapshot.
 
-## 5. Alasan keputusan
+## 6. Alasan keputusan
 
-Menyimpan banyak kegiatan atau material di satu baris WO akan menghasilkan kolom berulang, batas jumlah yang kaku, query yang sulit, dan risiko data tidak konsisten. Model header-detail menjaga `WO_Har_Jar` dan `WO_Har_Du` tetap satu baris per WO, sementara jumlah kegiatan dan material dapat berkembang tanpa mengubah struktur sheet.
+Menyimpan banyak pekerjaan atau material di satu baris WO akan menghasilkan kolom berulang, batas jumlah yang kaku, query yang sulit, dan risiko data tidak konsisten. Model header-detail menjaga `WO_Har_Jar` dan `WO_Har_Du` tetap satu baris per WO, sementara jumlah pekerjaan dan material dapat berkembang tanpa mengubah struktur sheet.
 
-## 6. Hal yang belum diputuskan
+## 7. Hal yang belum diputuskan
 
-- Daftar master `Jenis Kegiatan` untuk Har Jar dan Har Du.
-- Apakah satu material boleh dipakai untuk beberapa kegiatan atau wajib terkait tepat satu kegiatan.
-- Apakah semua kegiatan wajib selesai sebelum WO dapat disimpan, atau sebagian kegiatan boleh ditandai tidak dikerjakan beserta alasan.
-- Format final `Kode Kegiatan` dan `Kode Penggunaan Material`.
+- Daftar master `Jenis Pekerjaan` untuk Har Jar dan Har Du.
+- Apakah satu material boleh dipakai untuk beberapa pekerjaan atau wajib terkait tepat satu `Kode Pekerjaan`.
+- Apakah semua pekerjaan wajib selesai sebelum WO dapat disimpan, atau sebagian boleh ditandai tidak dikerjakan beserta alasan.
+- Format final `Kode Pekerjaan` dan `Kode Penggunaan Material`.
 - Status awal WO sebelum `Progress Pekerjaan`.
 - Mekanisme penutupan parent WO inspeksi setelah seluruh tindak lanjut selesai.
