@@ -61,7 +61,7 @@ function setupBackend() {
     "Kode WO",
     "Material",
   ]);
-  ensureSheet_(temuan, CONFIG.TEMUAN_SHEET, TEMUAN_SHEET_HEADERS);
+  ensureSheet_(temuan, CONFIG.TEMUAN_SHEET, temuanSheetHeaders_());
 
   pasangTriggerPembersihanToken_();
   var cleanup = bersihkanTokenPerangkatKedaluwarsa();

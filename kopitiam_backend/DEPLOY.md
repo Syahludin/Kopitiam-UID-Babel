@@ -2,6 +2,46 @@
 
 Checklist deploy backend Kopitiam (Google Apps Script) agar scope Drive, otorisasi, dan deployment tidak terlewat. Ikuti setiap kali ada perubahan di folder `kopitiam_backend`.
 
+## Validasi prasyarat: referensi header setup (pengelola GAS)
+
+Task `3cb7edc9-d6af-40d1-80a9-dd9eae4354bf` memperbaiki pemanggilan header
+di `d:\Visual Studio Code\Kopitiam-UID-Babel\kopitiam_backend\Setup.js:64`
+agar memakai fungsi existing `temuanSheetHeaders_()`. Target tetap `Inp_Temuan`;
+tidak ada perubahan schema, urutan header existing, manifest, atau fitur C4A.
+
+**Status produksi: menunggu validasi pengelola GAS.** Tes Node memakai mock,
+bukan bukti setup/deployment produksi berhasil. Jangan membuka Fase 1 sebelum
+bukti berikut dikonfirmasi oleh pengelola:
+
+1. Cocokkan project GAS, konfigurasi spreadsheet master/WO/temuan, dan deployment
+   yang aktif. Ambil cadangan spreadsheet sebelum menjalankan setup. Catat jumlah
+   baris, urutan header, isi dan formula existing untuk perbandingan. Hindari
+   pengiriman temuan bersamaan selama pemeriksaan agar hasil dapat dibandingkan.
+2. Tinjau diff dan unggah source yang disetujui. Di editor GAS, pastikan setup
+   memanggil `temuanSheetHeaders_()` dan fungsi tersebut tersedia. Perbaikan ini
+   tidak memerlukan perubahan OAuth scopes; pertahankan manifest repository.
+3. Jalankan `setupBackend()` dari editor dengan akun pengelola berizin. Periksa
+   **Executions**: eksekusi selesai tanpa `ReferenceError` atau error header.
+   Setup juga menyentuh Drive, membuat pepper hanya jika belum ada, memasang
+   trigger cleanup bila belum ada, dan menghapus token perangkat kedaluwarsa/rusak;
+   ini bukan operasi read-only.
+4. Bandingkan data, formula, urutan header dan jumlah baris existing sebelum/sesudah:
+   harus tetap sama. Setup hanya mengisi 34 header jika sheet belum ada/kosong.
+   Untuk sheet existing, seluruh nama header wajib tersedia (urutan bebas,
+   kapitalisasi/spasi tepi diabaikan, kolom tambahan diperbolehkan). Jika kurang,
+   **hentikan validasi dan laporkan kolom yang hilang**; jangan kosongkan sheet
+   atau menimpa header/data untuk memaksa setup lolos.
+5. Jalankan setup sekali lagi: data tetap sama dan trigger
+   `bersihkanTokenPerangkatKedaluwarsa` tidak bertambah. Pemeriksaan sheet kosong/
+   baru cukup memakai mock lokal atau spreadsheet uji, bukan menghapus produksi.
+6. Perbarui deployment existing ke versi source yang disetujui; pertahankan URL.
+   Periksa health endpoint sesuai langkah deployment di bawah. Health saja tidak
+   membuktikan setup berhasil atau data tetap utuh.
+7. Laporkan waktu dan ID eksekusi setup, versi source/deployment, hasil perbandingan
+   data, hasil eksekusi ulang dan health, serta persetujuan pengelola pada task.
+   Jangan menyertakan token, kredensial atau data pengguna. Task belum tuntas
+   end-to-end sampai konfirmasi ini tersedia.
+
 ---
 
 ## 📋 Informasi Project

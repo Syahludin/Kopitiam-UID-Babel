@@ -195,11 +195,11 @@ Tech stack yang digunakan sudah ditetapkan dan berjalan di dalam codebase, bukan
 - Node.js tooling dengan `@google/clasp` untuk deploy backend ke Google Apps Script.
 - Python 3 untuk generator aset ikon aplikasi.
 
-## 8. Detail Pencatatan Temuan C4A (Lembar `Ins_Temuan`)
+## 8. Detail Pencatatan Temuan C4A (Lembar `Inp_Temuan`)
 
-C4A adalah inspeksi **tanpa Work Order** oleh peran Admin/Pegawai PLN. Karena tidak ada WO, identitas unit dan penomoran temuan **tidak bersumber dari WO**, melainkan diisi otomatis dari master yang login dan relasi master aset. Seluruh hasil inspeksi (ber-WO maupun C4A) disimpan pada lembar `Ins_Temuan` yang sama.
+C4A adalah inspeksi **tanpa Work Order** oleh peran Admin/Pegawai PLN. Karena tidak ada WO, identitas unit dan penomoran temuan **tidak bersumber dari WO**, melainkan diisi otomatis dari master yang login dan relasi master aset. Seluruh hasil inspeksi (ber-WO maupun C4A) disimpan pada lembar `Inp_Temuan` yang sama.
 
-Struktur kolom `Ins_Temuan` (urutan mengikuti berkas asli):
+Struktur kolom `Inp_Temuan` (urutan mengikuti berkas asli):
 
 `No | Kode UIW | Kode UP3 | Kode ULP | ULP | Kode WO | Kode Temuan | Hari | Tanggal | Penyulang | Section Awal | Section Akhir | Section | Segmen | Nomor Gardu | Koordinat Temuan | Lat Temuan | Long Temuan | Jenis Object | Tier | Temuan | Jarak Terhadap Jaringan | Jenis Pohon | Tinggi Pohon | Prioritas | Pekerjaan (Padam / Tanpa Padam) | Foto Temuan | Link Foto | Foto Lingkungan Sekitaran Tiang | Link Foto Sekitaran Tiang | Jenis WO | Waktu Input | User Input | Folder Path`
 

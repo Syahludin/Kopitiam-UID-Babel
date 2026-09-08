@@ -14,7 +14,7 @@ void main() {
   test('credentials are not copied into the ContentService GET request', () {
     final source = File('lib/services/api_service.dart').readAsStringSync();
     final getStart = source.indexOf("final contentRequest = http.Request('GET'");
-    final getEnd = source.indexOf('return await http.Response.fromStream', getStart);
+    final getEnd = source.indexOf('return contentResponse;', getStart);
     expect(getStart, greaterThanOrEqualTo(0));
     expect(getEnd, greaterThan(getStart));
     final getBlock = source.substring(getStart, getEnd);
