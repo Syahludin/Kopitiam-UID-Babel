@@ -1,6 +1,6 @@
 {
   "repo": "Syahludin/Kopitiam-UID-Babel",
-  "generatedForCommit": "a82c2cf82ca3b7d89d25b8b12c93b1fc6be74145",
+  "generatedForCommit": "fe8b6db51dea76ab390dbc1cb5a7e8a6839307e5",
   "files": [
     {
       "path": ".claude/skills/ngodingpakeai/SKILL.md",
@@ -88,25 +88,25 @@
     },
     {
       "path": "docs/C4A_PHASE1_VALIDATION.md",
-      "reason": "new",
+      "reason": "needs_summary",
       "language": "markdown",
       "size": 6298
     },
     {
       "path": "docs/PRD.md",
-      "reason": "new",
+      "reason": "needs_summary",
       "language": "markdown",
       "size": 24012
     },
     {
       "path": "docs/README.md",
-      "reason": "new",
+      "reason": "needs_summary",
       "language": "markdown",
       "size": 1077
     },
     {
       "path": "docs/TASKS.md",
-      "reason": "new",
+      "reason": "needs_summary",
       "language": "markdown",
       "size": 3007
     },
@@ -136,13 +136,13 @@
     },
     {
       "path": "kopitiam_backend/DEPLOY.md",
-      "reason": "changed",
+      "reason": "needs_summary",
       "language": "markdown",
       "size": 9710
     },
     {
       "path": "kopitiam_backend/IdempotentUpload.js",
-      "reason": "changed",
+      "reason": "needs_summary",
       "language": "javascript",
       "size": 12512
     },
@@ -190,7 +190,7 @@
     },
     {
       "path": "kopitiam_backend/Setup.js",
-      "reason": "changed",
+      "reason": "needs_summary",
       "language": "javascript",
       "size": 5278
     },
@@ -220,7 +220,7 @@
     },
     {
       "path": "kopitiam_backend/test/production-integration.test.js",
-      "reason": "changed",
+      "reason": "needs_summary",
       "language": "javascript",
       "size": 2788
     },
@@ -244,13 +244,13 @@
     },
     {
       "path": "kopitiam_backend/test/setup.test.js",
-      "reason": "changed",
+      "reason": "needs_summary",
       "language": "javascript",
       "size": 12395
     },
     {
       "path": "kopitiam_backend/test/temuan-sheet-sim.test.js",
-      "reason": "changed",
+      "reason": "needs_summary",
       "language": "javascript",
       "size": 966
     },
@@ -322,7 +322,7 @@
     },
     {
       "path": "kopitiam_mobile/android/.gitignore",
-      "reason": "changed",
+      "reason": "needs_summary",
       "language": null,
       "size": 378
     },
@@ -628,7 +628,7 @@
     },
     {
       "path": "kopitiam_mobile/lib/models/c4a_selection.dart",
-      "reason": "new",
+      "reason": "needs_summary",
       "language": null,
       "size": 7167
     },
@@ -646,7 +646,7 @@
     },
     {
       "path": "kopitiam_mobile/lib/models/temuan_inspeksi.dart",
-      "reason": "changed",
+      "reason": "needs_summary",
       "language": null,
       "size": 7241
     },
@@ -724,7 +724,7 @@
     },
     {
       "path": "kopitiam_mobile/lib/screens/dashboard_unified.dart",
-      "reason": "changed",
+      "reason": "needs_summary",
       "language": null,
       "size": 15840
     },
@@ -766,7 +766,7 @@
     },
     {
       "path": "kopitiam_mobile/lib/screens/temuan_form_screen.dart",
-      "reason": "changed",
+      "reason": "needs_summary",
       "language": null,
       "size": 48913
     },
@@ -868,7 +868,7 @@
     },
     {
       "path": "kopitiam_mobile/lib/services/c4a_numbering.dart",
-      "reason": "new",
+      "reason": "needs_summary",
       "language": null,
       "size": 2160
     },
@@ -922,13 +922,13 @@
     },
     {
       "path": "kopitiam_mobile/lib/services/sqlite_service.dart",
-      "reason": "changed",
+      "reason": "needs_summary",
       "language": null,
       "size": 12735
     },
     {
       "path": "kopitiam_mobile/lib/services/temuan_repository.dart",
-      "reason": "changed",
+      "reason": "needs_summary",
       "language": null,
       "size": 19748
     },
@@ -1198,43 +1198,43 @@
     },
     {
       "path": "kopitiam_mobile/test/api_service_redirect_source_test.dart",
-      "reason": "changed",
+      "reason": "needs_summary",
       "language": null,
       "size": 1160
     },
     {
       "path": "kopitiam_mobile/test/c4a_flow_test.dart",
-      "reason": "new",
+      "reason": "needs_summary",
       "language": null,
       "size": 11615
     },
     {
       "path": "kopitiam_mobile/test/c4a_form_test.dart",
-      "reason": "new",
+      "reason": "needs_summary",
       "language": null,
       "size": 5763
     },
     {
       "path": "kopitiam_mobile/test/c4a_numbering_test.dart",
-      "reason": "new",
+      "reason": "needs_summary",
       "language": null,
       "size": 2607
     },
     {
       "path": "kopitiam_mobile/test/c4a_priority_test.dart",
-      "reason": "new",
+      "reason": "needs_summary",
       "language": null,
       "size": 1396
     },
     {
       "path": "kopitiam_mobile/test/c4a_repository_test.dart",
-      "reason": "new",
+      "reason": "needs_summary",
       "language": null,
       "size": 2918
     },
     {
       "path": "kopitiam_mobile/test/c4a_selection_test.dart",
-      "reason": "new",
+      "reason": "needs_summary",
       "language": null,
       "size": 5702
     },
