@@ -9,41 +9,39 @@ const root = path.resolve(__dirname, "..");
 const upload = fs.readFileSync(path.join(root, "IdempotentUpload.js"), "utf8");
 const code = fs.readFileSync(path.join(root, "Code.js"), "utf8");
 
-test("C4A targets the production Inp_Temuan sheet", () => {
-  assert.match(code, /TEMUAN_SHEET:\s*["']Inp_Temuan["']/);
-  assert.match(upload, /CONFIG\.TEMUAN_SHEET\s*\|\|\s*["']Inp_Temuan["']/);
-  assert.doesNotMatch(upload, /Ins_Temuan/);
+test("C4A targets Inp_Temuan", () => {
+  assert.ok(code.includes('TEMUAN_SHEET: "Inp_Temuan"'));
+  assert.ok(upload.includes('CONFIG.TEMUAN_SHEET || "Inp_Temuan"'));
+  assert.equal(upload.includes("Ins_Temuan"), false);
 });
 
-test("C4A accepts a finding without WO but clears both WO fields", () => {
-  assert.match(upload, /var isC4a = kodeWo === ""/);
-  assert.match(upload, /incoming\["Kode WO"\]\s*=\s*""/);
-  assert.match(upload, /incoming\["Jenis WO"\]\s*=\s*""/);
-  assert.match(upload, /row\["Kode WO"\]\s*=\s*isC4a\s*\?\s*""/);
-  assert.match(upload, /row\["Jenis WO"\]\s*=\s*isC4a\s*\?\s*""/);
+test("C4A accepts no WO and clears WO fields", () => {
+  assert.ok(upload.includes('var isC4a = kodeWo === ""'));
+  assert.ok(upload.includes('incoming["Kode WO"] = ""'));
+  assert.ok(upload.includes('incoming["Jenis WO"] = ""'));
+  assert.ok(upload.includes('row["Kode WO"] = isC4a ? "" : kodeWo'));
+  assert.ok(upload.includes('row["Jenis WO"] = isC4a ? ""'));
 });
 
-test("C4A validates code, unit, master, coordinate and JPEGs", () => {
-  assert.match(upload, /FINDING_CODE_INVALID/);
-  assert.match(upload, /function c4aContext_/);
-  assert.match(upload, /ULP_MISMATCH/);
-  assert.match(upload, /validateFindingMaster_/);
-  assert.match(upload, /validateCoordinate_/);
-  assert.match(upload, /preparePhoto_\(incoming\.fotoTemuanBase64/);
-  assert.match(upload, /preparePhoto_\(incoming\.fotoLingkunganBase64/);
+test("C4A validates input before committing", () => {
+  for (const contract of [
+    "FINDING_CODE_INVALID", "c4aContext_", "ULP_MISMATCH",
+    "validateFindingMaster_", "validateCoordinate_",
+    "preparePhoto_(incoming.fotoTemuanBase64",
+    "preparePhoto_(incoming.fotoLingkunganBase64",
+  ]) assert.ok(upload.includes(contract), contract);
 });
 
-test("same Kode Temuan updates the existing row and reuses photo hashes", () => {
-  assert.match(upload, /headerIndex\["kode temuan"\]/);
-  assert.match(upload, /if \(target\)/);
-  assert.match(upload, /sheet\.getRange\(target/);
-  assert.match(upload, /putPhotoIdempotent_/);
-  assert.match(upload, /photoIdempotencyKey_/);
-  assert.match(upload, /reused:\s*!primary\.created && !environment\.created/);
+test("same code updates its row and photo hashes are reused", () => {
+  for (const contract of [
+    'headerIndex["kode temuan"]', "if (target)", "sheet.getRange(target",
+    "putPhotoIdempotent_", "photoIdempotencyKey_",
+    "reused: !primary.created && !environment.created",
+  ]) assert.ok(upload.includes(contract), contract);
 });
 
-test("C4A folder omits a phantom WO segment", () => {
-  assert.match(upload, /function buildC4aFindingPath_/);
-  assert.match(upload, /safePath_\(code\) \+ "\/"/);
-  assert.match(upload, /isC4a \? buildC4aFindingPath_/);
+test("C4A uses a folder path without phantom WO", () => {
+  assert.ok(upload.includes("function buildC4aFindingPath_"));
+  assert.ok(upload.includes("isC4a ? buildC4aFindingPath_"));
+  assert.ok(upload.includes('safePath_(code) + "/"'));
 });
