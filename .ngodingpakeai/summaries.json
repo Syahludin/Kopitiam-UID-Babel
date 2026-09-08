@@ -44,6 +44,9 @@
   "docs/C4A_PHASE1_VALIDATION.md": {
     "summary": "Dokumentasi C4A PHASE1 VALIDATION yang menjelaskan tujuan, setup, penggunaan, atau prosedur pengembangan komponen terkait."
   },
+  "docs/PHASE2_SUMMARY.md": {
+    "summary": "Dokumentasi PHASE2 SUMMARY yang menjelaskan tujuan, setup, penggunaan, atau prosedur pengembangan komponen terkait."
+  },
   "docs/PRD.md": {
     "summary": "Dokumentasi PRD yang menjelaskan tujuan, setup, penggunaan, atau prosedur pengembangan komponen terkait."
   },
