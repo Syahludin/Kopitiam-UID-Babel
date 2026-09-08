@@ -8,8 +8,10 @@ import '../models/c4a_selection.dart';
 import '../models/wo_insjar.dart';
 import '../services/high_accuracy_location_service.dart';
 import '../services/photo_watermark_service.dart';
+import '../services/role_provider.dart';
 import '../services/temuan_repository.dart';
 import 'landscape_camera_screen.dart';
+import 'c4a_route_guard.dart';
 
 class TemuanFormScreen extends StatefulWidget {
   final WoInsjar? wo;
@@ -454,6 +456,11 @@ class _TemuanFormScreenState extends State<TemuanFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (isC4a &&
+        widget.sesi.containsKey('role') &&
+        !RoleProvider.hasC4aAccess(widget.sesi)) {
+      return const C4aAccessDeniedScreen();
+    }
     final trees = pohonMaster
         .map((row) => _findValue(row, const ['Jenis Pohon', 'Pohon', 'Nama']))
         .where((v) => v.isNotEmpty)

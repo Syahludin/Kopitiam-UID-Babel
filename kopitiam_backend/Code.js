@@ -139,6 +139,8 @@ function doPost(e) {
     if (a === "login" || a === "loginPerangkat")
       return json_(loginPerangkat_(b.username, b.password, b.perangkat));
     if (a === "cekPerangkat") return json_(cekPerangkat_(b.deviceToken));
+    if (a === "getRoleProfile" || a === "getProfilPeran")
+      return json_(getRoleProfile_(b.token));
     if (a === "logoutPerangkat")
       return json_(logoutPerangkat_(b.deviceToken, b.token));
     if (a === "cekSesi") return json_(cekSesi_(b.token));
@@ -310,6 +312,24 @@ function cekSesi_(t) {
 function logout_(t) {
   if (t) CacheService.getScriptCache().remove("session_" + String(t));
   return { success: true };
+}
+
+function getRoleProfile_(t) {
+  var auth = cekSesi_(t);
+  if (!auth.success) return auth;
+  var profile = activeRoleProfile_(auth.sesi);
+  if (!profile.success) return profile;
+  return {
+    success: true,
+    profile: profile.profile,
+    kodeUiw: profile.profile.kodeUiw,
+    kodeUp3: profile.profile.kodeUp3,
+    kodeUlp: profile.profile.kodeUlp,
+    ulp: profile.profile.ulp,
+    username: profile.profile.username,
+    role: profile.role,
+    canAccessC4a: profile.canAccessC4a,
+  };
 }
 
 function getMasterData_(t) {

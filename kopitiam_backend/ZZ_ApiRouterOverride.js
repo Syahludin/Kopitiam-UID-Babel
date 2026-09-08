@@ -7,6 +7,7 @@ function doPost(e) {
     if (!quota.success) return json_(quota);
     if (action === 'login' || action === 'loginPerangkat') return json_(loginPerangkat_(body.username, body.password, body.perangkat));
     if (action === 'cekPerangkat') return json_(cekPerangkat_(body.deviceToken));
+    if (action === 'getRoleProfile' || action === 'getProfilPeran') return json_(getRoleProfile_(body.token));
     if (action === 'logoutPerangkat') return json_(logoutPerangkat_(body.deviceToken, body.token));
     if (action === 'cekSesi') return json_(cekSesi_(body.token));
     if (action === 'logout') return json_(logout_(body.token));

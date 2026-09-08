@@ -81,17 +81,20 @@ function photoIdempotencyKey_(code, primary, environment) {
 }
 
 function c4aContext_(session, incoming) {
-  var kodeUlp = normalizeCode_(session.kodeUlp || incoming["Kode ULP"] || "");
+  var access = requireC4aAccess_(session);
+  if (!access.success) return access;
+  var central = access.profile;
+  var kodeUlp = normalizeCode_(central.kodeUlp || "");
   var incomingUlp = normalizeCode_(incoming["Kode ULP"] || "");
   if (!kodeUlp || !incomingUlp || kodeUlp !== incomingUlp) return fail_("ULP_MISMATCH", "Unit temuan tidak sesuai akun login.");
   return {
     success: true,
     kodeUlp: kodeUlp,
     values: {
-      "Kode UIW": safeText_(incoming["Kode UIW"] || session.kodeUiw, 40),
-      "Kode UP3": safeText_(incoming["Kode UP3"] || session.kodeUp3, 40),
-      "Kode ULP": safeText_(incoming["Kode ULP"] || session.kodeUlp, 40),
-      "ULP": safeText_(incoming.ULP || session.ulp, 120),
+      "Kode UIW": safeText_(central.kodeUiw, 40),
+      "Kode UP3": safeText_(central.kodeUp3, 40),
+      "Kode ULP": safeText_(central.kodeUlp, 40),
+      "ULP": safeText_(central.ulp, 120),
       "Penyulang": safeText_(incoming.Penyulang, 120),
       "Section Awal": safeText_(incoming["Section Awal"], 120),
       "Section Akhir": safeText_(incoming["Section Akhir"], 120),
@@ -117,6 +120,10 @@ function syncTemuanInspeksiIdempotent_(token, incoming) {
   var kodeWo = safeText_(incoming["Kode WO"], 100);
   var code = safeText_(incoming["Kode Temuan"], 120);
   var isC4a = kodeWo === "";
+  if (isC4a) {
+    var c4aAccess = requireC4aAccess_(auth.sesi);
+    if (!c4aAccess.success) return c4aAccess;
+  }
   if (isC4a) {
     if (!/^PEG-[A-Z0-9]+\.TO-[0-9]{3}$/.test(code)) return fail_("FINDING_CODE_INVALID", "Kode Temuan C4A tidak valid.");
     incoming["Kode WO"] = "";

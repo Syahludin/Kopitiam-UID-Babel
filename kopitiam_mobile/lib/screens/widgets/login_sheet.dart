@@ -42,7 +42,9 @@ class _LoginSheetState extends State<LoginSheet> {
       final result = await ApiService.loginPerangkat(username, password);
       if (!mounted) return;
       if (result['success'] != true) {
-        setState(() => _error = (result['message'] ?? 'Login gagal.').toString());
+        setState(
+          () => _error = (result['message'] ?? 'Login gagal.').toString(),
+        );
         return;
       }
       await _saveSession(result);
@@ -70,7 +72,8 @@ class _LoginSheetState extends State<LoginSheet> {
 
       final errorMsg = e.toString().replaceAll('StateError: ', '').trim();
       setState(() {
-        _error = 'Koneksi ke server gagal ($errorMsg). Pastikan ada internet dan backend Apps Script sudah di-deploy.';
+        _error =
+            'Koneksi ke server gagal ($errorMsg). Pastikan ada internet dan backend Apps Script sudah di-deploy.';
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -84,6 +87,7 @@ class _LoginSheetState extends State<LoginSheet> {
       'deviceToken',
       'username',
       'role',
+      'roleVerifiedOnline',
       'kodeUiw',
       'kodeUp3',
       'kodeUlp',
@@ -91,9 +95,18 @@ class _LoginSheetState extends State<LoginSheet> {
       'bidang',
       'tim',
       'subTim',
-      'aksesMenu'
+      'aksesMenu',
     ]) {
       await prefs.setString(key, (session[key] ?? '').toString());
+    }
+    await prefs.setBool('offlineLogin', session['offlineLogin'] == true);
+    if (session['offlineExpiresAt'] != null) {
+      await prefs.setString(
+        'offlineExpiresAt',
+        session['offlineExpiresAt'].toString(),
+      );
+    } else {
+      await prefs.remove('offlineExpiresAt');
     }
   }
 
@@ -137,7 +150,7 @@ class _LoginSheetState extends State<LoginSheet> {
                       color: AppColors.navy700.withValues(alpha: .06),
                       blurRadius: 24,
                       offset: const Offset(0, 8),
-                    )
+                    ),
                   ],
                 ),
                 child: Column(
@@ -313,13 +326,13 @@ class _LoginSheetState extends State<LoginSheet> {
   }
 
   Widget _label(String text) => Text(
-        text,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: AppColors.navy900,
-        ),
-      );
+    text,
+    style: const TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w700,
+      color: AppColors.navy900,
+    ),
+  );
 
   Widget _field({
     required TextEditingController controller,

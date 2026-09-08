@@ -2,6 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_service.dart';
 import 'device_session_service.dart';
+import 'role_provider.dart';
 
 class SessionBootstrapService {
   static const sessionKeys = [
@@ -9,6 +10,7 @@ class SessionBootstrapService {
     'deviceToken',
     'username',
     'role',
+    'roleVerifiedOnline',
     'kodeUiw',
     'kodeUp3',
     'kodeUlp',
@@ -30,7 +32,8 @@ class SessionBootstrapService {
         await DeviceSessionService.clear();
         return null;
       }
-      final session = Map<String, dynamic>.from(result);
+      var session = RoleProvider.markOnline(Map<String, dynamic>.from(result));
+      session = await RoleProvider.verifyOnline(session);
       await DeviceSessionService.save(
         deviceToken: (session['deviceToken'] ?? deviceToken).toString(),
         profile: session,
@@ -47,11 +50,7 @@ class SessionBootstrapService {
           now.difference(verifiedAt) >= const Duration(days: 1)) {
         return null;
       }
-      final session = Map<String, dynamic>.from(cached)
-        ..['offlineLogin'] = true
-        ..['offlineExpiresAt'] = verifiedAt
-            .add(const Duration(days: 1))
-            .toIso8601String();
+      final session = RoleProvider.markOffline(cached, verifiedAt);
       await _savePreferences(session);
       return session;
     }

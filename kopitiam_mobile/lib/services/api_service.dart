@@ -51,7 +51,9 @@ class ApiService {
       }
       final contentUri = initialUri.resolve(location.trim());
       if (contentUri.scheme != 'https' || contentUri.host != _contentHost) {
-        throw StateError('Redirect respons API menuju alamat yang tidak diizinkan.');
+        throw StateError(
+          'Redirect respons API menuju alamat yang tidak diizinkan.',
+        );
       }
       final contentRequest = http.Request('GET', contentUri)
         ..followRedirects = false
@@ -93,8 +95,7 @@ class ApiService {
 
   static Future<Map<String, dynamic>> _postMap(
     Map<String, dynamic> payload,
-  ) async =>
-      _decode(await _postAppsScript(payload));
+  ) async => _decode(await _postAppsScript(payload));
 
   static Future<Map<String, dynamic>> loginPerangkat(
     String username,
@@ -108,6 +109,8 @@ class ApiService {
       'perangkat': device,
     });
     if (response['success'] == true && response['deviceToken'] != null) {
+      response['roleVerifiedOnline'] = true;
+      response['offlineLogin'] = false;
       await DeviceSessionService.save(
         deviceToken: response['deviceToken'].toString(),
         profile: response,
@@ -121,6 +124,9 @@ class ApiService {
     if (device.isEmpty) return {'success': false, 'kode': 'TANPA_TOKEN'};
     return _postMap({'action': 'cekPerangkat', 'deviceToken': device});
   }
+
+  static Future<Map<String, dynamic>> getRoleProfile(String token) =>
+      _postMap({'action': 'getRoleProfile', 'token': token});
 
   static Future<Map<String, dynamic>> getMasterData(String token) =>
       _postMap({'action': 'getMasterData', 'token': token});
@@ -137,41 +143,35 @@ class ApiService {
   static Future<Map<String, dynamic>> syncWoInsjar(
     String token,
     List<Map<String, dynamic>> rows,
-  ) =>
-      _postMap({'action': 'syncWoInsjar', 'token': token, 'rows': rows});
+  ) => _postMap({'action': 'syncWoInsjar', 'token': token, 'rows': rows});
   static Future<Map<String, dynamic>> syncTemuan(
     String token,
     Map<String, dynamic> row,
-  ) =>
-      _postMap({'action': 'syncTemuanInspeksi', 'token': token, 'row': row});
+  ) => _postMap({'action': 'syncTemuanInspeksi', 'token': token, 'row': row});
   static Future<Map<String, dynamic>> getWoRow(String token) =>
       _postMap({'action': 'getWoRow', 'token': token});
   static Future<Map<String, dynamic>> syncWoRow(
     String token,
     List<Map<String, dynamic>> rows,
-  ) =>
-      _postMap({'action': 'syncWoRow', 'token': token, 'rows': rows});
+  ) => _postMap({'action': 'syncWoRow', 'token': token, 'rows': rows});
   static Future<Map<String, dynamic>> getWoHarJar(String token) =>
       _postMap({'action': 'getWoHarJar', 'token': token});
   static Future<Map<String, dynamic>> syncWoHarJar(
     String token,
     List<Map<String, dynamic>> rows,
-  ) =>
-      _postMap({'action': 'syncWoHarJar', 'token': token, 'rows': rows});
+  ) => _postMap({'action': 'syncWoHarJar', 'token': token, 'rows': rows});
   static Future<Map<String, dynamic>> getWoHarDu(String token) =>
       _postMap({'action': 'getWoHarDu', 'token': token});
   static Future<Map<String, dynamic>> syncWoHarDu(
     String token,
     List<Map<String, dynamic>> rows,
-  ) =>
-      _postMap({'action': 'syncWoHarDu', 'token': token, 'rows': rows});
+  ) => _postMap({'action': 'syncWoHarDu', 'token': token, 'rows': rows});
   static Future<Map<String, dynamic>> getWoInsdu(String token) =>
       _postMap({'action': 'getWoInsdu', 'token': token});
   static Future<Map<String, dynamic>> syncWoInsdu(
     String token,
     List<Map<String, dynamic>> rows,
-  ) =>
-      _postMap({'action': 'syncWoInsdu', 'token': token, 'rows': rows});
+  ) => _postMap({'action': 'syncWoInsdu', 'token': token, 'rows': rows});
 
   static Future<Map<String, dynamic>> logoutPerangkat({
     String token = '',
@@ -188,10 +188,7 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> login(
-    String username,
-    String password,
-  ) =>
+  static Future<Map<String, dynamic>> login(String username, String password) =>
       loginPerangkat(username, password);
   static Future<Map<String, dynamic>> cekSesi(String token) => cekPerangkat();
   static Future<Map<String, dynamic>> logout(String token) =>
