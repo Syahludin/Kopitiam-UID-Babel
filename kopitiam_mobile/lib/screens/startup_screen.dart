@@ -10,15 +10,11 @@ import 'login_screen.dart';
 
 class StartupScreen extends StatefulWidget {
   const StartupScreen({super.key});
-
-  @override
-  State<StartupScreen> createState() => _StartupScreenState();
+  @override State<StartupScreen> createState() => _StartupScreenState();
 }
 
 class _StartupScreenState extends State<StartupScreen> {
-  late final Future<Map<String, dynamic>?> _restore =
-      SessionBootstrapService.restore();
-
+  late final Future<Map<String, dynamic>?> _restore = SessionBootstrapService.restore();
   @override
   Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>?>(
         future: _restore,
@@ -27,20 +23,11 @@ class _StartupScreenState extends State<StartupScreen> {
             return const Scaffold(
               backgroundColor: KopitiamColors.surface,
               body: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    KopitiamLoading(size: 72),
-                    SizedBox(height: 18),
-                    Text(
-                      'Memulihkan sesi...',
-                      style: TextStyle(
-                        color: KopitiamColors.muted,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  KopitiamLoading(size: 72),
+                  SizedBox(height: 18),
+                  Text('Memulihkan sesi...', style: TextStyle(color: KopitiamColors.muted, fontWeight: FontWeight.w800)),
+                ]),
               ),
             );
           }
@@ -51,79 +38,28 @@ class _StartupScreenState extends State<StartupScreen> {
       );
 }
 
-/// Loader native Flutter. `flutter_svg` tidak menjalankan SMIL pada SVG secara
-/// konsisten, jadi cincin diputar oleh AnimationController sementara petir
-/// tetap diam dan tajam di tengah.
 class KopitiamLoading extends StatefulWidget {
   final double size;
   final bool onDarkBackground;
-
-  const KopitiamLoading({
-    super.key,
-    this.size = 48,
-    this.onDarkBackground = false,
-  });
-
-  @override
-  State<KopitiamLoading> createState() => _KopitiamLoadingState();
+  const KopitiamLoading({super.key, this.size = 48, this.onDarkBackground = false});
+  @override State<KopitiamLoading> createState() => _KopitiamLoadingState();
 }
 
-class _KopitiamLoadingState extends State<KopitiamLoading>
-    with SingleTickerProviderStateMixin {
+class _KopitiamLoadingState extends State<KopitiamLoading> with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
+  @override void initState() { super.initState(); _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat(); }
+  @override void dispose() { _controller.dispose(); super.dispose(); }
   @override
   Widget build(BuildContext context) {
-    final track = widget.onDarkBackground
-        ? const Color(0xFF164C6C)
-        : const Color(0xFFDCE9F1);
-    final arc = widget.onDarkBackground
-        ? const Color(0xFF5CC0E6)
-        : const Color(0xFF0D5C82);
-
+    final track = widget.onDarkBackground ? KopitiamColors.navy : KopitiamColors.surfaceStrong;
+    final arc = widget.onDarkBackground ? KopitiamColors.cyan : KopitiamColors.ocean;
     return RepaintBoundary(
       child: SizedBox.square(
         dimension: widget.size,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (_, __) => Transform.rotate(
-                angle: _controller.value * math.pi * 2,
-                child: CustomPaint(
-                  size: Size.square(widget.size),
-                  painter: _LoadingRingPainter(track: track, arc: arc),
-                ),
-              ),
-            ),
-            SvgPicture.asset(
-              'assets/icons/loading_bolt.svg',
-              width: widget.size * .49,
-              height: widget.size * .49,
-              placeholderBuilder: (_) => Icon(
-                Icons.bolt_rounded,
-                size: widget.size * .55,
-                color: KopitiamColors.yellow,
-              ),
-            ),
-          ],
-        ),
+        child: Stack(alignment: Alignment.center, children: [
+          AnimatedBuilder(animation: _controller, builder: (_, __) => Transform.rotate(angle: _controller.value * math.pi * 2, child: CustomPaint(size: Size.square(widget.size), painter: _LoadingRingPainter(track: track, arc: arc)))),
+          SvgPicture.asset('assets/icons/loading_bolt.svg', width: widget.size * .49, height: widget.size * .49, placeholderBuilder: (_) => Icon(Icons.bolt_rounded, size: widget.size * .55, color: KopitiamColors.yellow)),
+        ]),
       ),
     );
   }
@@ -132,38 +68,13 @@ class _KopitiamLoadingState extends State<KopitiamLoading>
 class _LoadingRingPainter extends CustomPainter {
   final Color track;
   final Color arc;
-
   const _LoadingRingPainter({required this.track, required this.arc});
-
   @override
   void paint(Canvas canvas, Size size) {
     final stroke = size.shortestSide * .075;
-    final rect = Offset.zero & size;
-    final ringRect = rect.deflate(stroke / 2);
-    canvas.drawArc(
-      ringRect,
-      0,
-      math.pi * 2,
-      false,
-      Paint()
-        ..color = track
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke,
-    );
-    canvas.drawArc(
-      ringRect,
-      -math.pi / 2,
-      math.pi * .72,
-      false,
-      Paint()
-        ..color = arc
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..strokeCap = StrokeCap.round,
-    );
+    final ringRect = (Offset.zero & size).deflate(stroke / 2);
+    canvas.drawArc(ringRect, 0, math.pi * 2, false, Paint()..color = track..style = PaintingStyle.stroke..strokeWidth = stroke);
+    canvas.drawArc(ringRect, -math.pi / 2, math.pi * .72, false, Paint()..color = arc..style = PaintingStyle.stroke..strokeWidth = stroke..strokeCap = StrokeCap.round);
   }
-
-  @override
-  bool shouldRepaint(covariant _LoadingRingPainter oldDelegate) =>
-      oldDelegate.track != track || oldDelegate.arc != arc;
+  @override bool shouldRepaint(covariant _LoadingRingPainter oldDelegate) => oldDelegate.track != track || oldDelegate.arc != arc;
 }
