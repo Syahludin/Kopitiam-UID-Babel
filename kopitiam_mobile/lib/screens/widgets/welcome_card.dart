@@ -51,7 +51,16 @@ class _WelcomeCardState extends State<WelcomeCard> with WidgetsBindingObserver {
     ]);
   }
 
-  Widget _card({required Color background, Color? border, required Widget child}) => Container(clipBehavior: Clip.antiAlias, decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(22), border: Border.all(color: border ?? KopitiamColors.navy), boxShadow: const [BoxShadow(color: Color(0x24071F33), blurRadius: 20, offset: Offset(0, 9))]), child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Container(width: 6, color: KopitiamColors.gold), Expanded(child: Padding(padding: const EdgeInsets.fromLTRB(17, 20, 18, 20), child: child))]));
+  Widget _card({required Color background, Color? border, required Widget child}) => Container(
+    clipBehavior: Clip.antiAlias,
+    decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(22), border: Border.all(color: border ?? KopitiamColors.navy), boxShadow: const [BoxShadow(color: Color(0x24071F33), blurRadius: 20, offset: Offset(0, 9))]),
+    child: IntrinsicHeight(
+      child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Container(width: 6, color: KopitiamColors.gold),
+        Expanded(child: Padding(padding: const EdgeInsets.fromLTRB(17, 20, 18, 20), child: child)),
+      ]),
+    ),
+  );
   Widget _info(String label, String value) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.gold, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: .45)), const SizedBox(height: 4), Text(value.isEmpty ? '-' : value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.surface, fontSize: 13, fontWeight: FontWeight.w800))]);
   Widget _metrics() => Row(children: [_metric('Belum dikerjakan', widget.ready), _metric('Progress', widget.progress), _metric('Selesai', widget.done)]);
   Widget _metric(String label, int value) => Expanded(child: Column(children: [Text('$value', style: const TextStyle(color: KopitiamColors.ink, fontSize: 20, fontWeight: FontWeight.w900)), const SizedBox(height: 3), Text(label, textAlign: TextAlign.center, style: const TextStyle(color: KopitiamColors.muted, fontSize: 9, fontWeight: FontWeight.w700))]));
