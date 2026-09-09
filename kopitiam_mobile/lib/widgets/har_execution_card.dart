@@ -30,38 +30,40 @@ class HarExecutionCard extends StatelessWidget {
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(18),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Container(width: 6, decoration: const BoxDecoration(color: KopitiamColors.yellow, borderRadius: BorderRadius.horizontal(left: Radius.circular(18)))),
-              Expanded(child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    Expanded(child: Text(item.code, style: const TextStyle(fontWeight: FontWeight.w900, color: KopitiamColors.surface))),
-                    _chip(item.type == HarExecution.jar ? 'HAR JAR' : 'HAR DU', KopitiamColors.gold),
+            child: IntrinsicHeight(
+              child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Container(width: 6, decoration: const BoxDecoration(color: KopitiamColors.yellow, borderRadius: BorderRadius.horizontal(left: Radius.circular(18)))),
+                Expanded(child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Expanded(child: Text(item.code, style: const TextStyle(fontWeight: FontWeight.w900, color: KopitiamColors.surface))),
+                      _chip(item.type == HarExecution.jar ? 'HAR JAR' : 'HAR DU', KopitiamColors.gold),
+                    ]),
+                    const SizedBox(height: 10),
+                    Text(item.type == HarExecution.du ? item.value('Nomor Gardu') : item.value('Penyulang'), style: const TextStyle(color: KopitiamColors.surface, fontSize: 16, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 4),
+                    Text('${item.value('Section')} • ${item.type == HarExecution.jar ? item.value('Segmen') : item.value('Penyulang')}', style: const TextStyle(color: KopitiamColors.surface, fontSize: 12, height: 1.4)),
+                    const SizedBox(height: 8),
+                    Text(item.value('Temuan'), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.surface, fontSize: 14)),
+                    const SizedBox(height: 12),
+                    Row(children: [
+                      _chip(item.status.isEmpty ? 'Siap Dikerjakan' : item.status, statusColor),
+                      const Spacer(),
+                      Icon(item.error.isNotEmpty ? Icons.error_outline : item.dirty ? Icons.cloud_upload_outlined : Icons.cloud_done_outlined, size: 18, color: KopitiamColors.gold),
+                      const SizedBox(width: 6),
+                      Text(item.error.isNotEmpty ? 'Gagal sinkron' : item.dirty ? 'Belum sinkron' : 'Tersimpan', style: const TextStyle(color: KopitiamColors.surface, fontSize: 12)),
+                    ]),
+                    const Divider(color: KopitiamColors.muted, height: 24),
+                    Row(children: [
+                      Expanded(child: Text('Parent: ${item.value('Kode Temuan')}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.surface, fontSize: 12))),
+                      Text(item.finished ? 'Lihat' : item.started ? 'Buka detail' : 'Mulai', style: const TextStyle(fontWeight: FontWeight.w900, color: KopitiamColors.gold)),
+                      const Icon(Icons.chevron_right_rounded, color: KopitiamColors.gold),
+                    ]),
                   ]),
-                  const SizedBox(height: 10),
-                  Text(item.type == HarExecution.du ? item.value('Nomor Gardu') : item.value('Penyulang'), style: const TextStyle(color: KopitiamColors.surface, fontSize: 16, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 4),
-                  Text('${item.value('Section')} • ${item.type == HarExecution.jar ? item.value('Segmen') : item.value('Penyulang')}', style: const TextStyle(color: KopitiamColors.surface, fontSize: 12, height: 1.4)),
-                  const SizedBox(height: 8),
-                  Text(item.value('Temuan'), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.surface, fontSize: 14)),
-                  const SizedBox(height: 12),
-                  Row(children: [
-                    _chip(item.status.isEmpty ? 'Siap Dikerjakan' : item.status, statusColor),
-                    const Spacer(),
-                    Icon(item.error.isNotEmpty ? Icons.error_outline : item.dirty ? Icons.cloud_upload_outlined : Icons.cloud_done_outlined, size: 18, color: KopitiamColors.gold),
-                    const SizedBox(width: 6),
-                    Text(item.error.isNotEmpty ? 'Gagal sinkron' : item.dirty ? 'Belum sinkron' : 'Tersimpan', style: const TextStyle(color: KopitiamColors.surface, fontSize: 12)),
-                  ]),
-                  const Divider(color: KopitiamColors.muted, height: 24),
-                  Row(children: [
-                    Expanded(child: Text('Parent: ${item.value('Kode Temuan')}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.surface, fontSize: 12))),
-                    Text(item.finished ? 'Lihat' : item.started ? 'Buka detail' : 'Mulai', style: const TextStyle(fontWeight: FontWeight.w900, color: KopitiamColors.gold)),
-                    const Icon(Icons.chevron_right_rounded, color: KopitiamColors.gold),
-                  ]),
-                ]),
-              )),
-            ]),
+                )),
+              ]),
+            ),
           ),
         ),
       ),
