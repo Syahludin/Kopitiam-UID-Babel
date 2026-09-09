@@ -1,34 +1,133 @@
 import 'package:flutter/material.dart';
+
+import '../../services/network_status_service.dart';
 import '../../theme/kopitiam_theme.dart';
 
-class WelcomeCard extends StatelessWidget {
+typedef NetworkProbe = Future<bool> Function();
+
+class WelcomeCard extends StatefulWidget {
   final Map<String, dynamic> sesi;
-  const WelcomeCard({super.key, required this.sesi});
+  final NetworkProbe? networkProbe;
+  const WelcomeCard({super.key, required this.sesi, this.networkProbe});
+  @override State<WelcomeCard> createState() => _WelcomeCardState();
+}
+
+class _WelcomeCardState extends State<WelcomeCard> with WidgetsBindingObserver {
+  bool? _online;
+  bool _checking = false;
+  NetworkProbe get _probe => widget.networkProbe ?? NetworkStatusService.isOnline;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkNetwork();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkNetwork();
+  }
+
+  Future<void> _checkNetwork() async {
+    if (_checking) return;
+    _checking = true;
+    try {
+      final online = await _probe();
+      if (mounted && online != _online) setState(() => _online = online);
+    } finally {
+      _checking = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  String _dateText() {
+    final now = DateTime.now();
+    const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    return '${days[now.weekday - 1]}, ${now.day} ${months[now.month - 1]} ${now.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final username = (sesi['username'] ?? 'Pengguna').toString();
-    final subTim = (sesi['subTim'] ?? sesi['tim'] ?? '-').toString();
-    final ulp = (sesi['ulp'] ?? '-').toString();
+    final subTim = (widget.sesi['subTim'] ?? widget.sesi['tim'] ?? '-').toString();
+    final ulp = (widget.sesi['ulp'] ?? '-').toString();
+    final bidang = (widget.sesi['bidang'] ?? widget.sesi['Bidang'] ?? '-').toString();
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF063B5C), Color(0xFF087797), Color(0xFFD6A93A)], stops: [0, .78, 1.25], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        color: KopitiamColors.ink,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFF32A9C2)),
-        boxShadow: const [BoxShadow(color: Color(0x2A063B5C), blurRadius: 22, offset: Offset(0, 10))],
+        border: Border.all(color: KopitiamColors.navy),
+        boxShadow: const [BoxShadow(color: Color(0x24071F33), blurRadius: 20, offset: Offset(0, 9))],
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          const Expanded(child: Text('Selamat datang', style: TextStyle(color: Color(0xFFC5DFE7), fontSize: 13, fontWeight: FontWeight.w600))),
-          Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: const Color(0xFF0E526B), borderRadius: BorderRadius.circular(100)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.circle, size: 8, color: KopitiamColors.yellow), SizedBox(width: 7), Text('SESI AKTIF', style: TextStyle(color: KopitiamColors.surface, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .7))])),
+      child: IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Container(width: 6, color: KopitiamColors.gold),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(17, 20, 18, 20),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(_dateText(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.gold, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: .35)),
+                    const SizedBox(height: 8),
+                    const Text('Semangat Pagi,', style: TextStyle(color: KopitiamColors.surface, fontSize: 12, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    Text(subTim, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.surface, fontSize: 25, fontWeight: FontWeight.w900, letterSpacing: -.35)),
+                  ])),
+                  const SizedBox(width: 8),
+                  Material(color: Colors.transparent, child: InkWell(onTap: _checking ? null : _checkNetwork, borderRadius: BorderRadius.circular(100), child: _NetworkChip(online: _online))),
+                ]),
+                const SizedBox(height: 18),
+                const Divider(color: KopitiamColors.muted, height: 1),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Expanded(child: _info('UNIT KERJA', ulp)),
+                  const SizedBox(width: 18),
+                  Expanded(child: _info('BIDANG', bidang)),
+                ]),
+              ]),
+            ),
+          ),
         ]),
-        const SizedBox(height: 9),
-        Text(username, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.surface, fontSize: 25, fontWeight: FontWeight.w900, letterSpacing: -.35)),
-        const SizedBox(height: 16), const Divider(color: Color(0xFF63B4C7)), const SizedBox(height: 12),
-        _info(Icons.groups_rounded, 'Sub-Tim', subTim), const SizedBox(height: 11), _info(Icons.location_city_rounded, 'ULP', ulp),
-      ]),
+      ),
     );
   }
-  Widget _info(IconData icon, String label, String value) => Row(children: [Icon(icon, size: 17, color: const Color(0xFFC5E4EA)), const SizedBox(width: 10), Text(label, style: const TextStyle(color: Color(0xFFD7EBEF), fontSize: 12, fontWeight: FontWeight.w600)), const SizedBox(width: 10), Expanded(child: Text(value.isEmpty ? '-' : value, textAlign: TextAlign.right, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.surface, fontSize: 13, fontWeight: FontWeight.w900)))]);
+
+  Widget _info(String label, String value) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.gold, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: .45)),
+    const SizedBox(height: 4),
+    Text(value.isEmpty ? '-' : value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.surface, fontSize: 13, fontWeight: FontWeight.w800)),
+  ]);
+}
+
+class _NetworkChip extends StatelessWidget {
+  final bool? online;
+  const _NetworkChip({required this.online});
+  @override
+  Widget build(BuildContext context) {
+    final color = online == true ? KopitiamColors.success : online == false ? KopitiamColors.danger : KopitiamColors.muted;
+    final label = online == true ? 'ONLINE' : online == false ? 'OFFLINE' : 'CEK...';
+    return Semantics(
+      label: 'Status jaringan $label. Ketuk untuk periksa ulang.',
+      liveRegion: true,
+      child: Container(
+        key: const ValueKey('network-status-chip'),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+        decoration: BoxDecoration(color: KopitiamColors.navy, borderRadius: BorderRadius.circular(100), border: Border.all(color: KopitiamColors.surface)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(key: const ValueKey('network-status-dot'), width: 9, height: 9, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 7),
+          Text(label, style: const TextStyle(color: KopitiamColors.surface, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: .55)),
+        ]),
+      ),
+    );
+  }
 }
