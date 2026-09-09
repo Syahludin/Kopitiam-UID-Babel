@@ -22,6 +22,7 @@ import 'c4a_route_guard.dart';
 import 'settings_session_section.dart';
 import 'temuan_form_screen.dart';
 import 'widgets/bubble_navbar.dart';
+import 'widgets/operation_result_dialog.dart';
 import 'widgets/welcome_card.dart';
 import 'widgets/wo_insdu_card.dart';
 import 'widgets/wo_insjar_card.dart';
@@ -114,17 +115,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _download() async {
     try {
+      var downloaded = 0;
+      String? error;
       if (_isInsdu) {
-        await _insduRepo.download(_token);
+        final result = await _insduRepo.download(_token);
+        downloaded = result.diproses;
+        error = result.pesan;
       } else if (_isRow) {
-        await _rowRepo.download(_token);
+        final result = await _rowRepo.download(_token);
+        downloaded = result.diproses;
+        error = result.pesan;
       } else if (_isHarJar) {
-        await _harJarRepo.download(_token);
+        final result = await _harJarRepo.download(_token);
+        downloaded = result.diproses;
+        error = result.pesan;
       } else {
-        await _insjarRepo.download(_token);
+        final result = await _insjarRepo.download(_token);
+        downloaded = result.diproses;
+        error = result.pesan;
+      }
+      if (!mounted) return;
+      if (error != null && error.trim().isNotEmpty) {
+        await showOperationResultDialog(
+          context,
+          success: false,
+          title: 'Download WO Gagal',
+          message: error,
+        );
+        return;
       }
       await _load();
-      _message('Data WO tersimpan di perangkat.');
+      if (!mounted) return;
+      if (downloaded == 0) {
+        await showOperationResultDialog(
+          context,
+          success: true,
+          title: 'WO Sudah di Download Semua',
+          message: 'Tidak ada Work Order baru yang perlu diunduh.',
+        );
+        return;
+      }
+      _message('$downloaded WO baru tersimpan di perangkat.');
     } catch (e) {
       _message('$e', error: true);
     }
