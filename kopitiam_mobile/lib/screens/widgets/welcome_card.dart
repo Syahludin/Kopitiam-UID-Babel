@@ -1,34 +1,327 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+import '../../services/network_status_service.dart';
 import '../../theme/kopitiam_theme.dart';
 
-class WelcomeCard extends StatelessWidget {
+typedef NetworkProbe = Future<bool> Function();
+
+class WelcomeCard extends StatefulWidget {
   final Map<String, dynamic> sesi;
-  const WelcomeCard({super.key, required this.sesi});
+  final NetworkProbe? networkProbe;
+
+  const WelcomeCard({
+    super.key,
+    required this.sesi,
+    this.networkProbe,
+  });
+
   @override
-  Widget build(BuildContext context) {
-    final username = (sesi['username'] ?? 'Pengguna').toString();
-    final subTim = (sesi['subTim'] ?? sesi['tim'] ?? '-').toString();
-    final ulp = (sesi['ulp'] ?? '-').toString();
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF063B5C), Color(0xFF087797), Color(0xFFD6A93A)], stops: [0, .78, 1.25], begin: Alignment.topLeft, end: Alignment.bottomRight),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFF32A9C2)),
-        boxShadow: const [BoxShadow(color: Color(0x2A063B5C), blurRadius: 22, offset: Offset(0, 10))],
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          const Expanded(child: Text('Selamat datang', style: TextStyle(color: Color(0xFFC5DFE7), fontSize: 13, fontWeight: FontWeight.w600))),
-          Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: const Color(0xFF0E526B), borderRadius: BorderRadius.circular(100)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.circle, size: 8, color: KopitiamColors.yellow), SizedBox(width: 7), Text('SESI AKTIF', style: TextStyle(color: KopitiamColors.surface, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .7))])),
-        ]),
-        const SizedBox(height: 9),
-        Text(username, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.surface, fontSize: 25, fontWeight: FontWeight.w900, letterSpacing: -.35)),
-        const SizedBox(height: 16), const Divider(color: Color(0xFF63B4C7)), const SizedBox(height: 12),
-        _info(Icons.groups_rounded, 'Sub-Tim', subTim), const SizedBox(height: 11), _info(Icons.location_city_rounded, 'ULP', ulp),
-      ]),
+  State<WelcomeCard> createState() => _WelcomeCardState();
+}
+
+class _WelcomeCardState extends State<WelcomeCard>
+    with WidgetsBindingObserver {
+  Timer? _timer;
+  bool? _online;
+  bool _checking = false;
+
+  NetworkProbe get _probe =>
+      widget.networkProbe ?? NetworkStatusService.isOnline;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkNetwork();
+    _timer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _checkNetwork(),
     );
   }
-  Widget _info(IconData icon, String label, String value) => Row(children: [Icon(icon, size: 17, color: const Color(0xFFC5E4EA)), const SizedBox(width: 10), Text(label, style: const TextStyle(color: Color(0xFFD7EBEF), fontSize: 12, fontWeight: FontWeight.w600)), const SizedBox(width: 10), Expanded(child: Text(value.isEmpty ? '-' : value, textAlign: TextAlign.right, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.surface, fontSize: 13, fontWeight: FontWeight.w900)))]);
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkNetwork();
+  }
+
+  Future<void> _checkNetwork() async {
+    if (_checking) return;
+    _checking = true;
+    try {
+      final online = await _probe();
+      if (mounted && online != _online) setState(() => _online = online);
+    } finally {
+      _checking = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final username = (widget.sesi['username'] ?? 'Pengguna').toString();
+    final subTim =
+        (widget.sesi['subTim'] ?? widget.sesi['tim'] ?? '-').toString();
+    final ulp = (widget.sesi['ulp'] ?? '-').toString();
+
+    return Container(
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: KopitiamColors.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: KopitiamColors.line),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x16063B5C),
+            blurRadius: 22,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(height: 5, color: KopitiamColors.gold),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Selamat datang kembali',
+                            style: TextStyle(
+                              color: KopitiamColors.muted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            username,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: KopitiamColors.navy,
+                              fontSize: 25,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    _NetworkStatusChip(online: _online),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                const Divider(height: 1),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _info(
+                        Icons.groups_rounded,
+                        'SUB-TIM',
+                        subTim,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _info(
+                        Icons.location_city_rounded,
+                        'UNIT KERJA',
+                        ulp,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: KopitiamColors.navy,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: KopitiamColors.gold,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.bolt_rounded,
+                          color: KopitiamColors.navy,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 11),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _online == true
+                                  ? 'Terhubung ke server'
+                                  : _online == false
+                                      ? 'Mode offline aktif'
+                                      : 'Memeriksa jaringan',
+                              style: const TextStyle(
+                                color: KopitiamColors.surface,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _online == true
+                                  ? 'Data siap diunduh dan disinkronkan'
+                                  : _online == false
+                                      ? 'Data lokal tetap aman di perangkat'
+                                      : 'Mohon tunggu sebentar',
+                              style: const TextStyle(
+                                color: Color(0xFFC5DFE7),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _info(IconData icon, String label, String value) => Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: KopitiamColors.cyanSoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 18, color: KopitiamColors.ocean),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: KopitiamColors.muted,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: .55,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  value.isEmpty ? '-' : value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: KopitiamColors.ink,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+}
+
+class _NetworkStatusChip extends StatelessWidget {
+  final bool? online;
+  const _NetworkStatusChip({required this.online});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = online == true
+        ? KopitiamColors.success
+        : online == false
+            ? KopitiamColors.danger
+            : KopitiamColors.muted;
+    final label = online == true
+        ? 'ONLINE'
+        : online == false
+            ? 'OFFLINE'
+            : 'CEK...';
+
+    return Semantics(
+      label: 'Status jaringan $label',
+      liveRegion: true,
+      child: Container(
+        key: const ValueKey('network-status-chip'),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .10),
+          borderRadius: BorderRadius.circular(100),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              key: const ValueKey('network-status-dot'),
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: .22),
+                    blurRadius: 0,
+                    spreadRadius: 4,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                letterSpacing: .65,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
