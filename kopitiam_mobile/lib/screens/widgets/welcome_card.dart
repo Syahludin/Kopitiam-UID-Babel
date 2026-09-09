@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../services/network_status_service.dart';
@@ -23,7 +21,6 @@ class WelcomeCard extends StatefulWidget {
 
 class _WelcomeCardState extends State<WelcomeCard>
     with WidgetsBindingObserver {
-  Timer? _timer;
   bool? _online;
   bool _checking = false;
 
@@ -35,10 +32,6 @@ class _WelcomeCardState extends State<WelcomeCard>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _checkNetwork();
-    _timer = Timer.periodic(
-      const Duration(seconds: 15),
-      (_) => _checkNetwork(),
-    );
   }
 
   @override
@@ -60,7 +53,6 @@ class _WelcomeCardState extends State<WelcomeCard>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _timer?.cancel();
     super.dispose();
   }
 
@@ -124,8 +116,12 @@ class _WelcomeCardState extends State<WelcomeCard>
                         ],
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    _NetworkStatusChip(online: _online),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: _checking ? null : _checkNetwork,
+                      borderRadius: BorderRadius.circular(100),
+                      child: _NetworkStatusChip(online: _online),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 18),
@@ -133,30 +129,15 @@ class _WelcomeCardState extends State<WelcomeCard>
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(
-                      child: _info(
-                        Icons.groups_rounded,
-                        'SUB-TIM',
-                        subTim,
-                      ),
-                    ),
+                    Expanded(child: _info(Icons.groups_rounded, 'SUB-TIM', subTim)),
                     const SizedBox(width: 12),
-                    Expanded(
-                      child: _info(
-                        Icons.location_city_rounded,
-                        'UNIT KERJA',
-                        ulp,
-                      ),
-                    ),
+                    Expanded(child: _info(Icons.location_city_rounded, 'UNIT KERJA', ulp)),
                   ],
                 ),
                 const SizedBox(height: 18),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
                     color: KopitiamColors.navy,
                     borderRadius: BorderRadius.circular(15),
@@ -170,11 +151,7 @@ class _WelcomeCardState extends State<WelcomeCard>
                           color: KopitiamColors.gold,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(
-                          Icons.bolt_rounded,
-                          color: KopitiamColors.navy,
-                          size: 22,
-                        ),
+                        child: const Icon(Icons.bolt_rounded, color: KopitiamColors.navy, size: 22),
                       ),
                       const SizedBox(width: 11),
                       Expanded(
@@ -187,11 +164,9 @@ class _WelcomeCardState extends State<WelcomeCard>
                                   : _online == false
                                       ? 'Mode offline aktif'
                                       : 'Memeriksa jaringan',
-                              style: const TextStyle(
-                                color: KopitiamColors.surface,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w900,
-                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: KopitiamColors.surface, fontSize: 13, fontWeight: FontWeight.w900),
                             ),
                             const SizedBox(height: 2),
                             Text(
@@ -200,11 +175,9 @@ class _WelcomeCardState extends State<WelcomeCard>
                                   : _online == false
                                       ? 'Data lokal tetap aman di perangkat'
                                       : 'Mohon tunggu sebentar',
-                              style: const TextStyle(
-                                color: Color(0xFFC5DFE7),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Color(0xFFC5DFE7), fontSize: 11, fontWeight: FontWeight.w600),
                             ),
                           ],
                         ),
@@ -223,39 +196,22 @@ class _WelcomeCardState extends State<WelcomeCard>
   Widget _info(IconData icon, String label, String value) => Row(
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: KopitiamColors.cyanSoft,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(11),
             ),
-            child: Icon(icon, size: 18, color: KopitiamColors.ocean),
+            child: Icon(icon, size: 17, color: KopitiamColors.ocean),
           ),
-          const SizedBox(width: 9),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: KopitiamColors.muted,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: .55,
-                  ),
-                ),
+                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.muted, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: .45)),
                 const SizedBox(height: 3),
-                Text(
-                  value.isEmpty ? '-' : value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: KopitiamColors.ink,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
+                Text(value.isEmpty ? '-' : value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.ink, fontSize: 12, fontWeight: FontWeight.w900)),
               ],
             ),
           ),
@@ -281,11 +237,11 @@ class _NetworkStatusChip extends StatelessWidget {
             : 'CEK...';
 
     return Semantics(
-      label: 'Status jaringan $label',
+      label: 'Status jaringan $label. Ketuk untuk periksa ulang.',
       liveRegion: true,
       child: Container(
         key: const ValueKey('network-status-chip'),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
         decoration: BoxDecoration(
           color: color.withValues(alpha: .10),
           borderRadius: BorderRadius.circular(100),
@@ -300,25 +256,11 @@ class _NetworkStatusChip extends StatelessWidget {
               decoration: BoxDecoration(
                 color: color,
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withValues(alpha: .22),
-                    blurRadius: 0,
-                    spreadRadius: 4,
-                  ),
-                ],
+                boxShadow: [BoxShadow(color: color.withValues(alpha: .22), blurRadius: 0, spreadRadius: 4)],
               ),
             ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-                letterSpacing: .65,
-              ),
-            ),
+            const SizedBox(width: 7),
+            Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: .55)),
           ],
         ),
       ),
