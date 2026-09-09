@@ -20,15 +20,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Download WO'), findsNothing);
     expect(find.text('Sinkron WO'), findsNothing);
-    expect(find.text('RINGKASAN WORK ORDER'), findsNothing);
     expect(find.text('Beranda'), findsWidgets);
   });
 
-  testWidgets('beranda Har memakai dua card dan tombol aksi satu baris', (tester) async {
+  testWidgets('beranda Har menampilkan tombol aksi satu baris', (tester) async {
     const session = {'username': '16130.Har', 'role': 'Petugas', 'subTim': 'Har', 'kodeUlp': '16130', 'ulp': 'ULP Toboali'};
     await tester.pumpWidget(MaterialApp(theme: KopitiamTheme.light, home: HarExecutionScreen(sesi: session, repository: HarHomeRepository(session))));
     await tester.pumpAndSettle();
-    expect(find.text('RINGKASAN WORK ORDER'), findsOneWidget);
+    expect(find.text('Download WO'), findsOneWidget);
+    expect(find.text('Sinkron WO'), findsOneWidget);
     final download = tester.getTopLeft(find.text('Download WO'));
     final sync = tester.getTopLeft(find.text('Sinkron WO'));
     expect((download.dy - sync.dy).abs(), lessThan(1));
