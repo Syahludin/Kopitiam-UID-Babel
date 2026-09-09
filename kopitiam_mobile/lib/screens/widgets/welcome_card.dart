@@ -15,23 +15,20 @@ class WelcomeCard extends StatefulWidget {
   final int done;
   final WoAction? onDownload;
   final WoAction? onSync;
+  final bool showWoSummary;
 
-  const WelcomeCard({super.key, required this.sesi, this.networkProbe, this.total = 0, this.ready = 0, this.progress = 0, this.done = 0, this.onDownload, this.onSync});
-  @override
-  State<WelcomeCard> createState() => _WelcomeCardState();
+  const WelcomeCard({super.key, required this.sesi, this.networkProbe, this.total = 0, this.ready = 0, this.progress = 0, this.done = 0, this.onDownload, this.onSync, this.showWoSummary = true});
+  @override State<WelcomeCard> createState() => _WelcomeCardState();
 }
 
 class _WelcomeCardState extends State<WelcomeCard> with WidgetsBindingObserver {
   bool? _online;
   bool _checking = false;
   NetworkProbe get _probe => widget.networkProbe ?? NetworkStatusService.isOnline;
-  @override
-  void initState() { super.initState(); WidgetsBinding.instance.addObserver(this); _checkNetwork(); }
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) { if (state == AppLifecycleState.resumed) _checkNetwork(); }
+  @override void initState() { super.initState(); WidgetsBinding.instance.addObserver(this); _checkNetwork(); }
+  @override void didChangeAppLifecycleState(AppLifecycleState state) { if (state == AppLifecycleState.resumed) _checkNetwork(); }
   Future<void> _checkNetwork() async { if (_checking) return; _checking = true; try { final online = await _probe(); if (mounted && online != _online) setState(() => _online = online); } finally { _checking = false; } }
-  @override
-  void dispose() { WidgetsBinding.instance.removeObserver(this); super.dispose(); }
+  @override void dispose() { WidgetsBinding.instance.removeObserver(this); super.dispose(); }
   String _dateText() { final day = widget.sesi['Hari'] ?? widget.sesi['hari']; final date = widget.sesi['Tanggal'] ?? widget.sesi['tanggal']; if (day != null && date != null) return '${day.toString()}, ${date.toString()}'; final now = DateTime.now(); const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']; const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']; return '${days[now.weekday - 1]}, ${now.day} ${months[now.month - 1]} ${now.year}'; }
 
   @override
@@ -44,11 +41,13 @@ class _WelcomeCardState extends State<WelcomeCard> with WidgetsBindingObserver {
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(_dateText(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.gold, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: .35)), const SizedBox(height: 8), const Text('Semangat Pagi,', style: TextStyle(color: KopitiamColors.surface, fontSize: 12, fontWeight: FontWeight.w700)), const SizedBox(height: 4), Text(subTim, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.surface, fontSize: 25, fontWeight: FontWeight.w900, letterSpacing: -.35))])), const SizedBox(width: 8), InkWell(onTap: _checking ? null : _checkNetwork, borderRadius: BorderRadius.circular(100), child: _NetworkStatusChip(online: _online))]),
         const SizedBox(height: 18), const Divider(color: KopitiamColors.muted, height: 1), const SizedBox(height: 16), Row(children: [Expanded(child: _info('UNIT KERJA', ulp)), const SizedBox(width: 18), Expanded(child: _info('BIDANG', bidang))]),
       ])),
-      const SizedBox(height: 14),
-      _card(background: KopitiamColors.surface, border: KopitiamColors.line, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('RINGKASAN WORK ORDER', style: TextStyle(color: KopitiamColors.muted, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: .8)), SizedBox(height: 4), Text('Penugasan aktif', style: TextStyle(color: KopitiamColors.ink, fontSize: 17, fontWeight: FontWeight.w900))]), Row(crossAxisAlignment: CrossAxisAlignment.end, children: [Text('${widget.total}', style: const TextStyle(color: KopitiamColors.ink, fontSize: 36, height: 1, fontWeight: FontWeight.w900)), const SizedBox(width: 3), const Padding(padding: EdgeInsets.only(bottom: 3), child: Text('WO', style: TextStyle(color: KopitiamColors.muted, fontSize: 9, fontWeight: FontWeight.w800)))])]),
-        const SizedBox(height: 17), _metrics(), const SizedBox(height: 17), Row(children: [Expanded(child: _ActionButton(label: 'Download WO', icon: Icons.download_rounded, primary: true, action: widget.onDownload)), const SizedBox(width: 10), Expanded(child: _ActionButton(label: 'Sinkron WO', icon: Icons.sync_rounded, primary: false, action: widget.onSync))]), const SizedBox(height: 10), const Center(child: Text('Terakhir sinkron: status lokal aktif', style: TextStyle(color: KopitiamColors.muted, fontSize: 9))),
-      ])),
+      if (widget.showWoSummary) ...[
+        const SizedBox(height: 14),
+        _card(background: KopitiamColors.surface, border: KopitiamColors.line, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('RINGKASAN WORK ORDER', style: TextStyle(color: KopitiamColors.muted, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: .8)), SizedBox(height: 4), Text('Penugasan aktif', style: TextStyle(color: KopitiamColors.ink, fontSize: 17, fontWeight: FontWeight.w900))]), Row(crossAxisAlignment: CrossAxisAlignment.end, children: [Text('${widget.total}', style: const TextStyle(color: KopitiamColors.ink, fontSize: 36, height: 1, fontWeight: FontWeight.w900)), const SizedBox(width: 3), const Padding(padding: EdgeInsets.only(bottom: 3), child: Text('WO', style: TextStyle(color: KopitiamColors.muted, fontSize: 9, fontWeight: FontWeight.w800)))])]),
+          const SizedBox(height: 17), _metrics(), const SizedBox(height: 17), Row(children: [Expanded(child: _ActionButton(label: 'Download WO', icon: Icons.download_rounded, primary: true, action: widget.onDownload)), const SizedBox(width: 10), Expanded(child: _ActionButton(label: 'Sinkron WO', icon: Icons.sync_rounded, primary: false, action: widget.onSync))]), const SizedBox(height: 10), const Center(child: Text('Terakhir sinkron: status lokal aktif', style: TextStyle(color: KopitiamColors.muted, fontSize: 9))),
+        ])),
+      ],
     ]);
   }
 
