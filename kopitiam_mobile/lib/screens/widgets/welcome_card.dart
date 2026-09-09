@@ -56,12 +56,46 @@ class _WelcomeCardState extends State<WelcomeCard>
     super.dispose();
   }
 
+  String _dateText() {
+    final providedDay = widget.sesi['Hari'] ?? widget.sesi['hari'];
+    final providedDate = widget.sesi['Tanggal'] ?? widget.sesi['tanggal'];
+    if (providedDay != null && providedDate != null) {
+      return '${providedDay.toString()}, ${providedDate.toString()}';
+    }
+
+    final now = DateTime.now();
+    const days = [
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
+      'Minggu',
+    ];
+    const months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+    return '${days[now.weekday - 1]}, ${now.day} ${months[now.month - 1]} ${now.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final username = (widget.sesi['username'] ?? 'Pengguna').toString();
     final subTim =
         (widget.sesi['subTim'] ?? widget.sesi['tim'] ?? '-').toString();
     final ulp = (widget.sesi['ulp'] ?? '-').toString();
+    final bidang = (widget.sesi['bidang'] ?? widget.sesi['Bidang'] ?? '-').toString();
 
     return Container(
       width: double.infinity,
@@ -93,17 +127,28 @@ class _WelcomeCardState extends State<WelcomeCard>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Text(
+                            _dateText(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: KopitiamColors.muted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
                           const Text(
-                            'Selamat datang kembali',
+                            'Semangat Pagi,',
                             style: TextStyle(
                               color: KopitiamColors.muted,
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const SizedBox(height: 5),
+                          const SizedBox(height: 4),
                           Text(
-                            username,
+                            subTim,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -129,9 +174,9 @@ class _WelcomeCardState extends State<WelcomeCard>
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(child: _info(Icons.groups_rounded, 'SUB-TIM', subTim)),
-                    const SizedBox(width: 12),
                     Expanded(child: _info(Icons.location_city_rounded, 'UNIT KERJA', ulp)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _info(Icons.account_tree_rounded, 'BIDANG', bidang)),
                   ],
                 ),
                 const SizedBox(height: 18),
