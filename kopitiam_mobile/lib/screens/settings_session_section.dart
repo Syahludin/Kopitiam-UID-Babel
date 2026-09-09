@@ -24,8 +24,7 @@ class _SettingsSessionSectionState extends State<SettingsSessionSection> {
   bool _downloadingGardu = false;
   double? _garduProgress;
 
-  @override
-  void initState() { super.initState(); _expiryTimer = Timer.periodic(const Duration(minutes: 1), (_) => _enforceOfflineExpiry()); WidgetsBinding.instance.addPostFrameCallback((_) => _enforceOfflineExpiry()); }
+  @override void initState() { super.initState(); _expiryTimer = Timer.periodic(const Duration(minutes: 1), (_) => _enforceOfflineExpiry()); WidgetsBinding.instance.addPostFrameCallback((_) => _enforceOfflineExpiry()); }
   @override void dispose() { _expiryTimer?.cancel(); super.dispose(); }
 
   Future<void> _downloadMasterGardu() async {
@@ -59,8 +58,7 @@ class _SettingsSessionSectionState extends State<SettingsSessionSection> {
   Future<void> _logout() async { final ok = await showDialog<bool>(context: context, builder: (c) => AlertDialog(title: const Text('Keluar dari Kopitiam?'), content: const Text('Sesi perangkat dan akses offline akan dihapus.'), actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Batal')), FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Keluar'))])); if (ok != true || !mounted) return; setState(() => _loggingOut = true); try { await ApiService.logoutPerangkat(token: '${widget.session['token'] ?? ''}'); } catch (_) { await DeviceSessionService.clear(); } finally { await _clear(); } if (!mounted) return; Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute<void>(builder: (_) => const LoginScreen()), (_) => false); }
   Future<void> _clear() async { await DeviceSessionService.clear(); await LocalAuthService.clear(); await (await SharedPreferences.getInstance()).clear(); }
 
-  @override
-  Widget build(BuildContext context) {
+  @override Widget build(BuildContext context) {
     final offline = widget.session['offlineLogin'] == true;
     return Column(children: [
       if (widget.showMasterGardu)
