@@ -1,24 +1,18 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'api_service.dart';
 
-/// Mengecek keterjangkauan host API, bukan sekadar keberadaan Wi-Fi/data.
+/// Mengecek apakah host API dapat ditemukan melalui jaringan perangkat.
+/// Tidak memakai timer polling atau socket timeout agar lifecycle UI tetap bersih.
 class NetworkStatusService {
-  static Future<bool> isOnline({
-    Duration timeout = const Duration(seconds: 4),
-  }) async {
-    Socket? socket;
+  static Future<bool> isOnline() async {
     try {
       final uri = Uri.parse(ApiService.baseUrl);
       if (uri.scheme != 'https' || uri.host.isEmpty) return false;
-      socket = await Socket.connect(uri.host, uri.hasPort ? uri.port : 443)
-          .timeout(timeout);
-      return true;
+      final addresses = await InternetAddress.lookup(uri.host);
+      return addresses.isNotEmpty && addresses.first.rawAddress.isNotEmpty;
     } catch (_) {
       return false;
-    } finally {
-      socket?.destroy();
     }
   }
 }
