@@ -13,6 +13,7 @@ abstract final class ApiActivity {
   static bool supports(String action) =>
       action.startsWith('getWo') ||
       action.startsWith('syncWo') ||
+      action == 'syncAllWo' ||
       action == 'getMasterData' ||
       action == 'getMasterGardu';
 
@@ -20,7 +21,7 @@ abstract final class ApiActivity {
     if (action == 'getMasterData' || action == 'getMasterGardu') {
       return 'Mengunduh master data';
     }
-    if (action.startsWith('syncWo')) return 'Menyinkronkan Work Order';
+    if (action.startsWith('sync')) return 'Menyinkronkan Work Order';
     return 'Mengunduh Work Order';
   }
 
@@ -28,6 +29,7 @@ abstract final class ApiActivity {
     if (!supports(action)) return request();
     _active++;
     current.value = ApiActivityState(action, labelFor(action));
+    await Future<void>.delayed(Duration.zero);
     try {
       return await request();
     } finally {
