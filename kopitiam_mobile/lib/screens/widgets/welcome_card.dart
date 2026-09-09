@@ -38,7 +38,7 @@ class _WelcomeCardState extends State<WelcomeCard> with WidgetsBindingObserver {
     final bidang = (widget.sesi['bidang'] ?? widget.sesi['Bidang'] ?? '-').toString();
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       _card(background: KopitiamColors.ink, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(_dateText(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.gold, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: .35)), const SizedBox(height: 8), const Text('Semangat Pagi,', style: TextStyle(color: KopitiamColors.surface, fontSize: 12, fontWeight: FontWeight.w700)), const SizedBox(height: 4), Text(subTim, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.surface, fontSize: 25, fontWeight: FontWeight.w900, letterSpacing: -.35))])), const SizedBox(width: 8), InkWell(onTap: _checking ? null : _checkNetwork, borderRadius: BorderRadius.circular(100), child: _NetworkStatusChip(online: _online))]),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(_dateText(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.gold, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: .35)), const SizedBox(height: 8), const Text('Semangat Pagi,', style: TextStyle(color: KopitiamColors.surface, fontSize: 12, fontWeight: FontWeight.w700)), const SizedBox(height: 4), Text(subTim, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.surface, fontSize: 25, fontWeight: FontWeight.w900, letterSpacing: -.35))])), const SizedBox(width: 8), Material(color: Colors.transparent, child: InkWell(onTap: _checking ? null : _checkNetwork, borderRadius: BorderRadius.circular(100), child: _NetworkStatusChip(online: _online))) ]),
         const SizedBox(height: 18), const Divider(color: KopitiamColors.muted, height: 1), const SizedBox(height: 16), Row(children: [Expanded(child: _info('UNIT KERJA', ulp)), const SizedBox(width: 18), Expanded(child: _info('BIDANG', bidang))]),
       ])),
       if (widget.showWoSummary) ...[
@@ -51,16 +51,7 @@ class _WelcomeCardState extends State<WelcomeCard> with WidgetsBindingObserver {
     ]);
   }
 
-  Widget _card({required Color background, Color? border, required Widget child}) => Container(
-    clipBehavior: Clip.antiAlias,
-    decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(22), border: Border.all(color: border ?? KopitiamColors.navy), boxShadow: const [BoxShadow(color: Color(0x24071F33), blurRadius: 20, offset: Offset(0, 9))]),
-    child: IntrinsicHeight(
-      child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Container(width: 6, color: KopitiamColors.gold),
-        Expanded(child: Padding(padding: const EdgeInsets.fromLTRB(17, 20, 18, 20), child: child)),
-      ]),
-    ),
-  );
+  Widget _card({required Color background, Color? border, required Widget child}) => Container(clipBehavior: Clip.antiAlias, decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(22), border: Border.all(color: border ?? KopitiamColors.navy), boxShadow: const [BoxShadow(color: Color(0x24071F33), blurRadius: 20, offset: Offset(0, 9))]), child: IntrinsicHeight(child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Container(width: 6, color: KopitiamColors.gold), Expanded(child: Padding(padding: const EdgeInsets.fromLTRB(17, 20, 18, 20), child: child))])));
   Widget _info(String label, String value) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.gold, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: .45)), const SizedBox(height: 4), Text(value.isEmpty ? '-' : value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KopitiamColors.surface, fontSize: 13, fontWeight: FontWeight.w800))]);
   Widget _metrics() => Row(children: [_metric('Belum dikerjakan', widget.ready), _metric('Progress', widget.progress), _metric('Selesai', widget.done)]);
   Widget _metric(String label, int value) => Expanded(child: Column(children: [Text('$value', style: const TextStyle(color: KopitiamColors.ink, fontSize: 20, fontWeight: FontWeight.w900)), const SizedBox(height: 3), Text(label, textAlign: TextAlign.center, style: const TextStyle(color: KopitiamColors.muted, fontSize: 9, fontWeight: FontWeight.w700))]));
