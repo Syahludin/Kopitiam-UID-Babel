@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../services/session_bootstrap_service.dart';
+import '../theme/kopitiam_theme.dart';
 import 'dashboard_screen.dart';
 import 'login_screen.dart';
 
@@ -18,42 +21,40 @@ class _StartupScreenState extends State<StartupScreen> {
 
   @override
   Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>?>(
-    future: _restore,
-    builder: (context, snapshot) {
-      if (snapshot.connectionState != ConnectionState.done) {
-        return const Scaffold(
-          backgroundColor: Colors.white,
-          body: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                KopitiamLoading(size: 64),
-                SizedBox(height: 16),
-                Text(
-                  'Memulihkan sesi...',
-                  style: TextStyle(
-                    color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w700,
-                  ),
+        future: _restore,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Scaffold(
+              backgroundColor: KopitiamColors.surface,
+              body: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    KopitiamLoading(size: 72),
+                    SizedBox(height: 18),
+                    Text(
+                      'Memulihkan sesi...',
+                      style: TextStyle(
+                        color: KopitiamColors.muted,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        );
-      }
-      final session = snapshot.data;
-      if (session == null) return const LoginScreen();
-      return DashboardScreen(sesi: session);
-    },
-  );
+              ),
+            );
+          }
+          final session = snapshot.data;
+          if (session == null) return const LoginScreen();
+          return DashboardScreen(sesi: session);
+        },
+      );
 }
 
-/// Indikator memuat bermerek KOPITIAM.
-///
-/// Animasi berada di dalam berkas SVG, jadi widget ini tidak memerlukan
-/// controller. Bila berkas gagal dimuat, indikator bawaan tetap tampil supaya
-/// pengguna tidak melihat ruang kosong.
-class KopitiamLoading extends StatelessWidget {
+/// Loader native Flutter. `flutter_svg` tidak menjalankan SMIL pada SVG secara
+/// konsisten, jadi cincin diputar oleh AnimationController sementara petir
+/// tetap diam dan tajam di tengah.
+class KopitiamLoading extends StatefulWidget {
   final double size;
   final bool onDarkBackground;
 
@@ -64,18 +65,105 @@ class KopitiamLoading extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => SvgPicture.asset(
-    onDarkBackground
-        ? 'assets/icons/loading_dark.svg'
-        : 'assets/icons/loading.svg',
-    width: size,
-    height: size,
-    placeholderBuilder: (_) => SizedBox(
-      width: size,
-      height: size,
-      child: const Center(
-        child: CircularProgressIndicator(color: Color(0xFF0D5C82)),
+  State<KopitiamLoading> createState() => _KopitiamLoadingState();
+}
+
+class _KopitiamLoadingState extends State<KopitiamLoading>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final track = widget.onDarkBackground
+        ? const Color(0xFF164C6C)
+        : const Color(0xFFDCE9F1);
+    final arc = widget.onDarkBackground
+        ? const Color(0xFF5CC0E6)
+        : const Color(0xFF0D5C82);
+
+    return RepaintBoundary(
+      child: SizedBox.square(
+        dimension: widget.size,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            AnimatedBuilder(
+              animation: _controller,
+              builder: (_, __) => Transform.rotate(
+                angle: _controller.value * math.pi * 2,
+                child: CustomPaint(
+                  size: Size.square(widget.size),
+                  painter: _LoadingRingPainter(track: track, arc: arc),
+                ),
+              ),
+            ),
+            SvgPicture.asset(
+              'assets/icons/loading_bolt.svg',
+              width: widget.size * .49,
+              height: widget.size * .49,
+              placeholderBuilder: (_) => Icon(
+                Icons.bolt_rounded,
+                size: widget.size * .55,
+                color: KopitiamColors.yellow,
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
+}
+
+class _LoadingRingPainter extends CustomPainter {
+  final Color track;
+  final Color arc;
+
+  const _LoadingRingPainter({required this.track, required this.arc});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = size.shortestSide * .075;
+    final rect = Offset.zero & size;
+    final ringRect = rect.deflate(stroke / 2);
+    canvas.drawArc(
+      ringRect,
+      0,
+      math.pi * 2,
+      false,
+      Paint()
+        ..color = track
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke,
+    );
+    canvas.drawArc(
+      ringRect,
+      -math.pi / 2,
+      math.pi * .72,
+      false,
+      Paint()
+        ..color = arc
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _LoadingRingPainter oldDelegate) =>
+      oldDelegate.track != track || oldDelegate.arc != arc;
 }

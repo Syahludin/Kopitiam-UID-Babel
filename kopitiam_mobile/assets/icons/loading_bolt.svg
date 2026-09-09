@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 76" role="img" aria-labelledby="title">
+  <title id="title">Petir Kopitiam</title>
+  <defs>
+    <linearGradient id="gold" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#FFE770"/>
+      <stop offset="0.45" stop-color="#FDC730"/>
+      <stop offset="1" stop-color="#EC9F0D"/>
+    </linearGradient>
+  </defs>
+  <path d="M39 2 8 43h17l-7 31 34-46H35z" fill="url(#gold)" stroke="#0A3B59" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>
