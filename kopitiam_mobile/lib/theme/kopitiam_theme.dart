@@ -18,6 +18,9 @@ abstract final class KopitiamColors {
   static const danger = Color(0xFFBA3A43);
   static const dangerSoft = Color(0xFFFBEAEC);
   static const warning = Color(0xFFA66D14);
+  static const warningSoft = Color(0xFFFFF1D6);
+  static const scrim = Color(0xB3071F33);
+  static const cameraOverlay = Color(0xCC071F33);
 }
 
 abstract final class KopitiamTheme {
@@ -69,9 +72,7 @@ abstract final class KopitiamTheme {
           foregroundColor: KopitiamColors.surface,
           minimumSize: const Size(44, 48),
           textStyle: const TextStyle(fontWeight: FontWeight.w800),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(13),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -81,9 +82,7 @@ abstract final class KopitiamTheme {
           elevation: 0,
           minimumSize: const Size(44, 48),
           textStyle: const TextStyle(fontWeight: FontWeight.w800),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(13),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -92,9 +91,7 @@ abstract final class KopitiamTheme {
           minimumSize: const Size(44, 48),
           textStyle: const TextStyle(fontWeight: FontWeight.w800),
           side: const BorderSide(color: KopitiamColors.line),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(13),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -102,63 +99,22 @@ abstract final class KopitiamTheme {
         fillColor: KopitiamColors.surface,
         labelStyle: const TextStyle(color: KopitiamColors.muted),
         hintStyle: const TextStyle(color: KopitiamColors.muted),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(color: KopitiamColors.line),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(color: KopitiamColors.line),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(
-            color: KopitiamColors.cyan,
-            width: 1.8,
-          ),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(13), borderSide: const BorderSide(color: KopitiamColors.line)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(13), borderSide: const BorderSide(color: KopitiamColors.line)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(13), borderSide: const BorderSide(color: KopitiamColors.cyan, width: 1.8)),
       ),
-      dividerTheme: const DividerThemeData(
-        color: KopitiamColors.line,
-        thickness: 1,
-      ),
-      progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: KopitiamColors.cyan,
-        linearTrackColor: KopitiamColors.surfaceStrong,
-        circularTrackColor: KopitiamColors.surfaceStrong,
-      ),
-      snackBarTheme: const SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: KopitiamColors.ink,
-        contentTextStyle: TextStyle(color: KopitiamColors.surface),
-      ),
+      dividerTheme: const DividerThemeData(color: KopitiamColors.line, thickness: 1),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(color: KopitiamColors.cyan, linearTrackColor: KopitiamColors.surfaceStrong, circularTrackColor: KopitiamColors.surfaceStrong),
+      snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating, backgroundColor: KopitiamColors.ink, contentTextStyle: TextStyle(color: KopitiamColors.surface)),
+      dialogTheme: DialogThemeData(backgroundColor: KopitiamColors.surface, surfaceTintColor: Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22))),
+      navigationBarTheme: const NavigationBarThemeData(backgroundColor: KopitiamColors.surface, indicatorColor: KopitiamColors.cyanSoft),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(backgroundColor: KopitiamColors.yellow, foregroundColor: KopitiamColors.ink),
       textTheme: base.textTheme.copyWith(
-        headlineSmall: const TextStyle(
-          color: KopitiamColors.ink,
-          fontSize: 24,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -.4,
-        ),
-        titleLarge: const TextStyle(
-          color: KopitiamColors.ink,
-          fontSize: 20,
-          fontWeight: FontWeight.w800,
-        ),
-        titleMedium: const TextStyle(
-          color: KopitiamColors.ink,
-          fontSize: 16,
-          fontWeight: FontWeight.w800,
-        ),
-        bodyMedium: const TextStyle(
-          color: KopitiamColors.ink,
-          fontSize: 14,
-          height: 1.45,
-        ),
-        bodySmall: const TextStyle(
-          color: KopitiamColors.muted,
-          fontSize: 12,
-          height: 1.4,
-        ),
+        headlineSmall: const TextStyle(color: KopitiamColors.ink, fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -.4),
+        titleLarge: const TextStyle(color: KopitiamColors.ink, fontSize: 20, fontWeight: FontWeight.w800),
+        titleMedium: const TextStyle(color: KopitiamColors.ink, fontSize: 16, fontWeight: FontWeight.w800),
+        bodyMedium: const TextStyle(color: KopitiamColors.ink, fontSize: 14, height: 1.45),
+        bodySmall: const TextStyle(color: KopitiamColors.muted, fontSize: 12, height: 1.4),
       ),
     );
   }
