@@ -186,7 +186,7 @@ class _LoginSheetState extends State<LoginSheet> {
                               ),
                               SizedBox(height: 2),
                               Text(
-                                'Format: KodeULP.Tim',
+                                'Format: Kode ULP.Tim',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: AppColors.neutral500,
