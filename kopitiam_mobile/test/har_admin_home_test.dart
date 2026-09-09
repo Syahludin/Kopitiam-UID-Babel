@@ -17,7 +17,7 @@ class HarHomeRepository extends HarExecutionRepository {
 void main() {
   testWidgets('beranda Admin tidak menampilkan aksi Work Order', (tester) async {
     const session = {'username': '16.BBL', 'role': 'Admin', 'subTim': 'Pegawai', 'kodeUlp': '16', 'ulp': 'UID Babel'};
-    await tester.pumpWidget(MaterialApp(theme: KopitiamTheme.light, home: HarExecutionScreen(sesi: session, repository: HarHomeRepository(session))));
+    await tester.pumpWidget(MaterialApp(theme: KopitiamTheme.light, home: HarExecutionScreen(sesi: session, networkProbe: () async => true, repository: HarHomeRepository(session))));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Download WO'), findsNothing);
     expect(find.text('Sinkron WO'), findsNothing);
@@ -25,7 +25,7 @@ void main() {
 
   testWidgets('WelcomeCard menampilkan dua tombol aksi satu baris', (tester) async {
     const session = {'username': '16130.Har', 'subTim': 'Har', 'ulp': 'ULP Toboali'};
-    await tester.pumpWidget(MaterialApp(theme: KopitiamTheme.light, home: Scaffold(body: WelcomeCard(sesi: session, networkProbe: () async => true, total: 2, ready: 1, progress: 1, onDownload: () async {}, onSync: () async {}))));
+    await tester.pumpWidget(MaterialApp(theme: KopitiamTheme.light, home: SizedBox(width: 360, child: WelcomeCard(sesi: session, networkProbe: () async => true, total: 2, ready: 1, progress: 1, onDownload: () async {}, onSync: () async {}))));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Download WO'), findsOneWidget);
     expect(find.text('Sinkron WO'), findsOneWidget);
