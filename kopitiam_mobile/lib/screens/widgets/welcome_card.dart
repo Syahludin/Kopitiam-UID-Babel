@@ -35,12 +35,10 @@ class _WelcomeCardState extends State<WelcomeCard>
 
   NetworkProbe get _probe =>
       widget.networkProbe ?? NetworkStatusService.isOnline;
-
   String get _identity =>
       '${widget.sesi['subTim'] ?? widget.sesi['tim'] ?? ''} '
-      '${widget.sesi['username'] ?? ''}'
+              '${widget.sesi['username'] ?? ''}'
           .toLowerCase();
-
   bool get _showNonHarSummary =>
       HarExecution.allowedTypes(widget.sesi).isEmpty;
   bool get _isInsdu =>
@@ -88,62 +86,78 @@ class _WelcomeCardState extends State<WelcomeCard>
       var waiting = 0;
       var progress = 0;
       var done = 0;
-
       if (_isInsdu) {
         final items = await WoInsduRepository().semua();
         total = items.length;
         waiting = items
-            .where((item) =>
-                WoInsdu.normalisasiStatus(item.statusWo) ==
-                WoInsdu.statusMulai)
+            .where(
+              (item) =>
+                  WoInsdu.normalisasiStatus(item.statusWo) ==
+                  WoInsdu.statusMulai,
+            )
             .length;
         progress = items
-            .where((item) =>
-                WoInsdu.normalisasiStatus(item.statusWo) ==
-                WoInsdu.statusDalam)
+            .where(
+              (item) =>
+                  WoInsdu.normalisasiStatus(item.statusWo) ==
+                  WoInsdu.statusDalam,
+            )
             .length;
         done = items
-            .where((item) =>
-                WoInsdu.normalisasiStatus(item.statusWo) ==
-                WoInsdu.statusSelesai)
+            .where(
+              (item) =>
+                  WoInsdu.normalisasiStatus(item.statusWo) ==
+                  WoInsdu.statusSelesai,
+            )
             .length;
       } else if (_isRow) {
         final items = await WoRowRepository().semua();
         total = items.length;
         waiting = items
-            .where((item) =>
-                WoRow.normalisasiStatus(item.statusWo) ==
-                WoRow.statusPenugasan)
+            .where(
+              (item) =>
+                  WoRow.normalisasiStatus(item.statusWo) ==
+                  WoRow.statusPenugasan,
+            )
             .length;
         progress = items
-            .where((item) =>
-                WoRow.normalisasiStatus(item.statusWo) ==
-                WoRow.statusProgress)
+            .where(
+              (item) =>
+                  WoRow.normalisasiStatus(item.statusWo) ==
+                  WoRow.statusProgress,
+            )
             .length;
         done = items
-            .where((item) =>
-                WoRow.normalisasiStatus(item.statusWo) == WoRow.statusSelesai)
+            .where(
+              (item) =>
+                  WoRow.normalisasiStatus(item.statusWo) == WoRow.statusSelesai,
+            )
             .length;
       } else {
         final items = await WoInsjarRepository().semua();
         total = items.length;
         waiting = items
-            .where((item) =>
-                WoInsjar.normalisasiStatus(item.statusWo) ==
-                WoInsjar.statusMulai)
+            .where(
+              (item) =>
+                  WoInsjar.normalisasiStatus(item.statusWo) ==
+                  WoInsjar.statusMulai,
+            )
             .length;
         progress = items
-            .where((item) =>
-                WoInsjar.normalisasiStatus(item.statusWo) ==
-                WoInsjar.statusDalam)
+            .where(
+              (item) =>
+                  WoInsjar.normalisasiStatus(item.statusWo) ==
+                  WoInsjar.statusDalam,
+            )
             .length;
         done = items
-            .where((item) =>
-                WoInsjar.normalisasiStatus(item.statusWo) ==
-                WoInsjar.statusSelesai)
+            .where(
+              (item) =>
+                  WoInsjar.normalisasiStatus(item.statusWo) ==
+                  WoInsjar.statusSelesai,
+            )
             .length;
       }
-
       if (!mounted) return;
       setState(() {
         _total = total;
@@ -198,7 +212,6 @@ class _WelcomeCardState extends State<WelcomeCard>
     final ulp = (widget.sesi['ulp'] ?? '-').toString();
     final bidang =
         (widget.sesi['bidang'] ?? widget.sesi['Bidang'] ?? '-').toString();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -232,100 +245,138 @@ class _WelcomeCardState extends State<WelcomeCard>
     required String bidang,
   }) =>
       Container(
+        key: const ValueKey('welcome-card'),
         width: double.infinity,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: KopitiamColors.ink,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF176DA8), Color(0xFF004D8C), Color(0xFF004279)],
+            stops: [0, .42, 1],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: KopitiamColors.navy),
+          border: Border.all(color: const Color(0xFF2A79B2)),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x24071F33),
-              blurRadius: 20,
-              offset: Offset(0, 9),
+              color: Color(0x33071F33),
+              blurRadius: 30,
+              offset: Offset(0, 16),
             ),
           ],
         ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(width: 6, color: KopitiamColors.gold),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(17, 20, 18, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _dateText(),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: KopitiamColors.gold,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: .35,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'Semangat Pagi,',
-                                  style: TextStyle(
-                                    color: KopitiamColors.surface,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  subTim,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: KopitiamColors.surface,
-                                    fontSize: 25,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -.35,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: _checking ? null : _checkNetwork,
-                              borderRadius: BorderRadius.circular(100),
-                              child: _NetworkChip(online: _online),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      const Divider(color: KopitiamColors.muted, height: 1),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(child: _info('UNIT KERJA', ulp)),
-                          const SizedBox(width: 18),
-                          Expanded(child: _info('BIDANG', bidang)),
-                        ],
-                      ),
-                    ],
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0x1CFBFDFE), Color(0x00FBFDFE)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.center,
+                    ),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+            Positioned(
+              left: 0,
+              top: 28,
+              child: Container(
+                width: 6,
+                height: 72,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [KopitiamColors.yellow, KopitiamColors.gold],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  borderRadius: BorderRadius.horizontal(
+                    right: Radius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 20, 18, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _dateText(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: KopitiamColors.yellow,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: .35,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Semangat Pagi,',
+                              style: TextStyle(
+                                color: KopitiamColors.surface,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              subTim,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: KopitiamColors.surface,
+                                fontSize: 25,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -.35,
+                                shadows: [
+                                  Shadow(
+                                    color: Color(0x47071F33),
+                                    offset: Offset(0, 2),
+                                    blurRadius: 2,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _checking ? null : _checkNetwork,
+                          borderRadius: BorderRadius.circular(100),
+                          child: _NetworkChip(online: _online),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  const Divider(color: Color(0xA6FBFDFE), height: 1),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(child: _info('UNIT KERJA', ulp)),
+                      const SizedBox(width: 18),
+                      Expanded(child: _info('BIDANG', bidang)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       );
 
@@ -337,7 +388,7 @@ class _WelcomeCardState extends State<WelcomeCard>
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: KopitiamColors.gold,
+              color: KopitiamColors.yellow,
               fontSize: 9,
               fontWeight: FontWeight.w900,
               letterSpacing: .45,
@@ -374,7 +425,6 @@ class _NetworkChip extends StatelessWidget {
         : online == false
             ? 'OFFLINE'
             : 'CEK...';
-
     return Semantics(
       label: 'Status jaringan $label. Ketuk untuk periksa ulang.',
       liveRegion: true,
@@ -385,6 +435,13 @@ class _NetworkChip extends StatelessWidget {
           color: KopitiamColors.navy,
           borderRadius: BorderRadius.circular(100),
           border: Border.all(color: KopitiamColors.surface),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x33071F33),
+              blurRadius: 7,
+              offset: Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
