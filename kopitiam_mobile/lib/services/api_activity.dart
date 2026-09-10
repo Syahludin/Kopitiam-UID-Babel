@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'background_sync_service.dart';
+
 class ApiActivityState {
   final String action;
   final String label;
@@ -26,15 +28,22 @@ abstract final class ApiActivity {
 
   static Future<T> track<T>(String action, Future<T> Function() request) async {
     if (!supports(action)) return request();
+    final label = labelFor(action);
     _active++;
-    current.value = ApiActivityState(action, labelFor(action));
+    current.value = ApiActivityState(action, label);
     try {
+      if (_active == 1) {
+        await BackgroundSyncService.start(label);
+      } else {
+        await BackgroundSyncService.update(label);
+      }
       return await request();
     } finally {
       _active--;
       if (_active <= 0) {
         _active = 0;
         current.value = null;
+        await BackgroundSyncService.stop();
       }
     }
   }
