@@ -11,6 +11,7 @@ import 'har_job_form_screen.dart';
 import 'landscape_camera_screen.dart';
 import 'settings_session_section.dart';
 import 'widgets/bubble_navbar.dart';
+import 'widgets/operation_result_dialog.dart';
 import 'widgets/welcome_card.dart';
 
 class HarExecutionScreen extends StatefulWidget {
@@ -74,13 +75,33 @@ class _HarExecutionScreenState extends State<HarExecutionScreen> {
     }
   }
 
+  String _woKey(HarExecution item) => '${item.type}:${item.code}';
+
   Future<void> _downloadWo() async {
-    await _run(() async {
-      final result = await repo.downloadAssigned();
-      return result.empty
-          ? 'Tidak ada WO untuk username ${repo.owner}.'
-          : '${result.downloaded} WO diunduh untuk ${repo.owner}.';
-    });
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      final before = (await repo.listAll()).map(_woKey).toSet();
+      await repo.downloadAssigned();
+      final latest = await repo.listAll();
+      final downloaded = latest.where((item) => !before.contains(_woKey(item))).length;
+      await _refresh();
+      if (!mounted) return;
+      if (downloaded == 0) {
+        await showOperationResultDialog(
+          context,
+          success: true,
+          title: 'WO Sudah di Download Semua',
+          message: 'Tidak ada Work Order baru yang perlu diunduh.',
+        );
+      } else {
+        _message('$downloaded WO baru diunduh untuk ${repo.owner}.');
+      }
+    } catch (error) {
+      _message('$error');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
   }
 
   Future<void> _downloadMaster() async {
@@ -275,7 +296,7 @@ class _HarWoDetailScreenState extends State<HarWoDetailScreen> with SingleTicker
   Future<void> _photo() async { if (busy || item.finished) return; setState(() => busy = true); try { final path = await LandscapeCameraScreen.capture(context, title: 'Foto Sesudah'); if (path != null && mounted) setState(() => photo = path); } catch (error) { _message('$error'); } finally { if (mounted) setState(() => busy = false); } }
   Future<void> _finish() async { if (busy || item.finished) return; setState(() => busy = true); try { await widget.repository.finish(item.type, item.code, photo, notes.text); await _reload(); _message('WO Selesai, tersimpan lokal. Sinkron dari Beranda.'); } catch (error) { _message('$error'); } finally { if (mounted) setState(() => busy = false); } }
   Future<void> _link(String url) async { final uri = Uri.tryParse(url); if (uri == null || uri.scheme != 'https') { _message('Link belum tersedia.'); return; } try { await launchUrl(uri, mode: LaunchMode.externalApplication); } catch (error) { _message('$error'); } }
-  Widget _field(String label, dynamic value) => Padding(padding: const EdgeInsets.only(bottom: 12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: Theme.of(context).textTheme.bodySmall), SelectableText('${value ?? ''}')]));
+  Widget _field(String label, dynamic value) => Padding(padding: const EdgeInsets.only(bottom: 12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: Theme.of(context).textTheme.bodySmall), SelectableText('${value ?? ''}')])) ;
   Widget _job(Map<String, dynamic> job) { final materials = item.materials.where((material) => material['Kode Pekerjaan'] == job['Kode Pekerjaan']).toList(); return Padding(padding: const EdgeInsets.only(bottom: 20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${job['Uraian Pekerjaan']}', style: Theme.of(context).textTheme.titleMedium), const SizedBox(height: 6), Text('${job['Jumlah']} ${job['Set']}'), Text('${job['Kode Pekerjaan']}', style: Theme.of(context).textTheme.bodySmall), ...materials.map((material) => ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.inventory_2_outlined), title: Text('${material['Material']}'), subtitle: Text('${material['Kepemilikan']}'), trailing: Text('${material['Jumlah']} ${material['Satuan']}'))), if (materials.isEmpty) const Text('Tanpa material'), const Divider()])); }
   @override
   Widget build(BuildContext context) => Scaffold(
