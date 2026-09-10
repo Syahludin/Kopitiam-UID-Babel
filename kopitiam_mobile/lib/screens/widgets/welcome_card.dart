@@ -9,6 +9,7 @@ import '../../services/wo_insdu_repository.dart';
 import '../../services/wo_insjar_repository.dart';
 import '../../services/wo_row_repository.dart';
 import '../../theme/kopitiam_theme.dart';
+import 'welcome_coffee_mark.dart';
 import 'wo_summary_card.dart';
 
 typedef NetworkProbe = Future<bool> Function();
@@ -366,11 +367,20 @@ class _WelcomeCardState extends State<WelcomeCard>
                   const SizedBox(height: 18),
                   const Divider(color: Color(0xA6FBFDFE), height: 1),
                   const SizedBox(height: 16),
-                  Row(
+                  Stack(
+                    alignment: Alignment.bottomRight,
                     children: [
-                      Expanded(child: _info('UNIT KERJA', ulp)),
-                      const SizedBox(width: 18),
-                      Expanded(child: _info('BIDANG', bidang)),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 52),
+                        child: Row(
+                          children: [
+                            Expanded(child: _info('UNIT KERJA', ulp)),
+                            const SizedBox(width: 18),
+                            Expanded(child: _info('BIDANG', bidang)),
+                          ],
+                        ),
+                      ),
+                      const WelcomeCoffeeMark(),
                     ],
                   ),
                 ],
