@@ -47,7 +47,7 @@ test("Master Temuan accepts production inspection label variants", () => {
   );
 
   assert.deepEqual(
-    rows.map((row) => row.Temuan),
+    Array.from(rows, (row) => row.Temuan),
     ["Kabel Geser", "Andongan Rendah"],
   );
 });
