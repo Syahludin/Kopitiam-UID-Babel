@@ -26,21 +26,24 @@ function load() {
   return sandbox;
 }
 
-test("Master Temuan accepts production inspection label variants", () => {
-  const api = load();
-  const sheet = {
+function masterSheet() {
+  return {
     getDataRange: () => ({
       getDisplayValues: () => [
         ["Objek Inspeksi", "Tier", "Temuan"],
         ["Inspeksi Jaringan", "Tier 1", "Kabel Geser"],
         ["Jaringan", "Tier 2", "Andongan Rendah"],
         ["Inspeksi Gardu", "Tier 1", "Trafo Bocor"],
+        ["Gardu Distribusi", "Tier 2", "Bushing Rusak"],
       ],
     }),
   };
+}
 
+test("Master Temuan accepts production inspection label variants", () => {
+  const api = load();
   const rows = api.masterRows_(
-    sheet,
+    masterSheet(),
     "Master_Temuan",
     { username: "petugas", subTim: "Inspeksi Jaringan" },
     api.masterObjectForSession_({ subTim: "Inspeksi Jaringan" }),
@@ -52,9 +55,25 @@ test("Master Temuan accepts production inspection label variants", () => {
   );
 });
 
+test("Inspeksi Gardu receives only Gardu findings", () => {
+  const api = load();
+  const rows = api.masterRows_(
+    masterSheet(),
+    "Master_Temuan",
+    { username: "petugas", subTim: "Inspeksi Gardu" },
+    api.masterObjectForSession_({ subTim: "Inspeksi Gardu" }),
+  );
+
+  assert.deepEqual(
+    Array.from(rows, (row) => row.Temuan),
+    ["Trafo Bocor", "Bushing Rusak"],
+  );
+});
+
 test("object aliases normalize to the mobile categories", () => {
   const api = load();
   assert.equal(api.masterObjectCategory_("INSJAR"), "jaringan");
   assert.equal(api.masterObjectCategory_("JTM / JTR"), "jaringan");
   assert.equal(api.masterObjectCategory_("Inspeksi Gardu"), "gardu");
+  assert.equal(api.masterObjectCategory_("Gardu Distribusi"), "gardu");
 });
