@@ -1,9 +1,13 @@
 /* Final runtime master handlers. */
+function masterObjectCategory_(value) {
+  var normalized = normalize_(value);
+  if (normalized.indexOf('gardu') >= 0 || normalized.indexOf('trafo') >= 0 || normalized.indexOf('insdu') >= 0) return 'gardu';
+  if (normalized.indexOf('jaringan') >= 0 || normalized.indexOf('insjar') >= 0 || normalized.indexOf('jtm') >= 0 || normalized.indexOf('jtr') >= 0 || normalized.indexOf('saluran') >= 0 || normalized.indexOf('line') >= 0) return 'jaringan';
+  return normalized;
+}
+
 function masterObjectForSession_(session) {
-  var identity = normalize_((session.subTim || session.tim || '') + ' ' + (session.username || ''));
-  if (identity.indexOf('inspeksi jaringan') >= 0 || identity.indexOf('insjar') >= 0) return 'jaringan';
-  if (identity.indexOf('inspeksi gardu') >= 0 || identity.indexOf('insdu') >= 0) return 'gardu';
-  return '';
+  return masterObjectCategory_((session.subTim || session.tim || '') + ' ' + (session.username || ''));
 }
 
 function masterTemuanObject_(headers, row) {
@@ -12,7 +16,7 @@ function masterTemuanObject_(headers, row) {
   if (column === undefined) column = index['object inspeksi'];
   if (column === undefined) column = index['jenis object'];
   if (column === undefined) column = index['jenis objek'];
-  return column === undefined ? '' : normalize_(row[column]);
+  return column === undefined ? '' : masterObjectCategory_(row[column]);
 }
 
 function masterRows_(sheet, name, session, targetObject) {
