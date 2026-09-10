@@ -61,11 +61,16 @@ class MasterMemoryDb implements Database, Transaction {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-Map<String, Object?> metadata(String key, String status) => {
+Map<String, Object?> metadataRow(String key, String status) => {
       'key': key,
       'status': status,
       'error_message': status == 'failed' ? 'Jaringan terputus' : '',
     };
+
+Future<void> openAccordion(WidgetTester tester) async {
+  await tester.tap(find.text('Master Data'));
+  await tester.pumpAndSettle();
+}
 
 void main() {
   test('status constants cover every visual state', () {
@@ -84,8 +89,8 @@ void main() {
     tester,
   ) async {
     final db = MasterMemoryDb()
-      ..metadata['Master_Penyulang'] = metadata('Master_Penyulang', 'success')
-      ..metadata['Master_Gardu'] = metadata('Master_Gardu', 'failed');
+      ..metadata['Master_Penyulang'] = metadataRow('Master_Penyulang', 'success')
+      ..metadata['Master_Gardu'] = metadataRow('Master_Gardu', 'failed');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -97,8 +102,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('master-data-accordion')));
-    await tester.pumpAndSettle();
+    await openAccordion(tester);
 
     expect(find.text('BELUM SINKRON'), findsWidgets);
     expect(find.text('SINKRON'), findsWidgets);
@@ -108,7 +112,7 @@ void main() {
 
   testWidgets('Coba Ulang changes a failed dataset to Sinkron', (tester) async {
     final db = MasterMemoryDb()
-      ..metadata['Master_Gardu'] = metadata('Master_Gardu', 'failed');
+      ..metadata['Master_Gardu'] = metadataRow('Master_Gardu', 'failed');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -129,8 +133,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('master-data-accordion')));
-    await tester.pumpAndSettle();
+    await openAccordion(tester);
     await tester.tap(find.text('Coba Ulang'));
     await tester.pumpAndSettle();
 
