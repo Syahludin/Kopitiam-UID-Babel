@@ -101,7 +101,7 @@ class _SettingsSessionSectionState extends State<SettingsSessionSection> {
     final offline = widget.session['offlineLogin'] == true;
     return Column(
       children: [
-        if (widget.showMasterAccordion)
+        if (widget.showMasterAccordion && widget.showMasterGardu)
           MasterDataAccordion(token: '${widget.session['token'] ?? ''}'),
         Card(
           margin: const EdgeInsets.only(top: 14),
