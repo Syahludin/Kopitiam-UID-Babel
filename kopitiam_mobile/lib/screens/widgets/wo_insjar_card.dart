@@ -15,17 +15,6 @@ class WoInsjarCard extends StatelessWidget {
     required this.onOpen,
   });
 
-  String get _mapUrl {
-    final start = wo.koordinatAwal.trim();
-    final end = wo.koordinatAkhir.trim();
-    if (start.isEmpty && end.isEmpty) return '';
-    if (start.isEmpty || end.isEmpty) {
-      final destination = start.isNotEmpty ? start : end;
-      return 'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(destination)}';
-    }
-    return 'https://www.google.com/maps/dir/?api=1&origin=${Uri.encodeComponent(start)}&destination=${Uri.encodeComponent(end)}';
-  }
-
   String get _section {
     if (wo.section.trim().isNotEmpty) return wo.section.trim();
     return [wo.sectionAwal.trim(), wo.sectionAkhir.trim()]
@@ -46,8 +35,8 @@ class WoInsjarCard extends StatelessWidget {
       subtitle: '',
       section: _section,
       date: wo.tanggal,
-      mapUrl: _mapUrl,
-      locationLabel: 'Rute',
+      mapUrl: '',
+      locationLabel: '',
       waiting: status == WoInsjar.statusMulai,
       finished: status == WoInsjar.statusSelesai,
       onStart: onStart,
