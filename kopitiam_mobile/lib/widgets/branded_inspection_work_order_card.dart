@@ -91,7 +91,11 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           border: Border.all(color: line),
           boxShadow: const [
-            BoxShadow(color: Color(0x18063B5C), blurRadius: 24, offset: Offset(0, 10)),
+            BoxShadow(
+              color: Color(0x18063B5C),
+              blurRadius: 24,
+              offset: Offset(0, 10),
+            ),
           ],
         ),
         child: Column(
@@ -123,7 +127,10 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(100),
                       border: Border.all(color: const Color(0x99D6A93A)),
@@ -172,7 +179,7 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 8),
                             Text(
                               subtitle,
                               maxLines: 1,
@@ -188,7 +195,10 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
                               section,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: muted, fontSize: 11),
+                              style: const TextStyle(
+                                color: muted,
+                                fontSize: 11,
+                              ),
                             ),
                           ],
                         ),
@@ -203,7 +213,9 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
                                   elevation: 0,
                                   backgroundColor: yellow,
                                   foregroundColor: ink,
-                                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 18,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(13),
                                   ),
@@ -224,7 +236,9 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
                                 ),
                                 child: Text(
                                   finished ? 'Lihat' : 'Lanjutkan',
-                                  style: const TextStyle(fontWeight: FontWeight.w900),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                  ),
                                 ),
                               ),
                       ),
@@ -237,7 +251,10 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
                     children: [
                       const Icon(Icons.schedule_rounded, size: 15, color: muted),
                       const SizedBox(width: 7),
-                      const Text('Tanggal WO', style: TextStyle(color: muted, fontSize: 11)),
+                      const Text(
+                        'Tanggal WO',
+                        style: TextStyle(color: muted, fontSize: 11),
+                      ),
                       const SizedBox(width: 6),
                       Flexible(
                         child: Text(
@@ -315,7 +332,11 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.location_on_outlined, size: 15, color: logoBlue),
+                      const Icon(
+                        Icons.location_on_outlined,
+                        size: 15,
+                        color: logoBlue,
+                      ),
                       const SizedBox(width: 5),
                       Text(
                         locationLabel,
