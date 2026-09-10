@@ -66,20 +66,29 @@ void main() {
 
       final object = field(tester, 'Jenis Object *');
       expect(object.initialValue, isNull);
+
+      await tester.scrollUntilVisible(
+        fieldFinder('Tier *'),
+        250,
+        scrollable: find.descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Scrollable),
+        ).first,
+      );
       expect(field(tester, 'Tier *').onChanged, isNull);
       expect(field(tester, 'Nama Temuan *').onChanged, isNull);
 
       object.onChanged!('Gardu');
-      await tester.pump();
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(fieldFinder('Tier *'));
       final tier = field(tester, 'Tier *');
       expect(tier.onChanged, isNotNull);
 
       tier.onChanged!('Tier 1');
-      await tester.pump();
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(fieldFinder('Nama Temuan *'));
       expect(field(tester, 'Nama Temuan *').onChanged, isNotNull);
 
-      await tester.ensureVisible(fieldFinder('Nama Temuan *'));
-      await tester.pumpAndSettle();
       await tester.tap(fieldFinder('Nama Temuan *'));
       await tester.pumpAndSettle();
 
