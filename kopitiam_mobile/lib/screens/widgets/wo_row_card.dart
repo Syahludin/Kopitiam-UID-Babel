@@ -23,13 +23,10 @@ class WoRowCard extends StatelessWidget {
     return '';
   }
 
-  String get _section {
-    final values = <String>[
-      if (row.section.trim().isNotEmpty) row.section.trim(),
-      if (row.segmen.trim().isNotEmpty) row.segmen.trim(),
-    ];
-    return values.join(' • ');
-  }
+  String get _section => [
+        if (row.section.trim().isNotEmpty) row.section.trim(),
+        if (row.segmen.trim().isNotEmpty) row.segmen.trim(),
+      ].join(' • ');
 
   String _photoSource(String local, String remote) =>
       local.trim().isNotEmpty ? local.trim() : remote.trim();
@@ -40,16 +37,14 @@ class WoRowCard extends StatelessWidget {
     return BrandedWorkOrderCard(
       code: row.kodeWo,
       typeLabel: 'ROW',
-      status: status == WoRow.statusPenugasan ? 'Belum dikerjakan' : status,
+      status: status,
       finding: row.temuan,
       feeder: row.penyulang,
       section: _section,
+      date: row.tanggal,
       coordinate: _coordinate,
       photos: [
-        WorkOrderPhoto(
-          'Foto Temuan',
-          _photoSource(row.fotoTemuan, row.linkFoto),
-        ),
+        WorkOrderPhoto('Foto Temuan', _photoSource(row.fotoTemuan, row.linkFoto)),
         WorkOrderPhoto(
           'Foto Sekitar',
           _photoSource(row.fotoLingkungan, row.linkLingkungan),

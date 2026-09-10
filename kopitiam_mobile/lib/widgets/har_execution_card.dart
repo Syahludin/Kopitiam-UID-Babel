@@ -23,31 +23,23 @@ class HarExecutionCard extends StatelessWidget {
     return lat.isNotEmpty && long.isNotEmpty ? '$lat, $long' : '';
   }
 
-  String get _section {
-    final values = <String>[
-      if (item.value('Section').trim().isNotEmpty)
-        item.value('Section').trim(),
-      if (item.value('Segmen').trim().isNotEmpty)
-        item.value('Segmen').trim(),
-      if (item.type == HarExecution.du &&
-          item.value('Nomor Gardu').trim().isNotEmpty)
-        item.value('Nomor Gardu').trim(),
-    ];
-    return values.join(' • ');
-  }
+  String get _section => [
+        if (item.value('Section').trim().isNotEmpty) item.value('Section').trim(),
+        if (item.value('Segmen').trim().isNotEmpty) item.value('Segmen').trim(),
+        if (item.type == HarExecution.du &&
+            item.value('Nomor Gardu').trim().isNotEmpty)
+          item.value('Nomor Gardu').trim(),
+      ].join(' • ');
 
   @override
   Widget build(BuildContext context) => BrandedWorkOrderCard(
         code: item.code,
         typeLabel: item.type == HarExecution.jar ? 'HAR JAR' : 'HAR DU',
-        status: item.ready
-            ? 'Belum dikerjakan'
-            : item.status.isEmpty
-                ? 'Progress Pekerjaan'
-                : item.status,
+        status: item.status.isEmpty ? 'Progress Pekerjaan' : item.status,
         finding: item.value('Temuan'),
         feeder: item.value('Penyulang'),
         section: _section,
+        date: item.value('Tanggal'),
         coordinate: _coordinate,
         photos: [
           WorkOrderPhoto('Foto Temuan', item.value('Link Foto Temuan')),

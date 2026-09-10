@@ -12,8 +12,6 @@ class WorkOrderPhoto {
 class BrandedWorkOrderCard extends StatelessWidget {
   static const ink = Color(0xFF071F33);
   static const logoBlue = Color(0xFF004D8C);
-  static const ocean = Color(0xFF087797);
-  static const gold = Color(0xFFD6A93A);
   static const yellow = Color(0xFFF6D03F);
   static const surface = Color(0xFFFBFDFE);
   static const line = Color(0xFFDCE8EC);
@@ -28,6 +26,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
   final String finding;
   final String feeder;
   final String section;
+  final String date;
   final String coordinate;
   final List<WorkOrderPhoto> photos;
   final bool waiting;
@@ -43,6 +42,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
     required this.finding,
     required this.feeder,
     required this.section,
+    required this.date,
     required this.coordinate,
     required this.photos,
     required this.waiting,
@@ -95,9 +95,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visualStatus = waiting && status.trim().isEmpty
-        ? 'Belum dikerjakan'
-        : status;
+    final visualStatus = waiting ? 'Belum dikerjakan' : status;
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
       clipBehavior: Clip.antiAlias,
@@ -118,7 +116,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
         children: [
           _header(),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -152,6 +150,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
                     ],
                   ),
                 ],
+                _dateRow(),
               ],
             ),
           ),
@@ -391,10 +390,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
                   alignment: Alignment.bottomCenter,
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 5,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                     color: const Color(0xD907344B),
                     child: Text(
                       photo.label,
@@ -412,36 +408,54 @@ class BrandedWorkOrderCard extends StatelessWidget {
         ),
       );
 
+  Widget _dateRow() => Column(
+        children: [
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: line),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.schedule_rounded, size: 15, color: muted),
+              const SizedBox(width: 7),
+              const Text('Tanggal WO', style: TextStyle(color: muted, fontSize: 11)),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  date.trim().isEmpty ? 'Belum tersedia' : date,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: ink,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+
   Widget _image(String source) {
     final path = source.trim();
     if (path.isEmpty) {
-      return const Center(
-        child: Icon(Icons.image_not_supported_outlined, color: muted),
-      );
+      return const Center(child: Icon(Icons.image_not_supported_outlined, color: muted));
     }
     final file = File(path);
-    if (file.existsSync()) {
-      return Image.file(file, fit: BoxFit.cover);
-    }
+    if (file.existsSync()) return Image.file(file, fit: BoxFit.cover);
     final uri = Uri.tryParse(path);
     if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
       return Image.network(
         path,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const Center(
-          child: Icon(Icons.broken_image_outlined, color: muted),
-        ),
+        errorBuilder: (_, __, ___) =>
+            const Center(child: Icon(Icons.broken_image_outlined, color: muted)),
       );
     }
-    return const Center(
-      child: Icon(Icons.image_not_supported_outlined, color: muted),
-    );
+    return const Center(child: Icon(Icons.image_not_supported_outlined, color: muted));
   }
 
-  Future<void> _showPhoto(
-    BuildContext context,
-    WorkOrderPhoto photo,
-  ) async {
+  Future<void> _showPhoto(BuildContext context, WorkOrderPhoto photo) async {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog(
@@ -459,10 +473,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       photo.label,
-                      style: const TextStyle(
-                        color: surface,
-                        fontWeight: FontWeight.w900,
-                      ),
+                      style: const TextStyle(color: surface, fontWeight: FontWeight.w900),
                     ),
                   ),
                   IconButton(
