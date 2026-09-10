@@ -1,0 +1,68 @@
+import 'package:flutter/material.dart';
+
+class WorkOrderStatusChip extends StatelessWidget {
+  final String status;
+  final bool waiting;
+  final bool finished;
+
+  const WorkOrderStatusChip({
+    super.key,
+    required this.status,
+    required this.waiting,
+    required this.finished,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final label = waiting
+        ? 'Belum dikerjakan'
+        : finished
+            ? 'Selesai'
+            : 'Sedang dikerjakan';
+    final foreground = waiting
+        ? const Color(0xFF8B6100)
+        : finished
+            ? const Color(0xFF16834B)
+            : const Color(0xFF176DA8);
+    final background = waiting
+        ? const Color(0xFFFFF3D8)
+        : finished
+            ? const Color(0xFFE1F5EC)
+            : const Color(0xFFE8F4FC);
+
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Container(
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(100),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              finished ? Icons.check_circle_rounded : Icons.circle,
+              size: finished ? 13 : 7,
+              color: foreground,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: foreground,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
