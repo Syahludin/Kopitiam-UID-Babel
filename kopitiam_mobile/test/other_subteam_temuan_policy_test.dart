@@ -8,54 +8,85 @@ class MixedTemuanRepository extends TemuanRepository {
   Future<List<Map<String, dynamic>>> master(String dataset) async {
     if (dataset == 'Master_Temuan') {
       return const [
-        {'Objek Inspeksi': 'Jaringan', 'Tier': 'Tier 1', 'Temuan': 'Kabel Geser'},
-        {'Objek Inspeksi': 'Jaringan', 'Tier': 'Tier 2', 'Temuan': 'Andongan Rendah'},
-        {'Objek Inspeksi': 'Gardu', 'Tier': 'Tier 1', 'Temuan': 'Trafo Bocor'},
-        {'Objek Inspeksi': 'Gardu', 'Tier': 'Tier 2', 'Temuan': 'Bushing Rusak'},
+        {
+          'Objek Inspeksi': 'Jaringan',
+          'Tier': 'Tier 1',
+          'Temuan': 'Kabel Geser',
+        },
+        {
+          'Objek Inspeksi': 'Jaringan',
+          'Tier': 'Tier 2',
+          'Temuan': 'Andongan Rendah',
+        },
+        {
+          'Objek Inspeksi': 'Gardu',
+          'Tier': 'Tier 1',
+          'Temuan': 'Trafo Bocor',
+        },
+        {
+          'Objek Inspeksi': 'Gardu',
+          'Tier': 'Tier 2',
+          'Temuan': 'Bushing Rusak',
+        },
       ];
     }
     return const [];
   }
 }
 
-DropdownButtonFormField<String> field(WidgetTester tester, String label) =>
-    tester.widget<DropdownButtonFormField<String>>(
-      find.byWidgetPredicate(
-        (widget) => widget is DropdownButtonFormField<String> && widget.decoration.labelText == label,
-      ),
-    );
+Finder fieldFinder(String label) => find.byWidgetPredicate(
+  (widget) =>
+      widget is DropdownButtonFormField<String> &&
+      widget.decoration.labelText == label,
+);
+
+DropdownButtonFormField<String> field(
+  WidgetTester tester,
+  String label,
+) => tester.widget<DropdownButtonFormField<String>>(fieldFinder(label));
 
 void main() {
-  testWidgets('other sub-team selects object then tier before finding', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: TemuanFormScreen.c4a(
-          sesi: const {
-            'subTim': 'Har Jaringan',
-            'kodeUp3': '161',
-            'kodeUlp': '16140',
-            'username': 'petugas.har',
-          },
-          repository: MixedTemuanRepository(),
+  testWidgets(
+    'other sub-team selects object then tier before finding',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TemuanFormScreen.c4a(
+            sesi: const {
+              'subTim': 'Har Jaringan',
+              'kodeUp3': '161',
+              'kodeUlp': '16140',
+              'username': 'petugas.har',
+            },
+            repository: MixedTemuanRepository(),
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    final object = field(tester, 'Jenis Object *');
-    expect(object.initialValue, isNull);
-    expect(field(tester, 'Tier *').onChanged, isNull);
-    expect(field(tester, 'Nama Temuan *').onChanged, isNull);
+      final object = field(tester, 'Jenis Object *');
+      expect(object.initialValue, isNull);
+      expect(field(tester, 'Tier *').onChanged, isNull);
+      expect(field(tester, 'Nama Temuan *').onChanged, isNull);
 
-    object.onChanged!('Gardu');
-    await tester.pump();
-    final tier = field(tester, 'Tier *');
-    expect(tier.onChanged, isNotNull);
+      object.onChanged!('Gardu');
+      await tester.pump();
+      final tier = field(tester, 'Tier *');
+      expect(tier.onChanged, isNotNull);
 
-    tier.onChanged!('Tier 1');
-    await tester.pump();
-    final findings = field(tester, 'Nama Temuan *');
-    expect(findings.items!.map((item) => item.value), ['Trafo Bocor']);
-    expect(findings.onChanged, isNotNull);
-  });
+      tier.onChanged!('Tier 1');
+      await tester.pump();
+      expect(field(tester, 'Nama Temuan *').onChanged, isNotNull);
+
+      await tester.ensureVisible(fieldFinder('Nama Temuan *'));
+      await tester.pumpAndSettle();
+      await tester.tap(fieldFinder('Nama Temuan *'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Trafo Bocor'), findsOneWidget);
+      expect(find.text('Kabel Geser'), findsNothing);
+      expect(find.text('Andongan Rendah'), findsNothing);
+      expect(find.text('Bushing Rusak'), findsNothing);
+    },
+  );
 }
