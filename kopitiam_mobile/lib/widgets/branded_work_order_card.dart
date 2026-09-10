@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'work_order_start_dialog.dart';
+
 class WorkOrderPhoto {
   final String label;
   final String source;
@@ -70,27 +72,16 @@ class BrandedWorkOrderCard extends StatelessWidget {
   }
 
   Future<void> _start(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Mulai Work Order?'),
-        content: const Text(
-          'Pastikan Work Order yang dipilih sudah benar. Setelah dikonfirmasi, WO akan di mulai untuk dikerjakan',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Konfirmasi'),
-          ),
-        ],
-      ),
+    final confirmed = await showWorkOrderStartDialog(
+      context,
+      code: code,
+      module: typeLabel,
+      title: finding.trim().isEmpty ? feeder : finding,
+      detail: [feeder, section]
+          .where((value) => value.trim().isNotEmpty)
+          .join(' • '),
     );
-    if (confirmed == true) onStart();
+    if (confirmed) onStart();
   }
 
   @override
@@ -104,11 +95,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: line),
         boxShadow: const [
-          BoxShadow(
-            color: Color(0x18063B5C),
-            blurRadius: 24,
-            offset: Offset(0, 10),
-          ),
+          BoxShadow(color: Color(0x18063B5C), blurRadius: 24, offset: Offset(0, 10)),
         ],
       ),
       child: Column(
@@ -176,11 +163,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
                 code,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: surface,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                ),
+                style: const TextStyle(color: surface, fontSize: 15, fontWeight: FontWeight.w900),
               ),
             ),
             const SizedBox(width: 12),
@@ -192,11 +175,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
               ),
               child: Text(
                 typeLabel,
-                style: const TextStyle(
-                  color: yellow,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                ),
+                style: const TextStyle(color: yellow, fontSize: 10, fontWeight: FontWeight.w900),
               ),
             ),
           ],
@@ -208,20 +187,14 @@ class BrandedWorkOrderCard extends StatelessWidget {
         child: Container(
           height: 32,
           padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: warningSurface,
-            borderRadius: BorderRadius.circular(100),
-          ),
+          decoration: BoxDecoration(color: warningSurface, borderRadius: BorderRadius.circular(100)),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 7,
                 height: 7,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFB57900),
-                  shape: BoxShape.circle,
-                ),
+                decoration: const BoxDecoration(color: Color(0xFFB57900), shape: BoxShape.circle),
               ),
               const SizedBox(width: 6),
               Flexible(
@@ -229,11 +202,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
                   text,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF8B6100),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: const TextStyle(color: Color(0xFF8B6100), fontSize: 11, fontWeight: FontWeight.w800),
                 ),
               ),
             ],
@@ -260,14 +229,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
                     children: [
                       Icon(Icons.location_on_outlined, size: 15, color: logoBlue),
                       SizedBox(width: 5),
-                      Text(
-                        'Lokasi',
-                        style: TextStyle(
-                          color: logoBlue,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
+                      Text('Lokasi', style: TextStyle(color: logoBlue, fontSize: 11, fontWeight: FontWeight.w900)),
                     ],
                   ),
                 ),
@@ -292,26 +254,13 @@ class BrandedWorkOrderCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'TEMUAN',
-                    style: TextStyle(
-                      color: Color(0xFF8B6100),
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: .8,
-                    ),
-                  ),
+                  const Text('TEMUAN', style: TextStyle(color: Color(0xFF8B6100), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: .8)),
                   const SizedBox(height: 3),
                   Text(
                     finding.trim().isEmpty ? 'Temuan belum tersedia' : finding,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: ink,
-                      fontSize: 16,
-                      height: 1.2,
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: const TextStyle(color: ink, fontSize: 16, height: 1.2, fontWeight: FontWeight.w900),
                   ),
                 ],
               ),
@@ -322,11 +271,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
             feeder.trim().isEmpty ? 'Penyulang belum tersedia' : feeder,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: ink,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
+            style: const TextStyle(color: ink, fontSize: 12, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
           Text(
@@ -348,14 +293,9 @@ class BrandedWorkOrderCard extends StatelessWidget {
                   backgroundColor: yellow,
                   foregroundColor: ink,
                   padding: const EdgeInsets.symmetric(horizontal: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(13),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
                 ),
-                child: const Text(
-                  'Mulai',
-                  style: TextStyle(fontWeight: FontWeight.w900),
-                ),
+                child: const Text('Mulai', style: TextStyle(fontWeight: FontWeight.w900)),
               )
             : OutlinedButton(
                 onPressed: onOpen,
@@ -363,14 +303,9 @@ class BrandedWorkOrderCard extends StatelessWidget {
                   foregroundColor: logoBlue,
                   side: const BorderSide(color: logoBlue),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(13),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
                 ),
-                child: Text(
-                  finished ? 'Lihat' : 'Lanjutkan',
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
+                child: Text(finished ? 'Lihat' : 'Lanjutkan', style: const TextStyle(fontWeight: FontWeight.w900)),
               ),
       );
 
@@ -392,14 +327,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                     color: const Color(0xD907344B),
-                    child: Text(
-                      photo.label,
-                      style: const TextStyle(
-                        color: surface,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                    child: Text(photo.label, style: const TextStyle(color: surface, fontSize: 10, fontWeight: FontWeight.w800)),
                   ),
                 ),
               ],
@@ -424,11 +352,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
                   date.trim().isEmpty ? 'Belum tersedia' : date,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: ink,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: const TextStyle(color: ink, fontSize: 11, fontWeight: FontWeight.w800),
                 ),
               ),
             ],
@@ -438,9 +362,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
 
   Widget _image(String source) {
     final path = source.trim();
-    if (path.isEmpty) {
-      return const Center(child: Icon(Icons.image_not_supported_outlined, color: muted));
-    }
+    if (path.isEmpty) return const Center(child: Icon(Icons.image_not_supported_outlined, color: muted));
     final file = File(path);
     if (file.existsSync()) return Image.file(file, fit: BoxFit.cover);
     final uri = Uri.tryParse(path);
@@ -448,8 +370,7 @@ class BrandedWorkOrderCard extends StatelessWidget {
       return Image.network(
         path,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) =>
-            const Center(child: Icon(Icons.broken_image_outlined, color: muted)),
+        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image_outlined, color: muted)),
       );
     }
     return const Center(child: Icon(Icons.image_not_supported_outlined, color: muted));
@@ -470,17 +391,8 @@ class BrandedWorkOrderCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      photo.label,
-                      style: const TextStyle(color: surface, fontWeight: FontWeight.w900),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(dialogContext),
-                    color: surface,
-                    icon: const Icon(Icons.close),
-                  ),
+                  Expanded(child: Text(photo.label, style: const TextStyle(color: surface, fontWeight: FontWeight.w900))),
+                  IconButton(onPressed: () => Navigator.pop(dialogContext), color: surface, icon: const Icon(Icons.close)),
                 ],
               ),
               ClipRRect(

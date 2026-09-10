@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'work_order_start_dialog.dart';
+
 class BrandedInspectionWorkOrderCard extends StatelessWidget {
   static const ink = Color(0xFF071F33);
   static const logoBlue = Color(0xFF004D8C);
@@ -45,8 +47,7 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
   Future<void> _openMap(BuildContext context) async {
     final uri = Uri.tryParse(mapUrl);
     if (uri == null || mapUrl.isEmpty) return;
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
-        context.mounted) {
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Google Maps tidak dapat dibuka.')),
       );
@@ -54,27 +55,16 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
   }
 
   Future<void> _start(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Mulai Work Order?'),
-        content: const Text(
-          'Pastikan Work Order yang dipilih sudah benar. Setelah dikonfirmasi, WO akan di mulai untuk dikerjakan',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Konfirmasi'),
-          ),
-        ],
-      ),
+    final confirmed = await showWorkOrderStartDialog(
+      context,
+      code: code,
+      module: typeLabel,
+      title: title,
+      detail: [subtitle, section]
+          .where((value) => value.trim().isNotEmpty)
+          .join(' • '),
     );
-    if (confirmed == true) onStart();
+    if (confirmed) onStart();
   }
 
   @override
@@ -86,11 +76,7 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           border: Border.all(color: line),
           boxShadow: const [
-            BoxShadow(
-              color: Color(0x18063B5C),
-              blurRadius: 24,
-              offset: Offset(0, 10),
-            ),
+            BoxShadow(color: Color(0x18063B5C), blurRadius: 24, offset: Offset(0, 10)),
           ],
         ),
         child: Column(
@@ -149,11 +135,7 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
                 code,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: surface,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                ),
+                style: const TextStyle(color: surface, fontSize: 15, fontWeight: FontWeight.w900),
               ),
             ),
             const SizedBox(width: 12),
@@ -163,14 +145,7 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(100),
                 border: Border.all(color: const Color(0x99D6A93A)),
               ),
-              child: Text(
-                typeLabel,
-                style: const TextStyle(
-                  color: yellow,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
+              child: Text(typeLabel, style: const TextStyle(color: yellow, fontSize: 10, fontWeight: FontWeight.w900)),
             ),
           ],
         ),
@@ -181,20 +156,14 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
         child: Container(
           height: 32,
           padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: warningSurface,
-            borderRadius: BorderRadius.circular(100),
-          ),
+          decoration: BoxDecoration(color: warningSurface, borderRadius: BorderRadius.circular(100)),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 7,
                 height: 7,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFB57900),
-                  shape: BoxShape.circle,
-                ),
+                decoration: const BoxDecoration(color: Color(0xFFB57900), shape: BoxShape.circle),
               ),
               const SizedBox(width: 6),
               Flexible(
@@ -202,11 +171,7 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
                   waiting ? 'Belum dikerjakan' : status,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF8B6100),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: const TextStyle(color: Color(0xFF8B6100), fontSize: 11, fontWeight: FontWeight.w800),
                 ),
               ),
             ],
@@ -231,20 +196,9 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        size: 15,
-                        color: logoBlue,
-                      ),
+                      const Icon(Icons.location_on_outlined, size: 15, color: logoBlue),
                       const SizedBox(width: 5),
-                      Text(
-                        locationLabel,
-                        style: const TextStyle(
-                          color: logoBlue,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
+                      Text(locationLabel, style: const TextStyle(color: logoBlue, fontSize: 11, fontWeight: FontWeight.w900)),
                     ],
                   ),
                 ),
@@ -261,12 +215,7 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: ink,
-              fontSize: 18,
-              height: 1.2,
-              fontWeight: FontWeight.w900,
-            ),
+            style: const TextStyle(color: ink, fontSize: 18, height: 1.2, fontWeight: FontWeight.w900),
           ),
           if (subtitle.trim().isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -274,11 +223,7 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
               subtitle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: ink,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
+              style: const TextStyle(color: ink, fontSize: 12, fontWeight: FontWeight.w800),
             ),
           ],
           if (section.trim().isNotEmpty) ...[
@@ -303,28 +248,18 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
                   backgroundColor: yellow,
                   foregroundColor: ink,
                   padding: const EdgeInsets.symmetric(horizontal: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(13),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
                 ),
-                child: const Text(
-                  'Mulai',
-                  style: TextStyle(fontWeight: FontWeight.w900),
-                ),
+                child: const Text('Mulai', style: TextStyle(fontWeight: FontWeight.w900)),
               )
             : OutlinedButton(
                 onPressed: onOpen,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: logoBlue,
                   side: const BorderSide(color: logoBlue),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(13),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
                 ),
-                child: Text(
-                  finished ? 'Lihat' : 'Lanjutkan',
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
+                child: Text(finished ? 'Lihat' : 'Lanjutkan', style: const TextStyle(fontWeight: FontWeight.w900)),
               ),
       );
 
@@ -332,21 +267,14 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
         children: [
           const Icon(Icons.schedule_rounded, size: 15, color: muted),
           const SizedBox(width: 7),
-          const Text(
-            'Tanggal WO',
-            style: TextStyle(color: muted, fontSize: 11),
-          ),
+          const Text('Tanggal WO', style: TextStyle(color: muted, fontSize: 11)),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
               date.trim().isEmpty ? 'Belum tersedia' : date,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: ink,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              ),
+              style: const TextStyle(color: ink, fontSize: 11, fontWeight: FontWeight.w800),
             ),
           ),
         ],
