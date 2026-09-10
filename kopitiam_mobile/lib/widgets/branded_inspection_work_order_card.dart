@@ -44,12 +44,7 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
 
   Future<void> _openMap(BuildContext context) async {
     final uri = Uri.tryParse(mapUrl);
-    if (uri == null || mapUrl.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lokasi Work Order belum tersedia.')),
-      );
-      return;
-    }
+    if (uri == null || mapUrl.isEmpty) return;
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
         context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,52 +96,7 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              constraints: const BoxConstraints(minHeight: 72),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF176DA8), logoBlue, Color(0xFF004279)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      code,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: surface,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 11,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(100),
-                      border: Border.all(color: const Color(0x99D6A93A)),
-                    ),
-                    child: Text(
-                      typeLabel,
-                      style: const TextStyle(
-                        color: yellow,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _header(),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
               child: Column(
@@ -156,125 +106,70 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(child: _statusChip()),
-                      const SizedBox(width: 12),
-                      _locationButton(context),
+                      if (mapUrl.trim().isNotEmpty) ...[
+                        const SizedBox(width: 12),
+                        _locationButton(context),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 10),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: ink,
-                                fontSize: 18,
-                                height: 1.2,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            if (subtitle.trim().isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Text(
-                                subtitle,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: ink,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                            if (section.trim().isNotEmpty) ...[
-                              SizedBox(height: subtitle.trim().isEmpty ? 8 : 4),
-                              Text(
-                                section,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: muted,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
+                      Expanded(child: _details()),
                       const SizedBox(width: 14),
-                      SizedBox(
-                        height: 48,
-                        child: waiting
-                            ? ElevatedButton(
-                                onPressed: () => _start(context),
-                                style: ElevatedButton.styleFrom(
-                                  elevation: 0,
-                                  backgroundColor: yellow,
-                                  foregroundColor: ink,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 18,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(13),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Mulai',
-                                  style: TextStyle(fontWeight: FontWeight.w900),
-                                ),
-                              )
-                            : OutlinedButton(
-                                onPressed: onOpen,
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: logoBlue,
-                                  side: const BorderSide(color: logoBlue),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(13),
-                                  ),
-                                ),
-                                child: Text(
-                                  finished ? 'Lihat' : 'Lanjutkan',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ),
-                      ),
+                      _primaryAction(context),
                     ],
                   ),
                   const SizedBox(height: 12),
                   const Divider(height: 1, color: line),
                   const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      const Icon(Icons.schedule_rounded, size: 15, color: muted),
-                      const SizedBox(width: 7),
-                      const Text(
-                        'Tanggal WO',
-                        style: TextStyle(color: muted, fontSize: 11),
-                      ),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          date.trim().isEmpty ? 'Belum tersedia' : date,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: ink,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  _dateRow(),
                 ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _header() => Container(
+        constraints: const BoxConstraints(minHeight: 72),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF176DA8), logoBlue, Color(0xFF004279)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                code,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: surface,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(100),
+                border: Border.all(color: const Color(0x99D6A93A)),
+              ),
+              child: Text(
+                typeLabel,
+                style: const TextStyle(
+                  color: yellow,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ],
@@ -357,5 +252,103 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
             ),
           ),
         ),
+      );
+
+  Widget _details() => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: ink,
+              fontSize: 18,
+              height: 1.2,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          if (subtitle.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: ink,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+          if (section.trim().isNotEmpty) ...[
+            SizedBox(height: subtitle.trim().isEmpty ? 8 : 4),
+            Text(
+              section,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: muted, fontSize: 11),
+            ),
+          ],
+        ],
+      );
+
+  Widget _primaryAction(BuildContext context) => SizedBox(
+        height: 48,
+        child: waiting
+            ? ElevatedButton(
+                onPressed: () => _start(context),
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  backgroundColor: yellow,
+                  foregroundColor: ink,
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                ),
+                child: const Text(
+                  'Mulai',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              )
+            : OutlinedButton(
+                onPressed: onOpen,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: logoBlue,
+                  side: const BorderSide(color: logoBlue),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                ),
+                child: Text(
+                  finished ? 'Lihat' : 'Lanjutkan',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+      );
+
+  Widget _dateRow() => Row(
+        children: [
+          const Icon(Icons.schedule_rounded, size: 15, color: muted),
+          const SizedBox(width: 7),
+          const Text(
+            'Tanggal WO',
+            style: TextStyle(color: muted, fontSize: 11),
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              date.trim().isEmpty ? 'Belum tersedia' : date,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: ink,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
       );
 }
