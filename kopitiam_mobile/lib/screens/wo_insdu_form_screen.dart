@@ -35,7 +35,8 @@ class _WoInsduFormScreenState extends State<WoInsduFormScreen>
   bool _finish = false;
 
   WoInsdu get wo => widget.existing;
-  bool get readOnly => WoInsdu.normalisasiStatus(wo.statusWo) == WoInsdu.statusSelesai;
+  bool get readOnly =>
+      WoInsdu.normalisasiStatus(wo.statusWo) == WoInsdu.statusSelesai;
 
   static const numericLabels = <String, String>{
     'bebanUtamaRWbp': 'Beban Utama R (A) WBP',
@@ -104,8 +105,11 @@ class _WoInsduFormScreenState extends State<WoInsduFormScreen>
       'jumperanBawah': wo.jumperanBawah,
     };
     for (final entry in initial.entries) {
+      final raw = entry.value == null ? '' : '${entry.value}';
       _fields[entry.key] = TextEditingController(
-        text: entry.value == null ? '' : '${entry.value}',
+        text: numericLabels.containsKey(entry.key)
+            ? raw.replaceAll('.', ',')
+            : raw,
       );
     }
   }
@@ -118,6 +122,19 @@ class _WoInsduFormScreenState extends State<WoInsduFormScreen>
     }
     super.dispose();
   }
+
+  String? _decimalError(String key) {
+    final text = _fields[key]!.text.trim();
+    if (text.isEmpty) return null;
+    if (text.contains('.')) return 'Gunakan (,) sebagai pemisah';
+    if (!RegExp(r'^\d+(,\d+)?$').hasMatch(text)) {
+      return 'Masukkan angka yang valid';
+    }
+    return null;
+  }
+
+  bool get _hasDecimalError =>
+      numericLabels.keys.any((key) => _decimalError(key) != null);
 
   double? _number(String key) {
     final text = _fields[key]!.text.trim().replaceAll(',', '.');
@@ -150,6 +167,11 @@ class _WoInsduFormScreenState extends State<WoInsduFormScreen>
 
   Future<void> _save() async {
     if (_saving || readOnly) return;
+    if (_hasDecimalError) {
+      setState(() {});
+      _message('Perbaiki kolom merah. Gunakan (,) sebagai pemisah.');
+      return;
+    }
     setState(() => _saving = true);
     try {
       final now = DateTime.now();
@@ -389,7 +411,8 @@ class _WoInsduFormScreenState extends State<WoInsduFormScreen>
   Widget _inputGroup(
     String title,
     Iterable<MapEntry<String, String>> entries,
-  ) => _card(
+  ) =>
+      _card(
         title,
         entries
             .map(
@@ -401,10 +424,34 @@ class _WoInsduFormScreenState extends State<WoInsduFormScreen>
                   keyboardType: numericLabels.containsKey(entry.key)
                       ? const TextInputType.numberWithOptions(decimal: true)
                       : TextInputType.text,
+                  onChanged: numericLabels.containsKey(entry.key)
+                      ? (_) => setState(() {})
+                      : null,
                   decoration: InputDecoration(
                     labelText: entry.value,
+                    errorText: numericLabels.containsKey(entry.key)
+                        ? _decimalError(entry.key)
+                        : null,
+                    errorStyle: const TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.w700,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Colors.red,
+                        width: 1.5,
+                      ),
+                    ),
+                    focusedErrorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Colors.red,
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
