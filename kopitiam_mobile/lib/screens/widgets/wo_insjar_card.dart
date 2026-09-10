@@ -40,10 +40,10 @@ class WoInsjarCard extends StatelessWidget {
       code: wo.kodeWo,
       typeLabel: 'INSPEKSI JARINGAN',
       status: status,
-      title: wo.penyulang.trim().isEmpty ? 'Penyulang belum tersedia' : wo.penyulang,
-      subtitle: [wo.sectionAwal.trim(), wo.sectionAkhir.trim()]
-          .where((value) => value.isNotEmpty)
-          .join(' → '),
+      title: wo.penyulang.trim().isEmpty
+          ? 'Penyulang belum tersedia'
+          : wo.penyulang,
+      subtitle: '',
       section: _section,
       date: wo.tanggal,
       mapUrl: _mapUrl,

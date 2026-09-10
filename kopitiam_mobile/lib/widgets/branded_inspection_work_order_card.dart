@@ -179,27 +179,31 @@ class BrandedInspectionWorkOrderCard extends StatelessWidget {
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              subtitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: ink,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
+                            if (subtitle.trim().isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                subtitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: ink,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              section,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: muted,
-                                fontSize: 11,
+                            ],
+                            if (section.trim().isNotEmpty) ...[
+                              SizedBox(height: subtitle.trim().isEmpty ? 8 : 4),
+                              Text(
+                                section,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: muted,
+                                  fontSize: 11,
+                                ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       ),
