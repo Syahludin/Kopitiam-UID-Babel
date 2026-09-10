@@ -7,7 +7,10 @@ function masterObjectCategory_(value) {
 }
 
 function masterObjectForSession_(session) {
-  return masterObjectCategory_((session.subTim || session.tim || '') + ' ' + (session.username || ''));
+  var identity = normalize_((session.subTim || session.tim || '') + ' ' + (session.username || ''));
+  if (identity.indexOf('inspeksi jaringan') >= 0 || identity.indexOf('insjar') >= 0) return 'jaringan';
+  if (identity.indexOf('inspeksi gardu') >= 0 || identity.indexOf('insdu') >= 0) return 'gardu';
+  return '';
 }
 
 function masterTemuanObject_(headers, row) {
