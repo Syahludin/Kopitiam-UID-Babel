@@ -134,7 +134,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     await openAccordion(tester);
-    await tester.tap(find.text('Coba Ulang'));
+    final retry = find.text('Coba Ulang');
+    await tester.ensureVisible(retry);
+    await tester.pumpAndSettle();
+    await tester.tap(retry);
     await tester.pumpAndSettle();
 
     expect(db.metadata['Master_Gardu']?['status'], 'success');
